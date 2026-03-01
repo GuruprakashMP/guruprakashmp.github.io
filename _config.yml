@@ -27,7 +27,7 @@ author:
   name             : "Guruprakash M P"
   pronouns         : # example: "she/her"  
   bio              : "Marie Skłodowska-Curie Actions Doctoral Student in Data-Driven Catalysis at CiQUS, University of Santiago de Compostela, Spain."
-  location         : "Santiago de Compostela"
+  location         : #"Santiago de Compostela"
   employer         : "Fañanás Mastral Lab"
   uri              : # URL
   email            : "guruprakash29011999@gmail.com" 
