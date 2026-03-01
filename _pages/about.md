@@ -9,7 +9,7 @@ redirect_from:
 
 ## About Me
 
-I am a **Marie Curie PhD Fellow** in the [CATALOOP Doctoral Network](https://www.ciqs.usc.es/) at **CiQUS, University of Santiago de Compostela, Spain**, under the supervision of [Prof. Martín Fañanás-Mastral](martin.fananas@usc.es). My research focuses on **data-driven stereodivergent Cu-NHC catalysed borylative couplings** for enantioselective skipped dienes, integrating experimental organic synthesis with computational and machine learning approaches.
+I am a **Marie Curie PhD Fellow** in the [CATALOOP Doctoral Network](https://www.tu-chemnitz.de/cataloop/) at [**CiQUS, University of Santiago de Compostela**](https://www.usc.es/ciqus/en), Spain, under the supervision of [Prof. Martín Fañanás-Mastral](https://fananasmastralgroup.com/). My research focuses on **data-driven stereodivergent Cu-NHC catalysed borylative couplings** for enantioselective skipped dienes, integrating experimental organic synthesis with computational and machine learning approaches.
 
 Prior to my PhD, I worked as a **Junior Research Fellow (JRF)** at **IIT Madras** under Dr. P. Anbarasan, where I worked on the synthesis of novel spiro Cp chiral catalysts for asymmetric C–H activation and DFT mechanistic studies.
 
