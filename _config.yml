@@ -26,7 +26,7 @@ author:
   avatar           : "file.png"
   name             : "Guruprakash M P"
   pronouns         : # example: "she/her"  
-  bio              : "PhD Researcher in Data-Driven Cu/NHC Catalysis at CiQUS, University of Santiago de Compostela, Spain."
+  bio              : "Marie Skłodowska-Curie Actions Doctoral Student in Data-Driven Catalysis at CiQUS, University of Santiago de Compostela, Spain."
   location         : "Santiago de Compostela"
   employer         : "Fañanás Mastral Lab"
   uri              : # URL
@@ -41,7 +41,7 @@ author:
   orcid            : "https://orcid.org/0009-0001-6387-6726"
   semantic         : # URL
   pubmed           : #"https://www.ncbi.nlm.nih.gov/pubmed/?term=john+snow"
-  researchgate     :  "https://www.researchgate.net/profile/Guruprakash-Muthu-Pargunapermal?ev=hdr_xprf"
+  researchgate     : #"https://www.researchgate.net/profile/Guruprakash-Muthu-Pargunapermal?ev=hdr_xprf"
   scopus           : # URL
 
   # Repositories and software development
