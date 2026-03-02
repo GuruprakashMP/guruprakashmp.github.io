@@ -1,20 +1,11 @@
 ---
-title: "Teaching experience 1"
+title: "Teaching Assistant — Laboratory Classes"
 collection: teaching
-type: "Undergraduate course"
-permalink: /teaching/2014-spring-teaching-1
-venue: "University 1, Department"
-date: 2014-01-01
-location: "City, Country"
+type: "Graduate & Undergraduate Laboratory"
+permalink: /teaching/2021-ta-iit-madras
+venue: "Indian Institute of Technology Madras, Department of Chemistry"
+date: 2021-01-01
+location: "Chennai, India"
 ---
 
-This is a description of a teaching experience. You can use markdown like any other post.
-
-Heading 1
-======
-
-Heading 2
-======
-
-Heading 3
-======
+Served as Teaching Assistant for BTech and MSc laboratory classes at IIT Madras under the supervision of Dr. P. Anbarasan. Responsibilities included guiding students through experimental procedures, demonstrating laboratory techniques, and evaluating lab reports.
