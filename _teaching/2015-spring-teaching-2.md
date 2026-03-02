@@ -1,20 +1,11 @@
 ---
-title: "Teaching experience 2"
+title: "Private Chemistry Tutor"
 collection: teaching
-type: "Workshop"
-permalink: /teaching/2015-spring-teaching-1
-venue: "University 1, Department"
-date: 2015-01-01
-location: "City, Country"
+type: "School & Undergraduate Tutoring"
+permalink: /teaching/2016-private-tuition
+venue: "Private Tuition Centre"
+date: 2016-01-01
+location: "Tiruchendur, India"
 ---
 
-This is a description of a teaching experience. You can use markdown like any other post.
-
-Heading 1
-======
-
-Heading 2
-======
-
-Heading 3
-======
+Conducted private chemistry tutoring sessions for school and undergraduate students from 2016 to 2019, covering core topics in organic, inorganic, and physical chemistry.
