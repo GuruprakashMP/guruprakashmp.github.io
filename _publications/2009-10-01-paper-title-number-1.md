@@ -1,14 +1,12 @@
 ---
-title: "Paper Title Number 1"
+title: "Enantiodivergent Synthesis of 3-Vinylphthalides via Rh-Catalyzed C–H Annulation: Experimental and Computational Studies"
 collection: publications
 category: manuscripts
-permalink: /publication/2009-10-01-paper-title-number-1
-excerpt: 'This paper is about the number 1. The number 2 is left for future work.'
-date: 2009-10-01
-venue: 'Journal 1'
-slidesurl: 'http://academicpages.github.io/files/slides1.pdf'
-paperurl: 'http://academicpages.github.io/files/paper1.pdf'
-bibtexurl: 'http://academicpages.github.io/files/bibtex1.bib'
-citation: 'Your Name, You. (2009). &quot;Paper Title Number 1.&quot; <i>Journal 1</i>. 1(1).'
+permalink: /publication/2026-enantiodivergent-vinylphthalides
+date: 2026-01-01
+venue: "Chemistry – A European Journal"
+paperurl: "https://doi.org/10.1002/chem.202502827"
+citation: "Bakkiyaraj, M.; Guruprakash, M. P.; Anbarasan, P. <i>Chemistry – A European Journal</i>, 2026, e202502827."
 ---
-The contents above will be part of a list of publications, if the user clicks the link for the publication than the contents of section will be rendered as a full page, allowing you to provide more information about the paper for the reader. When publications are displayed as a single page, the contents of the above "citation" field will automatically be included below this section in a smaller font.
+
+This work reports the enantiodivergent synthesis of 3-vinylphthalides via Rhodium-catalyzed C–H annulation, combining experimental synthesis with computational mechanistic studies.
