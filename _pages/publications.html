@@ -1,12 +1,30 @@
 ---
-title: "Enantiodivergent Synthesis of 3-Vinylphthalides via Rh-Catalyzed C–H Annulation: Experimental and Computational Studies"
-collection: publications
-category: manuscripts
-permalink: /publication/2026-enantiodivergent-vinylphthalides
-date: 2026-01-01
-venue: "Chemistry – A European Journal"
-paperurl: "https://doi.org/10.1002/chem.202502827"
-citation: "Bakkiyaraj, M.; Guruprakash, M. P.; Anbarasan, P. <i>Chemistry – A European Journal</i>, 2026, e202502827."
+layout: archive
+title: "Publications"
+permalink: /publications/
+author_profile: true
 ---
-
-This work reports the enantiodivergent synthesis of 3-vinylphthalides via Rhodium-catalyzed C–H annulation, combining experimental synthesis with computational mechanistic studies.
+{% if site.author.googlescholar %}
+  <div class="wordwrap">You can also find my articles on <a href="{{site.author.googlescholar}}">my Google Scholar profile</a>.</div>
+{% endif %}
+{% include base_path %}
+<!-- New style rendering if publication categories are defined -->
+{% if site.publication_category %}
+  {% for category in site.publication_category  %}
+    {% assign title_shown = false %}
+    {% for post in site.publications reversed %}
+      {% if post.category != category[0] %}
+        {% continue %}
+      {% endif %}
+      {% unless title_shown %}
+        <h2>{{ category[1].title }}</h2><hr />
+        {% assign title_shown = true %}
+      {% endunless %}
+      {% include archive-single.html %}
+    {% endfor %}
+  {% endfor %}
+{% else %}
+  {% for post in site.publications reversed %}
+    {% include archive-single.html %}
+  {% endfor %}
+{% endif %}
