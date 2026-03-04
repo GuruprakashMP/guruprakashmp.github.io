@@ -9,7 +9,7 @@
 # Basic Site Settings
 locale                   : "en-US"
 site_theme               : "air" # Currently available options are "default", "air"
-title                    : "Guruprakash M P"
+title                    : "About GMP"
 title_separator          : "-"
 name                     : &name "Guruprakash M P"
 description              : &description "Guruprakash's Website"   # Update this with a general description of your site, this is the default if not overridden by a page
