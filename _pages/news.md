@@ -11,4 +11,4 @@ author_profile: true
 
 ## 2026
 
-- 📄 **2026** — Published first paper in **Chemistry – A European Journal**: *Enantiodivergent Synthesis of 3-Vinylphthalides via Rh-Catalyzed C–H Annulation* — [DOI: 10.1002/chem.202502827](https://doi.org/10.1002/chem.202502827)
+- 📄 **January 2026** — Published first paper in **Chemistry – A European Journal**: *Enantiodivergent Synthesis of 3-Vinylphthalides via Rh-Catalyzed C–H Annulation* — [DOI: 10.1002/chem.202502827](https://doi.org/10.1002/chem.202502827)
