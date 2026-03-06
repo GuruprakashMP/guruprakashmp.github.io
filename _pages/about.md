@@ -48,13 +48,6 @@ Prior to my PhD, I worked as a **Junior Research Fellow (JRF)** at **IIT Madras*
 
 ---
 
-## News & Updates
-
-- 🎉 **2025** — Started PhD as a Marie Curie Fellow at CiQUS, University of Santiago de Compostela
-- 📄 **2026** — Published in *Chemistry – A European Journal* on Rh-catalyzed C–H Annulation
-
----
-
 ## Teaching & Outreach
 
 - Teaching Assistant for BTech & MSc Laboratory Classes at **IIT Madras**
