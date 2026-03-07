@@ -20,5 +20,5 @@ author_profile: true
 <div style="text-align:center; padding: 20px 0;">
   <img src="https://visitor-badge.laobi.icu/badge?page_id=GuruprakashMP.guruprakashmp.github.io" alt="Visitor Count"/>
   <br><br>
-  <script type="text/javascript" id="mapmyvisitors" src="//mapmyvisitors.com/map.js?d=Thkdcv0ILFiwVdvbCE-SlGnFp84WcLDMlZAKiCYjbxE&cl=ffffff&w=a"></script>
+  <script type="text/javascript" id="mmvst_globe" src="//mapmyvisitors.com/globe.js?d=_dkf-NAzynK9sTsLtiJncd9kWO5UPUAnfrdxwbjVf0M"></script>
 </div>
