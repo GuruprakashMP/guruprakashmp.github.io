@@ -17,7 +17,7 @@ author_profile: true
 
 ## Visitor Map
 
-<div style="text-align:center; padding: 20px 0;">
+<div style="text-align:center; padding: 10px 0; max-width: 400px; margin: 0 auto;">
   <img src="https://visitor-badge.laobi.icu/badge?page_id=GuruprakashMP.guruprakashmp.github.io" alt="Visitor Count"/>
   <br><br>
   <script type="text/javascript" id="mmvst_globe" src="//mapmyvisitors.com/globe.js?d=_dkf-NAzynK9sTsLtiJncd9kWO5UPUAnfrdxwbjVf0M"></script>
