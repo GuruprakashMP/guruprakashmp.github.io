@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Molecule Viewer</title>
+<script src="https://3dmol.org/build/3Dmol-min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  padding: 16px;
+  min-height: 100vh;
+}
+.title { font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
+.subtitle { font-size: 0.75rem; color: #8b949e; margin-bottom: 16px; font-family: monospace; }
+
+/* Upload zone */
+#dropzone {
+  border: 2px dashed #30363d;
+  border-radius: 10px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  color: #8b949e;
+  font-size: 0.8rem;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+}
+#dropzone:hover, #dropzone.over {
+  border-color: #38bdf8; color: #38bdf8;
+  background: rgba(56,189,248,0.04);
+}
+.tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
+.tag {
+  background: #21262d; color: #8b949e;
+  font-family: monospace; font-size: 0.68rem;
+  padding: 2px 7px; border-radius: 4px; border: 1px solid #30363d;
+}
+
+/* Textarea */
+textarea {
+  width: 100%; height: 110px;
+  background: #161b22; border: 1.5px solid #30363d; border-radius: 8px;
+  color: #c9d1d9; font-family: monospace; font-size: 0.75rem;
+  padding: 10px; resize: vertical; outline: none;
+}
+textarea:focus { border-color: #38bdf8; }
+
+/* Controls row */
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-top: 10px; }
+.field { flex: 1; min-width: 120px; }
+.lbl { font-size: 0.68rem; color: #8b949e; margin-bottom: 4px; font-family: monospace; }
+select {
+  width: 100%; background: #161b22; border: 1.5px solid #30363d;
+  border-radius: 6px; color: #c9d1d9; font-size: 0.78rem;
+  padding: 7px 10px; outline: none; cursor: pointer;
+}
+select:focus { border-color: #38bdf8; }
+
+/* Buttons */
+.btn {
+  padding: 9px 18px; border-radius: 7px; border: none;
+  font-size: 0.8rem; font-weight: 600; cursor: pointer;
+  transition: all 0.2s; white-space: nowrap;
+}
+.btn-primary { background: linear-gradient(135deg,#38bdf8,#0ea5e9); color: #0d1117; }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(56,189,248,0.4); }
+.btn-sec { background: #21262d; color: #c9d1d9; border: 1.5px solid #30363d; }
+.btn-sec:hover { border-color: #38bdf8; color: #38bdf8; }
+.btn-red { background: #21262d; color: #f85149; border: 1.5px solid #30363d; }
+.btn-red:hover { border-color: #f85149; }
+
+/* Toggle buttons */
+.toggle {
+  padding: 7px 12px; border-radius: 7px; border: 1.5px solid #30363d;
+  background: #161b22; color: #8b949e; font-size: 0.78rem;
+  cursor: pointer; transition: all 0.2s; white-space: nowrap;
+}
+.toggle:hover { border-color: #38bdf8; color: #38bdf8; }
+.toggle.on { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.1); }
+
+/* Status */
+#status {
+  display: none; padding: 8px 12px; border-radius: 7px;
+  font-family: monospace; font-size: 0.73rem; margin-top: 10px;
+}
+#status.ok  { background: rgba(63,185,80,0.1);  border: 1px solid #3fb950; color: #3fb950; display: block; }
+#status.err { background: rgba(248,81,73,0.1);  border: 1px solid #f85149; color: #f85149; display: block; }
+#status.inf { background: rgba(56,189,248,0.1); border: 1px solid #38bdf8; color: #38bdf8; display: block; }
+
+/* Info bar */
+#infobar {
+  display: none; padding: 8px 12px; border-radius: 7px;
+  font-family: monospace; font-size: 0.7rem; color: #8b949e;
+  background: #161b22; border: 1px solid #21262d; margin-top: 8px;
+}
+#infobar span { color: #38bdf8; font-weight: bold; }
+
+/* Viewer */
+#viewer {
+  width: 100%; height: 460px;
+  background: #010409; border-radius: 10px;
+  border: 1.5px solid #21262d; margin-top: 12px;
+  position: relative; overflow: hidden;
+}
+#ph {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  color: #30363d; text-align: center; gap: 10px;
+  font-size: 0.8rem; font-family: monospace;
+  pointer-events: none;
+}
+.hint { font-size: 0.65rem; color: #21262d; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="title">⚗️ Molecule Viewer</div>
+<div class="subtitle">// 3D structure visualization · XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES</div>
+
+<!-- Drop zone -->
+<div id="dropzone">
+  <div style="font-size:1.5rem;margin-bottom:6px">📂</div>
+  <div>Drop file here or <strong style="color:#38bdf8;cursor:pointer" id="ubtn">click to upload</strong></div>
+  <div class="tags">
+    <span class="tag">.xyz</span><span class="tag">.log</span><span class="tag">.pdb</span>
+    <span class="tag">.mol</span><span class="tag">.sdf</span><span class="tag">.mol2</span>
+  </div>
+</div>
+<input type="file" id="filein" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.txt">
+
+<textarea id="coords" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG, or SMILES here...
+
+Standard XYZ:        Bare XYZ (Gaussian):
+3                    C  0.47230  2.59480 -0.38060
+water                N  1.44400  1.53050 -0.39220
+O  0.0  0.0  0.0     ...
+H  0.757  0.586  0.0
+H -0.757  0.586  0.0"></textarea>
+
+<!-- Format + Style row -->
+<div class="row">
+  <div class="field">
+    <div class="lbl">FORMAT</div>
+    <select id="fmt">
+      <option value="auto">Auto Detect</option>
+      <option value="xyz">XYZ (standard)</option>
+      <option value="bare">Bare XYZ / Gaussian</option>
+      <option value="pdb">PDB</option>
+      <option value="mol">MOL / SDF</option>
+      <option value="mol2">MOL2</option>
+      <option value="sdf">SDF</option>
+      <option value="smiles">SMILES</option>
+    </select>
+  </div>
+  <div class="field">
+    <div class="lbl">STYLE</div>
+    <select id="sty">
+      <option value="stick">Stick</option>
+      <option value="bs" selected>Ball &amp; Stick</option>
+      <option value="sphere">Space Filling</option>
+      <option value="line">Line</option>
+      <option value="cross">Cross</option>
+    </select>
+  </div>
+  <div class="field">
+    <div class="lbl">COLOUR</div>
+    <select id="col">
+      <option value="Jmol" selected>By Element (CPK)</option>
+      <option value="chain">By Chain</option>
+      <option value="residue">By Residue</option>
+      <option value="spectrum">Rainbow</option>
+    </select>
+  </div>
+  <div class="field">
+    <div class="lbl">SURFACE</div>
+    <select id="sur">
+      <option value="none">No Surface</option>
+      <option value="VDW">Van der Waals</option>
+      <option value="SAS">Solvent Accessible</option>
+      <option value="SES">Solvent Excluded</option>
+    </select>
+  </div>
+</div>
+
+<!-- Buttons row -->
+<div class="row" style="margin-top:10px">
+  <button class="toggle" id="lblbtn" onclick="doToggleLabels()">🏷️ Labels</button>
+  <button class="toggle" id="spnbtn" onclick="doToggleSpin()">🔄 Spin</button>
+  <button class="toggle" id="bgbtn"  onclick="doToggleBg()">🌗 Light BG</button>
+  <button class="btn btn-primary" onclick="doLoad()">▶ Visualise</button>
+  <button class="btn btn-sec" onclick="doSave()">💾 PNG</button>
+  <button class="btn btn-red" onclick="doClear()">✕ Clear</button>
+</div>
+
+<div id="status"></div>
+<div id="infobar"></div>
+
+<div id="viewer">
+  <div id="ph">
+    <div style="font-size:2.5rem;opacity:0.3">⚛️</div>
+    <div>Load a molecule to begin</div>
+    <div class="hint">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES</div>
+  </div>
+</div>
+
+<div style="text-align:center;font-size:0.65rem;color:#21262d;font-family:monospace;margin-top:6px">
+  Drag to rotate · Scroll to zoom · Right-click to translate
+</div>
+
+<script>
+var gv = null, gData = null, gFmt = null;
+var gLabels = false, gSpin = false, gBg = false;
+
+// ── Helpers ──────────────────────────────────────────────
+function setStatus(msg, cls) {
+  var el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls;
+  if (cls !== 'inf') setTimeout(function(){ el.style.display='none'; }, 7000);
+}
+
+function showInfo(atoms, fmt, name) {
+  var el = document.getElementById('infobar');
+  el.innerHTML = 'Atoms: <span>' + atoms + '</span> &nbsp;|&nbsp; Format: <span>' + fmt + '</span> &nbsp;|&nbsp; Name: <span>' + name + '</span>';
+  el.style.display = 'block';
+}
+
+// ── Format converters ─────────────────────────────────────
+var ANUM = {1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',
+            11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',
+            19:'K',20:'Ca',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',
+            35:'Br',46:'Pd',47:'Ag',53:'I',78:'Pt',79:'Au',80:'Hg'};
+
+var ELEMS = {};
+'H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Pd Ag In Sn Te I Xe Cs Ba La Pt Au Hg Pb Bi U'.split(' ')
+  .forEach(function(e){ ELEMS[e.toLowerCase()] = e; });
+
+function bareToXYZ(text) {
+  var lines = text.trim().split(/\r?\n/);
+  var rows = [];
+  for (var i = 0; i < lines.length; i++) {
+    var p = lines[i].trim().split(/\s+/);
+    var elem = null, x, y, z;
+    // style: ELEM x y z
+    if (p.length >= 4 && ELEMS[p[0].toLowerCase()]) {
+      elem = ELEMS[p[0].toLowerCase()];
+      x = parseFloat(p[1]); y = parseFloat(p[2]); z = parseFloat(p[3]);
+    }
+    // Gaussian table: idx anum atype x y z
+    else if (p.length >= 6 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) {
+      elem = ANUM[parseInt(p[1])] || null;
+      x = parseFloat(p[3]); y = parseFloat(p[4]); z = parseFloat(p[5]);
+    }
+    if (elem && !isNaN(x)) rows.push(elem + ' ' + x.toFixed(5) + ' ' + y.toFixed(5) + ' ' + z.toFixed(5));
+  }
+  if (!rows.length) return null;
+  return rows.length + '\nGenerated\n' + rows.join('\n');
+}
+
+function gaussianToXYZ(text) {
+  var lines = text.split(/\r?\n/);
+  var last = [];
+  for (var i = 0; i < lines.length; i++) {
+    if (lines[i].indexOf('Standard orientation:') !== -1 || lines[i].indexOf('Input orientation:') !== -1) {
+      i += 5; var cur = [];
+      while (i < lines.length && lines[i].indexOf('---') === -1) {
+        var p = lines[i].trim().split(/\s+/);
+        if (p.length >= 6) {
+          var el = ANUM[parseInt(p[1])];
+          if (el) cur.push(el + ' ' + parseFloat(p[3]).toFixed(5) + ' ' + parseFloat(p[4]).toFixed(5) + ' ' + parseFloat(p[5]).toFixed(5));
+        }
+        i++;
+      }
+      if (cur.length) last = cur;
+    }
+  }
+  if (!last.length) return null;
+  return last.length + '\nGaussian last geometry\n' + last.join('\n');
+}
+
+function fixXYZ(text) {
+  var lines = text.trim().split(/\r?\n/);
+  if (!lines.length) return text;
+  var first = lines[0].trim();
+  if (/^\d+$/.test(first) && lines.length > 1) {
+    var second = lines[1].trim().split(/\s+/);
+    // If second line looks like coordinates (has numbers), insert comment
+    if (second.length >= 4 && !isNaN(parseFloat(second[1]))) {
+      return first + '\nmolecule\n' + lines.slice(1).join('\n');
+    }
+  }
+  return text;
+}
+
+function prepare(rawText, hint, filename) {
+  var fmt = hint;
+  if (fmt === 'auto') {
+    if (filename) {
+      var ext = filename.split('.').pop().toLowerCase();
+      if (ext === 'log' || ext === 'gjf' || ext === 'com') fmt = 'gaussian';
+      else if (ext === 'pdb')  fmt = 'pdb';
+      else if (ext === 'mol2') fmt = 'mol2';
+      else if (ext === 'sdf')  fmt = 'sdf';
+      else if (ext === 'mol')  fmt = 'mol';
+      else if (ext === 'xyz')  fmt = 'xyz_check';
+      else fmt = 'guess';
+    } else fmt = 'guess';
+  }
+  if (fmt === 'guess' || fmt === 'auto') {
+    if (/^(ATOM  |HETATM|REMARK|HEADER)/m.test(rawText)) fmt = 'pdb';
+    else if (/@<TRIPOS>MOLECULE/.test(rawText)) fmt = 'mol2';
+    else if (/\$\$\$\$/.test(rawText)) fmt = 'sdf';
+    else if (/(V2000|V3000|M  END)/.test(rawText)) fmt = 'mol';
+    else if (/Standard orientation:|Input orientation:/.test(rawText)) fmt = 'gaussian';
+    else if (/^\s*\d+\s*[\r\n]/.test(rawText)) fmt = 'xyz_check';
+    else if (/^[A-Z][a-z]?\s+[-\d.]+\s+[-\d.]+/m.test(rawText)) fmt = 'bare';
+    else fmt = 'xyz_check';
+  }
+
+  if (fmt === 'gaussian') {
+    var xyz = gaussianToXYZ(rawText);
+    if (xyz) return { data: xyz, fmt: 'xyz', label: 'Gaussian LOG' };
+    var b = bareToXYZ(rawText);
+    if (b)   return { data: b,   fmt: 'xyz', label: 'Gaussian coords' };
+    return null;
+  }
+  if (fmt === 'bare') {
+    var b2 = bareToXYZ(rawText);
+    if (b2) return { data: b2, fmt: 'xyz', label: 'Bare XYZ' };
+    return null;
+  }
+  if (fmt === 'xyz_check' || fmt === 'xyz') {
+    return { data: fixXYZ(rawText), fmt: 'xyz', label: 'XYZ' };
+  }
+  return { data: rawText, fmt: fmt, label: fmt.toUpperCase() };
+}
+
+// ── Viewer ───────────────────────────────────────────────
+function makeViewer() {
+  var cont = document.getElementById('viewer');
+  cont.innerHTML = '';
+  var bg = gBg ? '#f8fafc' : '#010409';
+  gv = $3Dmol.createViewer(cont, { backgroundColor: bg, antialias: true });
+}
+
+function applyStyle() {
+  if (!gv) return;
+  try { gv.removeAllSurfaces(); } catch(e){}
+  try { gv.removeAllLabels(); }   catch(e){}
+  var s = document.getElementById('sty').value;
+  var c = document.getElementById('col').value;
+  var u = document.getElementById('sur').value;
+  var co = { colorscheme: c };
+  gv.setStyle({});
+  if      (s==='bs')     gv.setStyle({},{stick:Object.assign({radius:0.15},co),sphere:Object.assign({radius:0.35},co)});
+  else if (s==='stick')  gv.setStyle({},{stick:Object.assign({radius:0.2},co)});
+  else if (s==='sphere') gv.setStyle({},{sphere:Object.assign({scale:1},co)});
+  else if (s==='line')   gv.setStyle({},{line:co});
+  else if (s==='cross')  gv.setStyle({},{cross:Object.assign({radius:0.3},co)});
+  if (u!=='none') try { gv.addSurface($3Dmol.SurfaceType[u],{opacity:0.4,colorscheme:c}); } catch(e){}
+  if (gLabels) gv.addPropertyLabels('elem',{},{font:'Arial',fontSize:12,fontColor:'white',showBackground:false,alignment:'center'});
+  gv.spin(gSpin);
+  gv.render();
+}
+
+function render(rawText, hint, name) {
+  if (typeof $3Dmol === 'undefined') {
+    setStatus('3Dmol.js not loaded — check internet connection', 'err'); return;
+  }
+  setStatus('Rendering...', 'inf');
+  var p = prepare(rawText, hint, name);
+  if (!p) { setStatus('Could not parse format. Select format manually.', 'err'); return; }
+  try {
+    makeViewer();
+    gv.addModel(p.data, p.fmt);
+    applyStyle();
+    gv.zoomTo();
+    gv.render();
+    var atoms = gv.getModel().selectedAtoms({});
+    showInfo(atoms.length, p.label, name || 'pasted');
+    gData = rawText; gFmt = hint;
+    setStatus('✓ Loaded — ' + atoms.length + ' atoms (' + p.label + ')', 'ok');
+  } catch(e) {
+    setStatus('Error: ' + e.message + ' — try selecting format manually', 'err');
+    console.error(e, p);
+  }
+}
+
+// ── Button functions ─────────────────────────────────────
+function doLoad() {
+  var text = document.getElementById('coords').value.trim();
+  if (!text) { setStatus('Paste coordinates or upload a file first', 'inf'); return; }
+  var fmt = document.getElementById('fmt').value;
+  if (fmt === 'smiles') {
+    setStatus('Fetching from NIH CACTUS...', 'inf');
+    fetch('https://cactus.nci.nih.gov/chemical/structure/' + encodeURIComponent(text) + '/file?format=sdf&get3d=true')
+      .then(function(r){ return r.text(); })
+      .then(function(sdf){
+        if (sdf.toLowerCase().indexOf('not found') > -1 || sdf.length < 20) {
+          setStatus('Could not resolve SMILES', 'err');
+        } else {
+          document.getElementById('coords').value = sdf;
+          render(sdf, 'sdf', text);
+        }
+      }).catch(function(){ setStatus('Network error for SMILES', 'err'); });
+    return;
+  }
+  render(text, fmt, 'pasted');
+}
+
+function doSave() {
+  if (!gv) { setStatus('No molecule loaded', 'inf'); return; }
+  gv.pngURI(function(uri){
+    var a = document.createElement('a');
+    a.href = uri; a.download = 'molecule_GMP.png'; a.click();
+  }, 2048);
+}
+
+function doClear() {
+  if (gv) { try{ gv.clear(); gv.render(); }catch(e){} }
+  gv = null; gData = null; gFmt = null; gLabels = false; gSpin = false;
+  document.getElementById('coords').value = '';
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('infobar').style.display = 'none';
+  document.getElementById('lblbtn').classList.remove('on');
+  document.getElementById('spnbtn').classList.remove('on');
+  document.getElementById('viewer').innerHTML = '<div id="ph"><div style="font-size:2.5rem;opacity:0.3">⚛️</div><div>Load a molecule to begin</div></div>';
+}
+
+function doToggleLabels() {
+  gLabels = !gLabels;
+  document.getElementById('lblbtn').classList.toggle('on', gLabels);
+  if (gv && gData) applyStyle();
+}
+function doToggleSpin() {
+  gSpin = !gSpin;
+  document.getElementById('spnbtn').classList.toggle('on', gSpin);
+  if (gv) gv.spin(gSpin);
+}
+function doToggleBg() {
+  gBg = !gBg;
+  document.getElementById('bgbtn').classList.toggle('on', gBg);
+  if (gv && gData) render(gData, gFmt, 'molecule');
+}
+
+// Re-render on dropdown change
+['sty','col','sur'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', function(){
+    if (gv && gData) applyStyle();
+  });
+});
+
+// ── File upload ──────────────────────────────────────────
+document.getElementById('filein').addEventListener('change', function(e){
+  var f = e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev){
+    var text = ev.target.result;
+    document.getElementById('coords').value = text;
+    render(text, document.getElementById('fmt').value, f.name);
+  };
+  r.readAsText(f);
+  e.target.value = '';
+});
+document.getElementById('ubtn').addEventListener('click', function(e){
+  e.stopPropagation();
+  document.getElementById('filein').click();
+});
+document.getElementById('dropzone').addEventListener('click', function(){
+  document.getElementById('filein').click();
+});
+
+// ── Drag and drop ────────────────────────────────────────
+var dz = document.getElementById('dropzone');
+dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', function(){  dz.classList.remove('over'); });
+dz.addEventListener('drop', function(e){
+  e.preventDefault(); dz.classList.remove('over');
+  var f = e.dataTransfer.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev){
+    var text = ev.target.result;
+    document.getElementById('coords').value = text;
+    render(text, document.getElementById('fmt').value, f.name);
+  };
+  r.readAsText(f);
+});
+</script>
+</body>
+</html>
