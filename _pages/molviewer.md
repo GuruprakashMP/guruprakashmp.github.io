@@ -22,7 +22,7 @@ author_profile: true
 .mv-btn-secondary{background:#21262d;color:#c9d1d9;border:1.5px solid #30363d}
 .mv-btn-secondary:hover{border-color:#38bdf8;color:#38bdf8}
 .mv-btn-danger{background:#21262d;color:#f85149;border:1.5px solid #30363d}
-.mv-viewer-box{width:100%;height:460px;background:#010409;border-radius:12px;border:1.5px solid #21262d;position:relative;overflow:hidden;margin:18px 0}
+.mv-viewer-box{width:100%;height:500px;background:#010409;border-radius:12px;border:1.5px solid #21262d;position:relative;overflow:hidden;margin:18px 0}
 .mv-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#30363d;font-family:'JetBrains Mono',monospace;font-size:.85rem;text-align:center;gap:14px}
 .mv-placeholder-icon{font-size:3rem;opacity:.4}
 .mv-controls-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px}
@@ -46,40 +46,46 @@ author_profile: true
 </style>
 
 <div class="mv-wrap">
-  <div class="mv-title">&#9883;&#65039; Molecule Viewer</div>
+  <div class="mv-title">&#9883; Molecule Viewer</div>
   <div class="mv-subtitle">// interactive 3D structure visualization &middot; powered by 3Dmol.js</div>
 
   <div class="mv-upload-area" id="mv-drop-zone">
     <div style="font-size:1.8rem;margin-bottom:8px">&#128194;</div>
-    <div>Drop file here or <strong style="color:#38bdf8;cursor:pointer" id="mv-upload-btn">click to upload</strong></div>
+    <div>Drop file here or <strong style="color:#38bdf8" id="mv-upload-btn">click to upload</strong></div>
     <div class="mv-formats">
       <span class="mv-format-tag">.xyz</span>
-      <span class="mv-format-tag">.log</span>
+      <span class="mv-format-tag">.log (Gaussian)</span>
       <span class="mv-format-tag">.pdb</span>
       <span class="mv-format-tag">.mol</span>
       <span class="mv-format-tag">.sdf</span>
       <span class="mv-format-tag">.mol2</span>
     </div>
   </div>
-  <input type="file" id="mv-file-input" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.cif">
+  <input type="file" id="mv-file-input" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.cif,.txt">
 
   <div class="mv-divider">&#8212; or paste coordinates below &#8212;</div>
 
-  <textarea class="mv-textarea" id="mv-text-input" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG, or SMILES here...
+  <textarea class="mv-textarea" id="mv-text-input" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG coordinates, or SMILES here...
 
-Example XYZ:
+Standard XYZ example:
 3
-water
+water molecule
 O  0.000  0.000  0.000
 H  0.757  0.586  0.000
-H -0.757  0.586  0.000"></textarea>
+H -0.757  0.586  0.000
+
+Gaussian bare XYZ (no header needed):
+C  0.47230  2.59480  -0.38060
+N  1.44400  1.53050  -0.39220
+..."></textarea>
 
   <div class="mv-controls-row" style="margin-top:12px">
     <div class="mv-field">
       <div class="mv-label">FORMAT</div>
       <select class="mv-select" id="mv-format">
         <option value="auto">Auto Detect</option>
-        <option value="xyz">XYZ</option>
+        <option value="xyz">XYZ (standard)</option>
+        <option value="bare">Bare XYZ (Gaussian coords)</option>
         <option value="pdb">PDB</option>
         <option value="mol">MOL / SDF</option>
         <option value="mol2">MOL2</option>
@@ -118,10 +124,10 @@ H -0.757  0.586  0.000"></textarea>
   </div>
 
   <div class="mv-controls-row">
-    <div class="mv-toggle" id="mv-labels-toggle" onclick="mvToggleLabels()">&#127991;&#65039; Atom Labels</div>
+    <div class="mv-toggle" id="mv-labels-toggle" onclick="mvToggleLabels()">&#127991; Atom Labels</div>
     <div class="mv-toggle" id="mv-spin-toggle" onclick="mvToggleSpin()">&#128260; Auto Spin</div>
     <div class="mv-toggle" id="mv-bg-toggle" onclick="mvToggleBg()">&#127761; Light BG</div>
-    <button class="mv-btn mv-btn-primary" onclick="mvLoad()">&#9654; Visualise</button>
+    <button class="mv-btn mv-btn-primary" id="mv-vis-btn" onclick="mvLoad()">&#9654; Visualise</button>
     <button class="mv-btn mv-btn-secondary" onclick="mvSave()">&#128190; Save PNG</button>
     <button class="mv-btn mv-btn-danger" onclick="mvClear()">&#10005; Clear</button>
   </div>
@@ -134,10 +140,10 @@ H -0.757  0.586  0.000"></textarea>
   </div>
 
   <div class="mv-viewer-box" id="mv-container">
-    <div class="mv-placeholder">
-      <div class="mv-placeholder-icon">&#9883;&#65039;</div>
+    <div class="mv-placeholder" id="mv-placeholder">
+      <div class="mv-placeholder-icon">&#9883;</div>
       <div>Load a molecule to begin</div>
-      <div style="font-size:.7rem;margin-top:4px;color:#21262d">XYZ &middot; PDB &middot; MOL &middot; SDF &middot; LOG &middot; SMILES</div>
+      <div style="font-size:.7rem;margin-top:4px;color:#21262d">XYZ &middot; PDB &middot; MOL &middot; SDF &middot; Gaussian LOG &middot; SMILES</div>
     </div>
   </div>
 
@@ -148,148 +154,276 @@ H -0.757  0.586  0.000"></textarea>
 
 <script src="https://3dmol.org/build/3Dmol-min.js"></script>
 <script>
-(function(){
-  var gViewer = null;
-  var gLabels = false;
-  var gSpin   = false;
-  var gBg     = false;
-  var gData   = null;
-  var gFmt    = null;
+(function() {
+  'use strict';
 
-  function mvStatus(msg, type){
+  var gViewer  = null;
+  var gLabels  = false;
+  var gSpin    = false;
+  var gBg      = false;
+  var gData    = null;
+  var gFmt     = null;
+
+  /* ── status bar ─────────────────────────────────────── */
+  function mvStatus(msg, type) {
     var el = document.getElementById('mv-status');
     el.textContent = msg;
     el.className = 'mv-status ' + type;
     el.style.display = 'block';
-    setTimeout(function(){ el.style.display = 'none'; }, 6000);
-  }
-
-  function detectFmt(text, name){
-    if(name){
-      var ext = name.split('.').pop().toLowerCase();
-      if(ext === 'pdb')  return 'pdb';
-      if(ext === 'mol2') return 'mol2';
-      if(ext === 'sdf')  return 'sdf';
-      if(ext === 'mol')  return 'mol';
-      if(ext === 'xyz')  return 'xyz';
-      if(ext === 'log' || ext === 'gjf' || ext === 'com') return 'xyz';
+    if (type !== 'info') {
+      setTimeout(function() { el.style.display = 'none'; }, 7000);
     }
-    if(/^(ATOM  |HETATM|REMARK|HEADER|CRYST)/m.test(text)) return 'pdb';
-    if(/@<TRIPOS>MOLECULE/.test(text)) return 'mol2';
-    if(/\$\$\$\$/.test(text)) return 'sdf';
-    if(/(V2000|V3000|M  END)/.test(text)) return 'mol';
-    if(/^\s*\d+\s*[\r\n]/.test(text)) return 'xyz';
-    return 'xyz';
   }
 
-  function buildViewer(){
+  /* ── convert "bare XYZ" (Gaussian extracted coords) to standard XYZ ── */
+  function bareToXYZ(text) {
+    var lines = text.trim().split(/\r?\n/);
+    var coords = [];
+    var ELEMENTS = 'H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Pd Ag In Sn Te I Xe Cs Ba La Pt Au Hg Pb Bi U'.split(' ');
+    var elemSet = {};
+    ELEMENTS.forEach(function(e) { elemSet[e.toLowerCase()] = e; });
+
+    for (var i = 0; i < lines.length; i++) {
+      var parts = lines[i].trim().split(/\s+/);
+      // Need at least: element x y z  (4 parts)
+      // Also handle Gaussian table: center# atomicnum atomictype x y z (6 parts)
+      if (parts.length >= 4) {
+        var elem = null;
+        var x, y, z;
+        // Try: element x y z
+        var maybeElem = parts[0];
+        if (elemSet[maybeElem.toLowerCase()]) {
+          elem = elemSet[maybeElem.toLowerCase()];
+          x = parseFloat(parts[1]); y = parseFloat(parts[2]); z = parseFloat(parts[3]);
+        }
+        // Try: number number number x y z  (Gaussian Standard orientation table)
+        else if (parts.length >= 6 && !isNaN(parseInt(parts[0])) && !isNaN(parseInt(parts[1]))) {
+          var anum = parseInt(parts[1]);
+          var ANUM = {1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',
+                      11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',
+                      19:'K',20:'Ca',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',
+                      35:'Br',46:'Pd',47:'Ag',53:'I',78:'Pt',79:'Au',80:'Hg'};
+          elem = ANUM[anum] || null;
+          x = parseFloat(parts[3]); y = parseFloat(parts[4]); z = parseFloat(parts[5]);
+        }
+        if (elem && !isNaN(x) && !isNaN(y) && !isNaN(z)) {
+          coords.push(elem + '  ' + x.toFixed(5) + '  ' + y.toFixed(5) + '  ' + z.toFixed(5));
+        }
+      }
+    }
+    if (coords.length === 0) return null;
+    return coords.length + '\nGenerated by GMP Molecule Viewer\n' + coords.join('\n');
+  }
+
+  /* ── extract last geometry from Gaussian .log file ── */
+  function gaussianLogToXYZ(text) {
+    var ANUM = {1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',
+                11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',
+                19:'K',20:'Ca',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',
+                35:'Br',46:'Pd',47:'Ag',53:'I',78:'Pt',79:'Au',80:'Hg'};
+    var lines = text.split(/\r?\n/);
+    var lastGeom = [];
+    var i = 0;
+    while (i < lines.length) {
+      if (lines[i].indexOf('Standard orientation:') !== -1 ||
+          lines[i].indexOf('Input orientation:') !== -1) {
+        // skip 4 header lines
+        i += 5;
+        var cur = [];
+        while (i < lines.length && lines[i].indexOf('---') === -1) {
+          var p = lines[i].trim().split(/\s+/);
+          if (p.length >= 6) {
+            var anum = parseInt(p[1]);
+            var elem = ANUM[anum];
+            if (elem) {
+              cur.push(elem + '  ' + parseFloat(p[3]).toFixed(5) +
+                       '  ' + parseFloat(p[4]).toFixed(5) +
+                       '  ' + parseFloat(p[5]).toFixed(5));
+            }
+          }
+          i++;
+        }
+        if (cur.length > 0) lastGeom = cur;
+      }
+      i++;
+    }
+    if (lastGeom.length === 0) return null;
+    return lastGeom.length + '\nGaussian LOG (last geometry)\n' + lastGeom.join('\n');
+  }
+
+  /* ── format detection ─────────────────────────────── */
+  function detectFmt(text, filename) {
+    if (filename) {
+      var ext = filename.split('.').pop().toLowerCase();
+      if (ext === 'pdb')  return 'pdb';
+      if (ext === 'mol2') return 'mol2';
+      if (ext === 'sdf')  return 'sdf';
+      if (ext === 'mol')  return 'mol';
+      if (ext === 'log' || ext === 'gjf' || ext === 'com') return 'gaussian';
+      if (ext === 'xyz')  return 'xyz_auto';
+    }
+    if (/^(ATOM  |HETATM|REMARK|HEADER|CRYST)/m.test(text)) return 'pdb';
+    if (/@<TRIPOS>MOLECULE/.test(text))    return 'mol2';
+    if (/\$\$\$\$/.test(text))             return 'sdf';
+    if (/(V2000|V3000|M  END)/.test(text)) return 'mol';
+    if (/Standard orientation:|Input orientation:/.test(text)) return 'gaussian';
+    // Standard XYZ: first line is just a number
+    var firstLine = text.trim().split(/\r?\n/)[0].trim();
+    if (/^\d+$/.test(firstLine)) return 'xyz_auto';
+    // Bare coordinates (element + 3 numbers per line)
+    if (/^[A-Z][a-z]?\s+[-\d.]+\s+[-\d.]+\s+[-\d.]+/m.test(text)) return 'bare';
+    return 'xyz_auto';
+  }
+
+  /* ── prepare data for 3Dmol ──────────────────────── */
+  function prepareData(rawText, fmtHint, filename) {
+    var fmt = fmtHint === 'auto' ? detectFmt(rawText, filename) : fmtHint;
+
+    if (fmt === 'gaussian') {
+      var xyz = gaussianLogToXYZ(rawText);
+      if (xyz) return { data: xyz, fmt: 'xyz', label: 'Gaussian LOG' };
+      // fallback: try bare
+      var bare = bareToXYZ(rawText);
+      if (bare) return { data: bare, fmt: 'xyz', label: 'Gaussian coords' };
+      return null;
+    }
+
+    if (fmt === 'bare') {
+      var b = bareToXYZ(rawText);
+      if (b) return { data: b, fmt: 'xyz', label: 'Bare XYZ' };
+      return null;
+    }
+
+    if (fmt === 'xyz_auto') {
+      // Standard XYZ — check if it has comment line; if not, add one
+      var lines = rawText.trim().split(/\r?\n/);
+      var first = lines[0].trim();
+      if (/^\d+$/.test(first)) {
+        var n = parseInt(first);
+        // If second line looks like coordinates, it's missing comment line
+        if (lines.length > 1) {
+          var second = lines[1].trim().split(/\s+/);
+          if (second.length >= 4 && !isNaN(parseFloat(second[1]))) {
+            // Insert comment line
+            var fixed = [first, 'molecule'].concat(lines.slice(1)).join('\n');
+            return { data: fixed, fmt: 'xyz', label: 'XYZ' };
+          }
+        }
+      }
+      return { data: rawText, fmt: 'xyz', label: 'XYZ' };
+    }
+
+    return { data: rawText, fmt: fmt, label: fmt.toUpperCase() };
+  }
+
+  /* ── build / rebuild viewer ──────────────────────── */
+  function buildViewer() {
     var cont = document.getElementById('mv-container');
     cont.innerHTML = '';
     var bg = gBg ? '#f8fafc' : '#010409';
-    gViewer = $3Dmol.createViewer(cont, {
-      backgroundColor: bg,
-      antialias: true
-    });
+    gViewer = $3Dmol.createViewer(cont, { backgroundColor: bg, antialias: true });
     return gViewer;
   }
 
-  function applyStyle(){
-    if(!gViewer) return;
-    try { gViewer.removeAllSurfaces(); } catch(e){}
-    try { gViewer.removeAllLabels(); } catch(e){}
-    var style  = document.getElementById('mv-style').value;
-    var color  = document.getElementById('mv-color').value;
-    var surf   = document.getElementById('mv-surface').value;
-    var cOpt   = {colorscheme: color};
+  /* ── apply visual style ──────────────────────────── */
+  function applyStyle() {
+    if (!gViewer) return;
+    try { gViewer.removeAllSurfaces(); } catch(e) {}
+    try { gViewer.removeAllLabels();   } catch(e) {}
+
+    var style = document.getElementById('mv-style').value;
+    var color = document.getElementById('mv-color').value;
+    var surf  = document.getElementById('mv-surface').value;
+    var cOpt  = { colorscheme: color };
 
     gViewer.setStyle({});
-    if(style === 'ballstick'){
-      gViewer.setStyle({}, {stick: Object.assign({radius:0.15}, cOpt), sphere: Object.assign({radius:0.35}, cOpt)});
-    } else if(style === 'stick'){
-      gViewer.setStyle({}, {stick: Object.assign({radius:0.2}, cOpt)});
-    } else if(style === 'sphere'){
-      gViewer.setStyle({}, {sphere: Object.assign({scale:1.0}, cOpt)});
-    } else if(style === 'line'){
-      gViewer.setStyle({}, {line: cOpt});
-    } else if(style === 'cross'){
-      gViewer.setStyle({}, {cross: Object.assign({radius:0.3}, cOpt)});
+    if      (style === 'ballstick') { gViewer.setStyle({}, { stick: Object.assign({radius:0.15}, cOpt), sphere: Object.assign({radius:0.35}, cOpt) }); }
+    else if (style === 'stick')     { gViewer.setStyle({}, { stick:  Object.assign({radius:0.2},  cOpt) }); }
+    else if (style === 'sphere')    { gViewer.setStyle({}, { sphere: Object.assign({scale:1.0},   cOpt) }); }
+    else if (style === 'line')      { gViewer.setStyle({}, { line:   cOpt }); }
+    else if (style === 'cross')     { gViewer.setStyle({}, { cross:  Object.assign({radius:0.3},  cOpt) }); }
+
+    if (surf !== 'none') {
+      try { gViewer.addSurface($3Dmol.SurfaceType[surf], { opacity: 0.4, colorscheme: color }); } catch(e) {}
     }
 
-    if(surf !== 'none'){
-      try {
-        gViewer.addSurface($3Dmol.SurfaceType[surf], {opacity:0.4, colorscheme:color});
-      } catch(e){}
-    }
-
-    if(gLabels){
+    if (gLabels) {
       gViewer.addPropertyLabels('elem', {}, {
         font: 'Arial', fontSize: 12, fontColor: 'white',
         showBackground: false, alignment: 'center'
       });
     }
-
     gViewer.spin(gSpin);
     gViewer.render();
   }
 
-  function doLoad(text, fmt, name){
-    if(typeof $3Dmol === 'undefined'){
-      mvStatus('&#10007; 3Dmol.js not loaded yet — please wait a moment and try again', 'error');
+  /* ── core load ───────────────────────────────────── */
+  function doLoad(rawText, fmtHint, name) {
+    if (typeof $3Dmol === 'undefined') {
+      mvStatus('3Dmol.js not loaded yet — please wait 2 seconds and click Visualise again', 'error');
       return;
     }
+    mvStatus('Processing...', 'info');
+
+    var prepared = prepareData(rawText, fmtHint, name);
+    if (!prepared) {
+      mvStatus('Could not parse coordinates. Try selecting format manually.', 'error');
+      return;
+    }
+
     try {
       buildViewer();
-      gViewer.addModel(text, fmt);
+      gViewer.addModel(prepared.data, prepared.fmt);
       applyStyle();
       gViewer.zoomTo();
       gViewer.render();
+
       var atoms = gViewer.getModel().selectedAtoms({});
       document.getElementById('mv-atoms').textContent = atoms.length;
-      document.getElementById('mv-fmt').textContent   = fmt.toUpperCase();
+      document.getElementById('mv-fmt').textContent   = prepared.label;
       document.getElementById('mv-name').textContent  = name || 'unknown';
       document.getElementById('mv-info-bar').style.display = 'flex';
-      gData = text; gFmt = fmt;
-      mvStatus('&#10003; Loaded successfully — ' + atoms.length + ' atoms', 'success');
+
+      gData = rawText; gFmt = fmtHint || 'auto';
+      mvStatus('Loaded — ' + atoms.length + ' atoms | ' + prepared.label, 'success');
     } catch(e) {
-      mvStatus('&#10007; Error rendering: ' + e.message, 'error');
-      console.error('3Dmol error:', e);
+      mvStatus('Render error: ' + e.message + ' — try selecting format manually', 'error');
+      console.error('3Dmol render error:', e, prepared);
     }
   }
 
-  window.mvLoad = function(){
+  /* ── public button functions ─────────────────────── */
+  window.mvLoad = function() {
     var text = document.getElementById('mv-text-input').value.trim();
-    if(!text){ mvStatus('Please paste coordinates or upload a file first', 'info'); return; }
+    if (!text) { mvStatus('Please paste coordinates or upload a file first', 'info'); return; }
     var sel = document.getElementById('mv-format').value;
-    var fmt = (sel === 'auto') ? detectFmt(text, null) : sel;
-    if(fmt === 'smiles'){
+
+    if (sel === 'smiles') {
       mvStatus('Fetching 3D structure from NIH CACTUS...', 'info');
       var url = 'https://cactus.nci.nih.gov/chemical/structure/' + encodeURIComponent(text) + '/file?format=sdf&get3d=true';
-      fetch(url)
-        .then(function(r){ return r.text(); })
-        .then(function(sdf){
-          if(sdf.toLowerCase().indexOf('not found') > -1 || sdf.trim().length < 20){
-            mvStatus('Could not resolve SMILES. Try pasting as XYZ or SDF instead.', 'error');
-          } else {
-            document.getElementById('mv-text-input').value = sdf;
-            doLoad(sdf, 'sdf', text);
-          }
-        })
-        .catch(function(){ mvStatus('Network error resolving SMILES', 'error'); });
+      fetch(url).then(function(r) { return r.text(); }).then(function(sdf) {
+        if (sdf.toLowerCase().indexOf('not found') > -1 || sdf.trim().length < 20) {
+          mvStatus('Could not resolve SMILES. Try pasting as XYZ instead.', 'error');
+        } else {
+          document.getElementById('mv-text-input').value = sdf;
+          doLoad(sdf, 'sdf', text);
+        }
+      }).catch(function() { mvStatus('Network error resolving SMILES', 'error'); });
       return;
     }
-    doLoad(text, fmt, 'Pasted coordinates');
+    doLoad(text, sel, 'Pasted');
   };
 
-  window.mvSave = function(){
-    if(!gViewer){ mvStatus('No molecule loaded', 'info'); return; }
-    gViewer.pngURI(function(uri){
+  window.mvSave = function() {
+    if (!gViewer) { mvStatus('No molecule loaded', 'info'); return; }
+    gViewer.pngURI(function(uri) {
       var a = document.createElement('a');
       a.href = uri; a.download = 'molecule_GMP.png'; a.click();
     }, 2048);
   };
 
-  window.mvClear = function(){
-    if(gViewer){ try{ gViewer.clear(); gViewer.render(); }catch(e){} }
+  window.mvClear = function() {
+    if (gViewer) { try { gViewer.clear(); gViewer.render(); } catch(e) {} }
     gViewer = null; gData = null; gFmt = null;
     gLabels = false; gSpin = false;
     document.getElementById('mv-text-input').value = '';
@@ -297,79 +431,74 @@ H -0.757  0.586  0.000"></textarea>
     document.getElementById('mv-info-bar').style.display = 'none';
     document.getElementById('mv-spin-toggle').classList.remove('active');
     document.getElementById('mv-labels-toggle').classList.remove('active');
-    var cont = document.getElementById('mv-container');
-    cont.innerHTML = '<div class="mv-placeholder"><div class="mv-placeholder-icon">&#9883;&#65039;</div><div>Load a molecule to begin</div></div>';
+    document.getElementById('mv-container').innerHTML =
+      '<div class="mv-placeholder"><div class="mv-placeholder-icon">&#9883;</div>' +
+      '<div>Load a molecule to begin</div></div>';
   };
 
-  window.mvToggleLabels = function(){
+  window.mvToggleLabels = function() {
     gLabels = !gLabels;
     document.getElementById('mv-labels-toggle').classList.toggle('active', gLabels);
-    if(gViewer && gData) applyStyle();
+    if (gViewer && gData) applyStyle();
   };
 
-  window.mvToggleSpin = function(){
+  window.mvToggleSpin = function() {
     gSpin = !gSpin;
     document.getElementById('mv-spin-toggle').classList.toggle('active', gSpin);
-    if(gViewer) gViewer.spin(gSpin);
+    if (gViewer) gViewer.spin(gSpin);
   };
 
-  window.mvToggleBg = function(){
+  window.mvToggleBg = function() {
     gBg = !gBg;
     document.getElementById('mv-bg-toggle').classList.toggle('active', gBg);
-    if(gViewer && gData){
-      doLoad(gData, gFmt, document.getElementById('mv-name').textContent);
-    }
+    if (gViewer && gData) doLoad(gData, gFmt, document.getElementById('mv-name').textContent);
   };
 
-  // Style dropdowns — re-render on change
-  ['mv-style','mv-color','mv-surface'].forEach(function(id){
-    document.getElementById(id).addEventListener('change', function(){
-      if(gViewer && gData) applyStyle();
+  /* re-render on dropdown change */
+  ['mv-style','mv-color','mv-surface'].forEach(function(id) {
+    document.getElementById(id).addEventListener('change', function() {
+      if (gViewer && gData) applyStyle();
     });
   });
 
-  // File input handler
-  document.getElementById('mv-file-input').addEventListener('change', function(e){
+  /* ── file upload ─────────────────────────────────── */
+  document.getElementById('mv-file-input').addEventListener('change', function(e) {
     var file = e.target.files[0];
-    if(!file) return;
+    if (!file) return;
     var reader = new FileReader();
-    reader.onload = function(ev){
+    reader.onload = function(ev) {
       var text = ev.target.result;
       document.getElementById('mv-text-input').value = text;
       var sel = document.getElementById('mv-format').value;
-      var fmt = (sel === 'auto') ? detectFmt(text, file.name) : sel;
-      doLoad(text, fmt, file.name);
+      doLoad(text, sel === 'auto' ? 'auto' : sel, file.name);
     };
     reader.readAsText(file);
     e.target.value = '';
   });
 
-  // Upload button click
-  document.getElementById('mv-upload-btn').addEventListener('click', function(e){
+  /* ── click handlers ──────────────────────────────── */
+  document.getElementById('mv-upload-btn').addEventListener('click', function(e) {
     e.stopPropagation();
     document.getElementById('mv-file-input').click();
   });
-
-  // Drop zone click
-  document.getElementById('mv-drop-zone').addEventListener('click', function(){
+  document.getElementById('mv-drop-zone').addEventListener('click', function() {
     document.getElementById('mv-file-input').click();
   });
 
-  // Drag and drop
+  /* ── drag and drop ───────────────────────────────── */
   var dz = document.getElementById('mv-drop-zone');
-  dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('dragover'); });
-  dz.addEventListener('dragleave', function(){ dz.classList.remove('dragover'); });
-  dz.addEventListener('drop', function(e){
+  dz.addEventListener('dragover',  function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function()  { dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e) {
     e.preventDefault(); dz.classList.remove('dragover');
     var file = e.dataTransfer.files[0];
-    if(!file) return;
+    if (!file) return;
     var reader = new FileReader();
-    reader.onload = function(ev){
+    reader.onload = function(ev) {
       var text = ev.target.result;
       document.getElementById('mv-text-input').value = text;
       var sel = document.getElementById('mv-format').value;
-      var fmt = (sel === 'auto') ? detectFmt(text, file.name) : sel;
-      doLoad(text, fmt, file.name);
+      doLoad(text, sel === 'auto' ? 'auto' : sel, file.name);
     };
     reader.readAsText(file);
   });
