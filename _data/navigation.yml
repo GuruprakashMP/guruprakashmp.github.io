@@ -13,3 +13,6 @@ main:
 
   - title: "News"
     url: /news/
+
+  - title: "Molecule Viewer"
+    url: /molviewer/
