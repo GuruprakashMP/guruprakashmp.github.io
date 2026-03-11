@@ -8,7 +8,6 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 16px; min-height: 100vh; }
-
 .title { font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
 .subtitle { font-size: 0.75rem; color: #8b949e; margin-bottom: 16px; font-family: monospace; }
 
@@ -21,20 +20,26 @@ body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3;
 .tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
 .tag { background: #21262d; color: #8b949e; font-family: monospace; font-size: 0.68rem; padding: 2px 7px; border-radius: 4px; border: 1px solid #30363d; }
 
+/* Loading overlay */
+#loadingbar {
+  display: none; background: #161b22; border: 1.5px solid #30363d;
+  border-radius: 10px; padding: 16px; margin-bottom: 12px; text-align: center;
+}
+#loadingbar .lmsg { font-family: monospace; font-size: 0.8rem; color: #38bdf8; margin-bottom: 8px; }
+#lbtrack { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
+#lbfill { height: 100%; background: linear-gradient(90deg,#38bdf8,#0ea5e9); width: 0%; transition: width 0.1s; }
+
 textarea {
-  width: 100%; height: 110px; background: #161b22; border: 1.5px solid #30363d;
+  width: 100%; height: 90px; background: #161b22; border: 1.5px solid #30363d;
   border-radius: 8px; color: #c9d1d9; font-family: monospace; font-size: 0.75rem;
   padding: 10px; resize: vertical; outline: none;
 }
 textarea:focus { border-color: #38bdf8; }
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-top: 10px; }
-.field { flex: 1; min-width: 120px; }
+.field { flex: 1; min-width: 110px; }
 .lbl { font-size: 0.68rem; color: #8b949e; margin-bottom: 4px; font-family: monospace; }
-select {
-  width: 100%; background: #161b22; border: 1.5px solid #30363d;
-  border-radius: 6px; color: #c9d1d9; font-size: 0.78rem; padding: 7px 10px; outline: none; cursor: pointer;
-}
+select { width: 100%; background: #161b22; border: 1.5px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 0.78rem; padding: 7px 10px; outline: none; cursor: pointer; }
 select:focus { border-color: #38bdf8; }
 
 .btn { padding: 9px 18px; border-radius: 7px; border: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
@@ -57,91 +62,54 @@ select:focus { border-color: #38bdf8; }
 #infobar { display: none; padding: 8px 12px; border-radius: 7px; font-family: monospace; font-size: 0.7rem; color: #8b949e; background: #161b22; border: 1px solid #21262d; margin-top: 8px; }
 #infobar span { color: #38bdf8; font-weight: bold; }
 
-/* ── VIEWER BOX ── */
+/* Viewer wrap */
 #viewerwrap { position: relative; margin-top: 12px; }
 
 /* Multi-structure top bar */
 #multibar {
-  display: none;
-  align-items: center; justify-content: space-between;
+  display: none; align-items: center; justify-content: space-between;
   background: #161b22; border: 1.5px solid #21262d;
-  border-radius: 10px 10px 0 0; padding: 8px 14px;
-  border-bottom: none;
+  border-radius: 10px 10px 0 0; padding: 8px 14px; border-bottom: none;
 }
-#struct-counter {
-  font-family: monospace; font-size: 0.85rem;
-  color: #e6edf3; font-weight: 600; letter-spacing: 0.05em;
-}
+#struct-counter { font-family: monospace; font-size: 0.88rem; color: #e6edf3; font-weight: 700; }
 #struct-counter span { color: #38bdf8; }
-#struct-info { font-family: monospace; font-size: 0.72rem; color: #8b949e; }
+#struct-info { font-family: monospace; font-size: 0.7rem; color: #8b949e; margin-top: 2px; }
+#jump-row { display: flex; gap: 6px; align-items: center; }
+#jump-input { width: 60px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-family: monospace; font-size: 0.78rem; padding: 4px 6px; outline: none; text-align: center; }
+#jump-input:focus { border-color: #38bdf8; }
+#jump-go { padding: 4px 10px; border-radius: 4px; border: none; background: #38bdf8; color: #0d1117; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
+.jlbl { font-family: monospace; font-size: 0.7rem; color: #8b949e; }
 
-/* Navigation buttons on the right side of viewer */
+/* Navigation panel */
 #nav-panel {
-  display: none;
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  flex-direction: column;
-  gap: 8px;
-  z-index: 100;
+  display: none; position: absolute; right: 10px; top: 50%;
+  transform: translateY(-50%); flex-direction: column; gap: 8px; z-index: 100;
 }
 .nav-btn {
-  width: 38px; height: 38px;
-  border-radius: 50%; border: none;
-  background: rgba(56,189,248,0.15);
-  color: #38bdf8; font-size: 1rem;
-  cursor: pointer; transition: all 0.2s;
-  display: flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(56,189,248,0.3);
+  background: rgba(13,17,23,0.8); color: #38bdf8; font-size: 1rem;
+  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
-  border: 1.5px solid rgba(56,189,248,0.3);
 }
-.nav-btn:hover { background: rgba(56,189,248,0.35); transform: scale(1.1); }
-.nav-btn:disabled { opacity: 0.25; cursor: not-allowed; transform: none; }
-
-/* Jump to input */
-#jump-wrap {
-  display: none;
-  position: absolute;
-  right: 10px; bottom: 12px;
-  z-index: 100;
-  background: rgba(13,17,23,0.85);
-  border: 1.5px solid #30363d;
-  border-radius: 8px; padding: 6px 10px;
-  display: none; align-items: center; gap: 6px;
-  font-family: monospace; font-size: 0.72rem; color: #8b949e;
-}
-#jump-input {
-  width: 50px; background: #161b22; border: 1px solid #30363d;
-  border-radius: 4px; color: #c9d1d9; font-family: monospace;
-  font-size: 0.75rem; padding: 3px 6px; outline: none; text-align: center;
-}
-#jump-input:focus { border-color: #38bdf8; }
-#jump-go { padding: 3px 8px; border-radius: 4px; border: none; background: #38bdf8; color: #0d1117; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+.nav-btn:hover:not(:disabled) { background: rgba(56,189,248,0.25); transform: scale(1.1); }
+.nav-btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
 #viewer {
-  width: 100%; height: 480px;
-  background: #010409;
-  border: 1.5px solid #21262d;
-  position: relative; overflow: hidden;
-}
-#multibar[style*="flex"] + #viewer,
-#multibar:not([style*="none"]) + #viewer {
-  border-radius: 0 0 10px 10px;
+  width: 100%; height: 480px; background: #010409;
+  border: 1.5px solid #21262d; position: relative; overflow: hidden;
 }
 #viewer.solo { border-radius: 10px; }
+#viewer.multi { border-radius: 0 0 0 0; }
 
 #ph {
   position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; color: #30363d;
-  text-align: center; gap: 10px; font-size: 0.8rem; font-family: monospace;
-  pointer-events: none;
+  text-align: center; gap: 10px; font-size: 0.8rem; font-family: monospace; pointer-events: none;
 }
-.hint { font-size: 0.65rem; color: #21262d; margin-top: 4px; }
 
 /* Progress bar */
-#progbar-wrap { display: none; height: 3px; background: #21262d; border-radius: 0 0 10px 10px; overflow: hidden; }
-#progbar { height: 100%; background: linear-gradient(90deg, #38bdf8, #0ea5e9); width: 0%; transition: width 0.2s; }
+#progwrap { display: none; height: 4px; background: #21262d; border-radius: 0 0 10px 10px; overflow: hidden; }
+#progfill { height: 100%; background: linear-gradient(90deg,#38bdf8,#0ea5e9); width: 0%; transition: width 0.15s; }
 
 .hint-foot { text-align: center; font-size: 0.65rem; color: #21262d; font-family: monospace; margin-top: 6px; }
 </style>
@@ -149,32 +117,30 @@ select:focus { border-color: #38bdf8; }
 <body>
 
 <div class="title">⚗️ Molecule Viewer</div>
-<div class="subtitle">// 3D structure visualization · supports multi-structure XYZ files</div>
+<div class="subtitle">// lazy-loading · handles 1000s of structures instantly</div>
 
 <!-- Drop zone -->
 <div id="dropzone">
   <div style="font-size:1.5rem;margin-bottom:6px">📂</div>
   <div>Drop file here or <strong style="color:#38bdf8;cursor:pointer" id="ubtn">click to upload</strong></div>
   <div class="tags">
-    <span class="tag">.xyz (multi)</span><span class="tag">.log</span><span class="tag">.pdb</span>
-    <span class="tag">.mol</span><span class="tag">.sdf</span><span class="tag">.mol2</span>
+    <span class="tag">.xyz (multi)</span><span class="tag">.log</span>
+    <span class="tag">.pdb</span><span class="tag">.mol</span>
+    <span class="tag">.sdf</span><span class="tag">.mol2</span>
   </div>
 </div>
 <input type="file" id="filein" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.txt">
 
-<textarea id="coords" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG, or SMILES here...
+<!-- Loading progress bar -->
+<div id="loadingbar">
+  <div class="lmsg" id="lmsg">Scanning file...</div>
+  <div id="lbtrack"><div id="lbfill"></div></div>
+</div>
 
-Multi-structure XYZ: just paste all structures one after another:
-113
-structure 1 comment
-Rh  -1.449  1.296  0.106
-...
-113
-structure 2 comment
-Rh  -1.482  1.302  0.158
-..."></textarea>
+<textarea id="coords" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG or SMILES...
+For large multi-structure XYZ: use file upload (drag & drop) for best performance."></textarea>
 
-<!-- Format + Style row -->
+<!-- Controls -->
 <div class="row">
   <div class="field">
     <div class="lbl">FORMAT</div>
@@ -183,7 +149,7 @@ Rh  -1.482  1.302  0.158
       <option value="xyz">XYZ</option>
       <option value="bare">Bare XYZ / Gaussian</option>
       <option value="pdb">PDB</option>
-      <option value="mol">MOL / SDF</option>
+      <option value="mol">MOL</option>
       <option value="mol2">MOL2</option>
       <option value="sdf">SDF</option>
       <option value="smiles">SMILES</option>
@@ -219,7 +185,6 @@ Rh  -1.482  1.302  0.158
   </div>
 </div>
 
-<!-- Buttons row -->
 <div class="row" style="margin-top:10px">
   <button class="toggle" id="lblbtn" onclick="doToggleLabels()">🏷️ Labels</button>
   <button class="toggle" id="spnbtn" onclick="doToggleSpin()">🔄 Spin</button>
@@ -235,15 +200,14 @@ Rh  -1.482  1.302  0.158
 <!-- Viewer -->
 <div id="viewerwrap">
 
-  <!-- Multi-structure top bar -->
   <div id="multibar">
     <div>
-      <div id="struct-counter">Structure <span id="cur-num">1</span> / <span id="tot-num">1</span></div>
+      <div id="struct-counter">Structure <span id="cur-num">1</span> / <span id="tot-num">?</span></div>
       <div id="struct-info"></div>
     </div>
-    <div style="display:flex;gap:6px;align-items:center">
-      <span style="font-family:monospace;font-size:0.7rem;color:#8b949e">Jump to:</span>
-      <input type="number" id="jump-input" min="1" value="1" onkeydown="if(event.key==='Enter') doJump()">
+    <div id="jump-row">
+      <span class="jlbl">Jump:</span>
+      <input type="number" id="jump-input" min="1" value="1" onkeydown="if(event.key==='Enter')doJump()">
       <button id="jump-go" onclick="doJump()">Go</button>
     </div>
   </div>
@@ -252,181 +216,127 @@ Rh  -1.482  1.302  0.158
     <div id="ph">
       <div style="font-size:2.5rem;opacity:0.3">⚛️</div>
       <div>Load a molecule to begin</div>
-      <div class="hint">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · Multi-structure XYZ</div>
+      <div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · LOG · SMILES · Large multi-XYZ</div>
     </div>
   </div>
 
-  <!-- Side navigation panel -->
   <div id="nav-panel">
-    <button class="nav-btn" id="btn-first" onclick="goTo(0)" title="First structure">⏮</button>
-    <button class="nav-btn" id="btn-prev"  onclick="goTo(curIdx-1)" title="Previous">◀</button>
+    <button class="nav-btn" id="btn-first" onclick="goTo(0)" title="First">⏮</button>
+    <button class="nav-btn" id="btn-prev"  onclick="goTo(curIdx-1)" title="Prev">◀</button>
     <button class="nav-btn" id="btn-next"  onclick="goTo(curIdx+1)" title="Next">▶</button>
-    <button class="nav-btn" id="btn-last"  onclick="goTo(structures.length-1)" title="Last structure">⏭</button>
+    <button class="nav-btn" id="btn-last"  onclick="goTo(offsets.length-1)" title="Last">⏭</button>
   </div>
 
-  <!-- Progress bar -->
-  <div id="progbar-wrap"><div id="progbar"></div></div>
-
+  <div id="progwrap"><div id="progfill"></div></div>
 </div>
 
-<div class="hint-foot">Drag to rotate · Scroll to zoom · Right-click to translate · Arrow keys ← → to navigate structures</div>
+<div class="hint-foot">Drag to rotate · Scroll to zoom · Right-click to translate · ← → arrow keys to navigate</div>
 
 <script>
-var gv = null, gLabels = false, gSpin = false, gBg = false;
-var structures = [];   // array of xyz strings
-var curIdx = 0;
+'use strict';
 
-// ── Status ───────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────
+var gv       = null;
+var gLabels  = false;
+var gSpin    = false;
+var gBg      = false;
+var curIdx   = 0;
+
+// Lazy-loading state
+var fileText = '';       // full raw text (stored once)
+var offsets  = [];       // [{start: lineIdx, atomCount: n, comment: str}]
+var lines    = [];       // all lines split once
+
+// ── Helpers ───────────────────────────────────────────────────
 function setStatus(msg, cls) {
   var el = document.getElementById('status');
   el.textContent = msg;
   el.className = cls;
-  if (cls !== 'inf') setTimeout(function(){ el.style.display='none'; }, 7000);
+  if (cls !== 'inf') setTimeout(function(){ el.style.display = 'none'; }, 8000);
 }
 
-function showInfo(atoms, fmt, name) {
+function showInfo(atomCount, fmt, name) {
   var el = document.getElementById('infobar');
-  el.innerHTML = 'Atoms: <span>' + atoms + '</span> &nbsp;|&nbsp; Format: <span>' + fmt + '</span> &nbsp;|&nbsp; Name: <span>' + name + '</span>';
+  el.innerHTML = 'Atoms: <span>' + atomCount + '</span> &nbsp;|&nbsp; Format: <span>' + fmt + '</span> &nbsp;|&nbsp; Name: <span>' + (name||'—') + '</span>';
   el.style.display = 'block';
 }
 
-// ── Element tables ───────────────────────────────────────
+function setLoading(show, msg, pct) {
+  document.getElementById('loadingbar').style.display = show ? 'block' : 'none';
+  if (msg) document.getElementById('lmsg').textContent = msg;
+  if (pct !== undefined) document.getElementById('lbfill').style.width = pct + '%';
+}
+
+// ── ELEMENT TABLES ────────────────────────────────────────────
 var ANUM = {1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',
             11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',
             19:'K',20:'Ca',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',
             35:'Br',46:'Pd',47:'Ag',53:'I',78:'Pt',79:'Au',80:'Hg'};
 var ELEMS = {};
-'H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Pd Ag In Sn Te I Xe Cs Ba La Pt Au Hg Pb Bi U'.split(' ')
-  .forEach(function(e){ ELEMS[e.toLowerCase()] = e; });
+'H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Pd Ag In Sn Te I Xe Cs Ba La Pt Au Hg Pb Bi U'
+  .split(' ').forEach(function(e){ ELEMS[e.toLowerCase()] = e; });
 
-// ── Multi-structure XYZ splitter ─────────────────────────
-function splitMultiXYZ(text) {
-  var lines = text.trim().split(/\r?\n/);
-  var structs = [];
+// ── LAZY INDEX BUILDER ────────────────────────────────────────
+// Scans line-by-line for XYZ block headers WITHOUT storing all blocks.
+// Only stores: line index of start, atomCount, comment.
+// This runs in chunks using setTimeout so it never freezes the page.
+function buildIndex(rawLines, onDone) {
+  var result = [];
   var i = 0;
-  while (i < lines.length) {
-    var trimmed = lines[i].trim();
-    if (/^\d+$/.test(trimmed)) {
-      var n = parseInt(trimmed);
-      // collect n+2 lines (count line + comment + n coord lines)
-      var block = [];
-      for (var j = i; j < Math.min(i + n + 2, lines.length); j++) {
-        block.push(lines[j]);
-      }
-      if (block.length >= n + 1) {
-        // If comment line is missing (next line looks like coords), insert one
-        if (block.length > 1) {
-          var secondParts = block[1].trim().split(/\s+/);
-          if (secondParts.length >= 4 && !isNaN(parseFloat(secondParts[1]))) {
-            block.splice(1, 0, 'structure ' + (structs.length + 1));
+  var total = rawLines.length;
+
+  function chunk() {
+    var end = Math.min(i + 5000, total);
+    while (i < end) {
+      var t = rawLines[i].trim();
+      if (/^\d+$/.test(t)) {
+        var n = parseInt(t);
+        if (n > 0 && i + n + 1 < total) {
+          // Peek: does line i+2 (or i+1 if no comment) look like coords?
+          var commentLine = rawLines[i + 1] ? rawLines[i + 1].trim() : '';
+          var firstCoord  = rawLines[i + 2] ? rawLines[i + 2].trim() : '';
+          var fp = firstCoord.split(/\s+/);
+          var looksLikeCoord = (fp.length >= 4 && (ELEMS[fp[0].toLowerCase()] || /^\d+$/.test(fp[0])));
+          if (looksLikeCoord) {
+            result.push({ start: i, n: n, comment: commentLine });
+            i += n + 2;
+            continue;
           }
         }
-        structs.push(block.join('\n'));
-        i += n + 2;
-        continue;
       }
+      i++;
     }
-    i++;
-  }
-  return structs.length > 0 ? structs : null;
-}
+    // Update progress
+    var pct = Math.round((i / total) * 100);
+    setLoading(true, 'Indexing structures... ' + pct + '%', pct);
 
-// ── Format converters ────────────────────────────────────
-function bareToXYZ(text) {
-  var lines = text.trim().split(/\r?\n/);
-  var rows = [];
-  for (var i = 0; i < lines.length; i++) {
-    var p = lines[i].trim().split(/\s+/);
-    var elem = null, x, y, z;
-    if (p.length >= 4 && ELEMS[p[0].toLowerCase()]) {
-      elem = ELEMS[p[0].toLowerCase()];
-      x = parseFloat(p[1]); y = parseFloat(p[2]); z = parseFloat(p[3]);
-    } else if (p.length >= 6 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) {
-      elem = ANUM[parseInt(p[1])] || null;
-      x = parseFloat(p[3]); y = parseFloat(p[4]); z = parseFloat(p[5]);
-    }
-    if (elem && !isNaN(x)) rows.push(elem + ' ' + x.toFixed(5) + ' ' + y.toFixed(5) + ' ' + z.toFixed(5));
-  }
-  if (!rows.length) return null;
-  return rows.length + '\nGenerated\n' + rows.join('\n');
-}
-
-function gaussianToXYZ(text) {
-  var lines = text.split(/\r?\n/);
-  var last = [];
-  for (var i = 0; i < lines.length; i++) {
-    if (lines[i].indexOf('Standard orientation:') !== -1 || lines[i].indexOf('Input orientation:') !== -1) {
-      i += 5; var cur = [];
-      while (i < lines.length && lines[i].indexOf('---') === -1) {
-        var p = lines[i].trim().split(/\s+/);
-        if (p.length >= 6) {
-          var el = ANUM[parseInt(p[1])];
-          if (el) cur.push(el + ' ' + parseFloat(p[3]).toFixed(5) + ' ' + parseFloat(p[4]).toFixed(5) + ' ' + parseFloat(p[5]).toFixed(5));
-        }
-        i++;
-      }
-      if (cur.length) last = cur;
+    if (i < total) {
+      setTimeout(chunk, 0);  // yield to browser between chunks
+    } else {
+      setLoading(false);
+      onDone(result);
     }
   }
-  if (!last.length) return null;
-  return last.length + '\nGaussian last geometry\n' + last.join('\n');
+  setTimeout(chunk, 0);
 }
 
-function fixXYZ(text) {
-  var lines = text.trim().split(/\r?\n/);
-  if (!lines.length) return text;
-  var first = lines[0].trim();
-  if (/^\d+$/.test(first) && lines.length > 1) {
-    var second = lines[1].trim().split(/\s+/);
-    if (second.length >= 4 && !isNaN(parseFloat(second[1]))) {
-      return first + '\nmolecule\n' + lines.slice(1).join('\n');
-    }
+// ── EXTRACT SINGLE STRUCTURE BY INDEX ────────────────────────
+// Given offsets[idx], pull lines from the global `lines` array.
+function extractStructure(idx) {
+  var o = offsets[idx];
+  var n = o.n;
+  // lines[o.start]   = atom count
+  // lines[o.start+1] = comment
+  // lines[o.start+2 .. o.start+1+n] = coordinates
+  var comment = lines[o.start + 1] ? lines[o.start + 1].trim() : ('structure ' + (idx + 1));
+  var coordLines = [];
+  for (var j = o.start + 2; j <= o.start + 1 + n && j < lines.length; j++) {
+    coordLines.push(lines[j]);
   }
-  return text;
+  return n + '\n' + comment + '\n' + coordLines.join('\n');
 }
 
-function prepare(rawText, hint, filename) {
-  var fmt = hint;
-  if (fmt === 'auto') {
-    if (filename) {
-      var ext = filename.split('.').pop().toLowerCase();
-      if (ext === 'log' || ext === 'gjf' || ext === 'com') fmt = 'gaussian';
-      else if (ext === 'pdb')  fmt = 'pdb';
-      else if (ext === 'mol2') fmt = 'mol2';
-      else if (ext === 'sdf')  fmt = 'sdf';
-      else if (ext === 'mol')  fmt = 'mol';
-      else fmt = 'guess';
-    } else fmt = 'guess';
-  }
-  if (fmt === 'guess' || fmt === 'auto') {
-    if (/^(ATOM  |HETATM|REMARK|HEADER)/m.test(rawText)) fmt = 'pdb';
-    else if (/@<TRIPOS>MOLECULE/.test(rawText)) fmt = 'mol2';
-    else if (/\$\$\$\$/.test(rawText)) fmt = 'sdf';
-    else if (/(V2000|V3000|M  END)/.test(rawText)) fmt = 'mol';
-    else if (/Standard orientation:|Input orientation:/.test(rawText)) fmt = 'gaussian';
-    else if (/^\s*\d+\s*[\r\n]/.test(rawText)) fmt = 'xyz_check';
-    else if (/^[A-Z][a-z]?\s+[-\d.]+\s+[-\d.]+/m.test(rawText)) fmt = 'bare';
-    else fmt = 'xyz_check';
-  }
-  if (fmt === 'gaussian') {
-    var xyz = gaussianToXYZ(rawText);
-    if (xyz) return { data: xyz, fmt: 'xyz', label: 'Gaussian LOG' };
-    var b = bareToXYZ(rawText);
-    if (b)   return { data: b,   fmt: 'xyz', label: 'Gaussian coords' };
-    return null;
-  }
-  if (fmt === 'bare') {
-    var b2 = bareToXYZ(rawText);
-    if (b2) return { data: b2, fmt: 'xyz', label: 'Bare XYZ' };
-    return null;
-  }
-  if (fmt === 'xyz_check' || fmt === 'xyz') {
-    return { data: fixXYZ(rawText), fmt: 'xyz', label: 'XYZ' };
-  }
-  return { data: rawText, fmt: fmt, label: fmt.toUpperCase() };
-}
-
-// ── Viewer ───────────────────────────────────────────────
+// ── VIEWER HELPERS ────────────────────────────────────────────
 function makeViewer() {
   var cont = document.getElementById('viewer');
   cont.innerHTML = '';
@@ -437,7 +347,7 @@ function makeViewer() {
 function applyStyle() {
   if (!gv) return;
   try { gv.removeAllSurfaces(); } catch(e){}
-  try { gv.removeAllLabels(); }   catch(e){}
+  try { gv.removeAllLabels();   } catch(e){}
   var s = document.getElementById('sty').value;
   var c = document.getElementById('col').value;
   var u = document.getElementById('sur').value;
@@ -448,81 +358,101 @@ function applyStyle() {
   else if (s==='sphere') gv.setStyle({},{sphere:Object.assign({scale:1},co)});
   else if (s==='line')   gv.setStyle({},{line:co});
   else if (s==='cross')  gv.setStyle({},{cross:Object.assign({radius:0.3},co)});
-  if (u!=='none') try { gv.addSurface($3Dmol.SurfaceType[u],{opacity:0.4,colorscheme:c}); } catch(e){}
+  if (u !== 'none') try { gv.addSurface($3Dmol.SurfaceType[u],{opacity:0.4,colorscheme:c}); } catch(e){}
   if (gLabels) gv.addPropertyLabels('elem',{},{font:'Arial',fontSize:12,fontColor:'white',showBackground:false,alignment:'center'});
   gv.spin(gSpin);
   gv.render();
 }
 
-// ── Show structure by index ──────────────────────────────
+// ── SHOW STRUCTURE (instant after indexing) ───────────────────
 function showStructure(idx) {
-  if (!structures.length) return;
-  if (idx < 0) idx = 0;
-  if (idx >= structures.length) idx = structures.length - 1;
+  if (!offsets.length) return;
+  idx = Math.max(0, Math.min(idx, offsets.length - 1));
   curIdx = idx;
 
-  if (typeof $3Dmol === 'undefined') { setStatus('3Dmol.js not loaded', 'err'); return; }
-
+  var xyzBlock = extractStructure(idx);
   try {
     makeViewer();
-    gv.addModel(structures[idx], 'xyz');
+    gv.addModel(xyzBlock, 'xyz');
     applyStyle();
     gv.zoomTo();
     gv.render();
+
     var atoms = gv.getModel().selectedAtoms({});
+    var comment = offsets[idx].comment || ('Structure ' + (idx+1));
 
-    // Update counter
-    var curNum = document.getElementById('cur-num');
-    var totNum = document.getElementById('tot-num');
-    if (curNum) curNum.textContent = idx + 1;
-    if (totNum) totNum.textContent = structures.length;
-
-    // Update jump input
-    document.getElementById('jump-input').value = idx + 1;
-    document.getElementById('jump-input').max = structures.length;
-
-    // Extract comment line from XYZ as structure name
-    var xyzLines = structures[idx].split('\n');
-    var comment = (xyzLines.length > 1 ? xyzLines[1].trim() : '') || ('Structure ' + (idx+1));
+    // Update UI
+    document.getElementById('cur-num').textContent = idx + 1;
     document.getElementById('struct-info').textContent = comment + ' · ' + atoms.length + ' atoms';
+    document.getElementById('jump-input').value = idx + 1;
 
-    // Progress bar
-    var pct = structures.length > 1 ? ((idx / (structures.length - 1)) * 100).toFixed(1) : 100;
-    document.getElementById('progbar').style.width = pct + '%';
+    var pct = offsets.length > 1 ? ((idx / (offsets.length - 1)) * 100) : 100;
+    document.getElementById('progfill').style.width = pct.toFixed(1) + '%';
 
-    // Navigation button states
     document.getElementById('btn-first').disabled = (idx === 0);
     document.getElementById('btn-prev').disabled  = (idx === 0);
-    document.getElementById('btn-next').disabled  = (idx === structures.length - 1);
-    document.getElementById('btn-last').disabled  = (idx === structures.length - 1);
+    document.getElementById('btn-next').disabled  = (idx === offsets.length - 1);
+    document.getElementById('btn-last').disabled  = (idx === offsets.length - 1);
 
-    showInfo(atoms.length, 'XYZ', 'Structure ' + (idx+1) + ' / ' + structures.length);
+    showInfo(atoms.length, 'XYZ', 'Structure ' + (idx+1) + ' / ' + offsets.length);
   } catch(e) {
-    setStatus('Error rendering structure ' + (idx+1) + ': ' + e.message, 'err');
+    setStatus('Render error at structure ' + (idx+1) + ': ' + e.message, 'err');
     console.error(e);
   }
 }
 
 function goTo(idx) { showStructure(idx); }
-
 function doJump() {
-  var val = parseInt(document.getElementById('jump-input').value);
-  if (!isNaN(val)) showStructure(val - 1);
+  var v = parseInt(document.getElementById('jump-input').value);
+  if (!isNaN(v)) showStructure(v - 1);
 }
 
-// ── Keyboard navigation ──────────────────────────────────
+// ── KEYBOARD NAVIGATION ───────────────────────────────────────
 document.addEventListener('keydown', function(e) {
-  if (!structures.length || structures.length <= 1) return;
+  if (!offsets.length || offsets.length <= 1) return;
   if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
   if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(curIdx + 1); }
   if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goTo(curIdx - 1); }
   if (e.key === 'Home') { e.preventDefault(); goTo(0); }
-  if (e.key === 'End')  { e.preventDefault(); goTo(structures.length - 1); }
+  if (e.key === 'End')  { e.preventDefault(); goTo(offsets.length - 1); }
 });
 
-// ── Main load function ───────────────────────────────────
+// ── PROCESS LARGE MULTI-XYZ FILE ─────────────────────────────
+function processMultiXYZ(text, filename) {
+  setLoading(true, 'Reading file...', 0);
+  lines = text.split(/\r?\n/);
+
+  buildIndex(lines, function(result) {
+    offsets = result;
+    if (offsets.length === 0) {
+      // Not a multi-XYZ — try as single
+      setLoading(false);
+      processSingle(text, 'auto', filename);
+      return;
+    }
+    if (offsets.length === 1) {
+      setLoading(false);
+      var single = extractStructure(0);
+      renderSingle(single, 'xyz', 'XYZ', filename || 'pasted');
+      return;
+    }
+
+    // Multi-structure: show UI
+    document.getElementById('multibar').style.display = 'flex';
+    document.getElementById('nav-panel').style.display = 'flex';
+    document.getElementById('progwrap').style.display = 'block';
+    document.getElementById('viewer').className = 'multi';
+    document.getElementById('tot-num').textContent = offsets.length;
+    document.getElementById('jump-input').max = offsets.length;
+
+    showStructure(0);
+    setStatus('✓ Indexed ' + offsets.length + ' structures — navigating instantly from ' +
+              Math.round(text.length/1024) + ' KB file', 'ok');
+  });
+}
+
+// ── SINGLE STRUCTURE ──────────────────────────────────────────
 function renderSingle(data, fmt, label, name) {
-  if (typeof $3Dmol === 'undefined') { setStatus('3Dmol.js not loaded', 'err'); return; }
   try {
     makeViewer();
     gv.addModel(data, fmt);
@@ -533,14 +463,71 @@ function renderSingle(data, fmt, label, name) {
     document.getElementById('viewer').className = 'solo';
     document.getElementById('multibar').style.display = 'none';
     document.getElementById('nav-panel').style.display = 'none';
-    document.getElementById('progbar-wrap').style.display = 'none';
+    document.getElementById('progwrap').style.display = 'none';
+    offsets = []; lines = [];
     showInfo(atoms.length, label, name);
     setStatus('✓ Loaded — ' + atoms.length + ' atoms (' + label + ')', 'ok');
   } catch(e) {
-    setStatus('Error: ' + e.message, 'err'); console.error(e);
+    setStatus('Render error: ' + e.message, 'err'); console.error(e);
   }
 }
 
+function bareToXYZ(text) {
+  var ls = text.trim().split(/\r?\n/), rows = [];
+  for (var i = 0; i < ls.length; i++) {
+    var p = ls[i].trim().split(/\s+/), elem = null, x, y, z;
+    if (p.length >= 4 && ELEMS[p[0].toLowerCase()]) { elem = ELEMS[p[0].toLowerCase()]; x=parseFloat(p[1]);y=parseFloat(p[2]);z=parseFloat(p[3]); }
+    else if (p.length >= 6 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) { elem=ANUM[parseInt(p[1])]||null; x=parseFloat(p[3]);y=parseFloat(p[4]);z=parseFloat(p[5]); }
+    if (elem && !isNaN(x)) rows.push(elem+' '+x.toFixed(5)+' '+y.toFixed(5)+' '+z.toFixed(5));
+  }
+  return rows.length ? rows.length+'\nGenerated\n'+rows.join('\n') : null;
+}
+
+function gaussianToXYZ(text) {
+  var ls = text.split(/\r?\n/), last = [];
+  for (var i = 0; i < ls.length; i++) {
+    if (ls[i].indexOf('Standard orientation:')!==-1||ls[i].indexOf('Input orientation:')!==-1) {
+      i+=5; var cur=[];
+      while (i<ls.length&&ls[i].indexOf('---')===-1) {
+        var p=ls[i].trim().split(/\s+/);
+        if (p.length>=6) { var el=ANUM[parseInt(p[1])]; if(el) cur.push(el+' '+parseFloat(p[3]).toFixed(5)+' '+parseFloat(p[4]).toFixed(5)+' '+parseFloat(p[5]).toFixed(5)); }
+        i++;
+      }
+      if (cur.length) last=cur;
+    }
+  }
+  return last.length ? last.length+'\nGaussian\n'+last.join('\n') : null;
+}
+
+function processSingle(text, hint, filename) {
+  var fmt = hint;
+  if (fmt === 'auto') {
+    if (filename) {
+      var ext = filename.split('.').pop().toLowerCase();
+      if (ext==='log'||ext==='gjf'||ext==='com') fmt='gaussian';
+      else if (ext==='pdb') fmt='pdb';
+      else if (ext==='mol2') fmt='mol2';
+      else if (ext==='sdf') fmt='sdf';
+      else if (ext==='mol') fmt='mol';
+      else fmt='guess';
+    } else fmt='guess';
+  }
+  if (fmt==='guess') {
+    if (/^(ATOM  |HETATM|REMARK|HEADER)/m.test(text)) fmt='pdb';
+    else if (/@<TRIPOS>MOLECULE/.test(text)) fmt='mol2';
+    else if (/\$\$\$\$/.test(text)) fmt='sdf';
+    else if (/(V2000|V3000|M  END)/.test(text)) fmt='mol';
+    else if (/Standard orientation:|Input orientation:/.test(text)) fmt='gaussian';
+    else if (/^[A-Z][a-z]?\s+[-\d.]+\s+[-\d.]+/m.test(text)) fmt='bare';
+    else fmt='xyz';
+  }
+  var data = text, label = fmt.toUpperCase();
+  if (fmt==='gaussian') { var r=gaussianToXYZ(text); if(r){data=r;fmt='xyz';label='Gaussian LOG';} }
+  else if (fmt==='bare') { var r2=bareToXYZ(text); if(r2){data=r2;fmt='xyz';label='Bare XYZ';} }
+  renderSingle(data, fmt, label, filename||'pasted');
+}
+
+// ── MAIN LOAD ─────────────────────────────────────────────────
 function doLoad() {
   var text = document.getElementById('coords').value.trim();
   if (!text) { setStatus('Paste coordinates or upload a file first', 'inf'); return; }
@@ -548,170 +535,133 @@ function doLoad() {
 
   if (fmt === 'smiles') {
     setStatus('Fetching from NIH CACTUS...', 'inf');
-    fetch('https://cactus.nci.nih.gov/chemical/structure/' + encodeURIComponent(text) + '/file?format=sdf&get3d=true')
-      .then(function(r){ return r.text(); })
+    fetch('https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(text)+'/file?format=sdf&get3d=true')
+      .then(function(r){return r.text();})
       .then(function(sdf){
-        if (sdf.toLowerCase().indexOf('not found') > -1 || sdf.length < 20) {
-          setStatus('Could not resolve SMILES', 'err');
-        } else {
-          document.getElementById('coords').value = sdf;
-          structures = []; curIdx = 0;
-          renderSingle(sdf, 'sdf', 'SMILES', text);
-        }
-      }).catch(function(){ setStatus('Network error for SMILES', 'err'); });
+        if (sdf.toLowerCase().indexOf('not found')>-1||sdf.length<20) { setStatus('Could not resolve SMILES','err'); return; }
+        document.getElementById('coords').value = sdf;
+        renderSingle(sdf,'sdf','SMILES',text);
+      }).catch(function(){ setStatus('Network error','err'); });
     return;
   }
 
-  setStatus('Parsing...', 'inf');
-
-  // Try multi-structure XYZ
-  var isXYZ = (fmt === 'auto' || fmt === 'xyz' || fmt === 'bare');
-  if (isXYZ) {
-    var multi = splitMultiXYZ(text);
-    if (multi && multi.length > 1) {
-      structures = multi;
-      curIdx = 0;
-      // Show multi-structure UI
-      document.getElementById('multibar').style.display = 'flex';
-      document.getElementById('nav-panel').style.display = 'flex';
-      document.getElementById('progbar-wrap').style.display = 'block';
-      document.getElementById('viewer').className = '';
-      document.getElementById('tot-num').textContent = multi.length;
-      document.getElementById('jump-input').max = multi.length;
-      showStructure(0);
-      setStatus('✓ Loaded ' + multi.length + ' structures — use ◀ ▶ buttons or ← → arrow keys to navigate', 'ok');
+  // Check if it could be multi-XYZ
+  if (fmt==='auto'||fmt==='xyz'||fmt==='bare') {
+    var firstLine = text.split(/\r?\n/)[0].trim();
+    if (/^\d+$/.test(firstLine)) {
+      processMultiXYZ(text, null);
       return;
     }
   }
-
-  // Single structure
-  structures = []; curIdx = 0;
-  var p = prepare(text, fmt, null);
-  if (!p) { setStatus('Could not parse format. Try selecting format manually.', 'err'); return; }
-  document.getElementById('viewer').className = 'solo';
-  document.getElementById('multibar').style.display = 'none';
-  document.getElementById('nav-panel').style.display = 'none';
-  document.getElementById('progbar-wrap').style.display = 'none';
-  renderSingle(p.data, p.fmt, p.label, 'pasted');
+  processSingle(text, fmt, null);
 }
 
-// ── Save PNG ─────────────────────────────────────────────
+// ── SAVE PNG ──────────────────────────────────────────────────
 function doSave() {
-  if (!gv) { setStatus('No molecule loaded', 'inf'); return; }
+  if (!gv) { setStatus('No molecule loaded','inf'); return; }
   try {
     var canvas = document.querySelector('#viewer canvas');
     if (canvas) {
-      canvas.toBlob(function(blob) {
+      canvas.toBlob(function(blob){
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
-        var name = structures.length > 1 ? 'structure_' + (curIdx+1) + '_of_' + structures.length : 'molecule';
-        a.href = url; a.download = name + '_GMP.png';
-        document.body.appendChild(a); a.click();
-        document.body.removeChild(a);
+        var name = offsets.length > 1 ? 'struct_'+(curIdx+1)+'_of_'+offsets.length : 'molecule';
+        a.href=url; a.download=name+'_GMP.png';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-      }, 'image/png');
-      return;
+      },'image/png'); return;
     }
     var uri = gv.pngURI();
     var a = document.createElement('a');
-    a.href = uri; a.download = 'molecule_GMP.png';
+    a.href=uri; a.download='molecule_GMP.png';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  } catch(e) { setStatus('Save error: ' + e.message, 'err'); }
+  } catch(e){ setStatus('Save error: '+e.message,'err'); }
 }
 
-// ── Clear ────────────────────────────────────────────────
+// ── CLEAR ─────────────────────────────────────────────────────
 function doClear() {
-  if (gv) { try{ gv.clear(); gv.render(); }catch(e){} }
-  gv = null; structures = []; curIdx = 0;
-  gLabels = false; gSpin = false;
-  document.getElementById('coords').value = '';
-  document.getElementById('status').style.display = 'none';
-  document.getElementById('infobar').style.display = 'none';
-  document.getElementById('multibar').style.display = 'none';
-  document.getElementById('nav-panel').style.display = 'none';
-  document.getElementById('progbar-wrap').style.display = 'none';
-  document.getElementById('viewer').className = 'solo';
+  if (gv) { try{gv.clear();gv.render();}catch(e){} }
+  gv=null; offsets=[]; lines=[]; fileText=''; curIdx=0; gLabels=false; gSpin=false;
+  document.getElementById('coords').value='';
+  document.getElementById('status').style.display='none';
+  document.getElementById('infobar').style.display='none';
+  document.getElementById('multibar').style.display='none';
+  document.getElementById('nav-panel').style.display='none';
+  document.getElementById('progwrap').style.display='none';
+  document.getElementById('viewer').className='solo';
   document.getElementById('lblbtn').classList.remove('on');
   document.getElementById('spnbtn').classList.remove('on');
-  document.getElementById('viewer').innerHTML =
-    '<div id="ph"><div style="font-size:2.5rem;opacity:0.3">⚛️</div>' +
-    '<div>Load a molecule to begin</div>' +
-    '<div class="hint">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · Multi-structure XYZ</div></div>';
+  document.getElementById('viewer').innerHTML=
+    '<div id="ph"><div style="font-size:2.5rem;opacity:0.3">⚛️</div>'+
+    '<div>Load a molecule to begin</div>'+
+    '<div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · LOG · SMILES · Large multi-XYZ</div></div>';
 }
 
-// ── Toggles ──────────────────────────────────────────────
+// ── TOGGLES ───────────────────────────────────────────────────
 function doToggleLabels() {
-  gLabels = !gLabels;
-  document.getElementById('lblbtn').classList.toggle('on', gLabels);
+  gLabels=!gLabels;
+  document.getElementById('lblbtn').classList.toggle('on',gLabels);
   if (gv) applyStyle();
 }
 function doToggleSpin() {
-  gSpin = !gSpin;
-  document.getElementById('spnbtn').classList.toggle('on', gSpin);
+  gSpin=!gSpin;
+  document.getElementById('spnbtn').classList.toggle('on',gSpin);
   if (gv) gv.spin(gSpin);
 }
 function doToggleBg() {
-  gBg = !gBg;
-  document.getElementById('bgbtn').classList.toggle('on', gBg);
+  gBg=!gBg;
+  document.getElementById('bgbtn').classList.toggle('on',gBg);
   if (gv) {
-    if (structures.length > 1) showStructure(curIdx);
-    else {
-      var text = document.getElementById('coords').value.trim();
-      if (text) doLoad();
-    }
+    if (offsets.length>1) showStructure(curIdx);
+    else { var t=document.getElementById('coords').value.trim(); if(t) doLoad(); }
   }
 }
 
-// Re-render on dropdown change
 ['sty','col','sur'].forEach(function(id){
-  document.getElementById(id).addEventListener('change', function(){
-    if (!gv) return;
-    if (structures.length > 1) applyStyle();
-    else applyStyle();
+  document.getElementById(id).addEventListener('change',function(){
+    if (gv) {
+      if (offsets.length>1) applyStyle();
+      else applyStyle();
+    }
   });
 });
 
-// ── File upload ──────────────────────────────────────────
+// ── FILE UPLOAD ───────────────────────────────────────────────
 document.getElementById('filein').addEventListener('change', function(e){
   var f = e.target.files[0]; if (!f) return;
+  setLoading(true,'Reading file ('+Math.round(f.size/1024)+' KB)...',0);
   var r = new FileReader();
   r.onload = function(ev){
     var text = ev.target.result;
-    document.getElementById('coords').value = text;
-    // Auto-trigger load
+    document.getElementById('coords').value = text.substring(0, 500) + (text.length>500?'\n... ('+Math.round(text.length/1024)+' KB file loaded)':'');
+    setLoading(true,'Scanning for structures...',5);
     setTimeout(function(){
-      var fmt = document.getElementById('fmt').value;
       var ext = f.name.split('.').pop().toLowerCase();
-      if (fmt === 'auto' && (ext === 'log' || ext === 'gjf')) {
-        document.getElementById('fmt').value = 'auto';
-      }
-      doLoad();
-    }, 100);
+      if (ext==='log'||ext==='gjf'||ext==='com') { setLoading(false); processSingle(text,'gaussian',f.name); }
+      else if (ext==='pdb'||ext==='mol2'||ext==='sdf'||ext==='mol') { setLoading(false); processSingle(text,ext,f.name); }
+      else { processMultiXYZ(text, f.name); }
+    }, 50);
   };
+  r.onerror = function(){ setLoading(false); setStatus('File read error','err'); };
   r.readAsText(f);
-  e.target.value = '';
+  e.target.value='';
 });
 
-document.getElementById('ubtn').addEventListener('click', function(e){
-  e.stopPropagation();
-  document.getElementById('filein').click();
-});
-document.getElementById('dropzone').addEventListener('click', function(){
-  document.getElementById('filein').click();
-});
+document.getElementById('ubtn').addEventListener('click',function(e){ e.stopPropagation(); document.getElementById('filein').click(); });
+document.getElementById('dropzone').addEventListener('click',function(){ document.getElementById('filein').click(); });
 
-// Drag and drop
 var dz = document.getElementById('dropzone');
-dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('over'); });
-dz.addEventListener('dragleave', function(){  dz.classList.remove('over'); });
+dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', function(){ dz.classList.remove('over'); });
 dz.addEventListener('drop', function(e){
   e.preventDefault(); dz.classList.remove('over');
   var f = e.dataTransfer.files[0]; if (!f) return;
+  setLoading(true,'Reading '+Math.round(f.size/1024)+' KB...',0);
   var r = new FileReader();
   r.onload = function(ev){
     var text = ev.target.result;
-    document.getElementById('coords').value = text;
-    setTimeout(doLoad, 100);
+    document.getElementById('coords').value = text.substring(0,500)+(text.length>500?'\n...('+Math.round(text.length/1024)+' KB)':'');
+    setTimeout(function(){ processMultiXYZ(text, f.name); }, 50);
   };
   r.readAsText(f);
 });
