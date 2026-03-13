@@ -6,7 +6,7 @@ author_profile: true
 ---
 
 ## 2026
-- 🧑‍🔬 **(_Upcoming_)June 2026** — Scheduled to attend **CAMLC Workshop** in Zaragoza, Spain
+- 🧑‍🔬 **(_Upcoming_) June 2026** — Scheduled to attend **CAMLC Workshop** in Zaragoza, Spain
 - 📄 **January 2026** — Published first paper in **Chemistry – A European Journal**: *Enantiodivergent Synthesis of 3-Vinylphthalides via Rh-Catalyzed C–H Annulation* — [DOI: 10.1002/chem.202502827](https://doi.org/10.1002/chem.202502827)
 
 ## 2025
