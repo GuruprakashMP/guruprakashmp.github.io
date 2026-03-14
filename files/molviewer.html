@@ -20,7 +20,6 @@ body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3;
 .tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
 .tag { background: #21262d; color: #8b949e; font-family: monospace; font-size: 0.68rem; padding: 2px 7px; border-radius: 4px; border: 1px solid #30363d; }
 
-/* Loading overlay */
 #loadingbar {
   display: none; background: #161b22; border: 1.5px solid #30363d;
   border-radius: 10px; padding: 16px; margin-bottom: 12px; text-align: center;
@@ -62,10 +61,8 @@ select:focus { border-color: #38bdf8; }
 #infobar { display: none; padding: 8px 12px; border-radius: 7px; font-family: monospace; font-size: 0.7rem; color: #8b949e; background: #161b22; border: 1px solid #21262d; margin-top: 8px; }
 #infobar span { color: #38bdf8; font-weight: bold; }
 
-/* Viewer wrap */
 #viewerwrap { position: relative; margin-top: 12px; }
 
-/* Multi-structure top bar */
 #multibar {
   display: none; align-items: center; justify-content: space-between;
   background: #161b22; border: 1.5px solid #21262d;
@@ -80,26 +77,25 @@ select:focus { border-color: #38bdf8; }
 #jump-go { padding: 4px 10px; border-radius: 4px; border: none; background: #38bdf8; color: #0d1117; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
 .jlbl { font-family: monospace; font-size: 0.7rem; color: #8b949e; }
 
-/* Navigation panel */
 #nav-panel {
   display: none; position: absolute; right: 10px; top: 50%;
   transform: translateY(-50%); flex-direction: column; gap: 8px; z-index: 100;
 }
 .nav-btn {
   width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(56,189,248,0.3);
-  background: rgba(13,17,23,0.8); color: #38bdf8; font-size: 1rem;
+  background: rgba(13,17,23,0.85); color: #38bdf8; font-size: 1rem;
   cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(4px);
 }
-.nav-btn:hover:not(:disabled) { background: rgba(56,189,248,0.25); transform: scale(1.1); }
-.nav-btn:disabled { opacity: 0.2; cursor: not-allowed; }
+.nav-btn:hover:not(:disabled) { background: rgba(56,189,248,0.3); transform: scale(1.1); }
+.nav-btn:disabled { opacity: 0.2; cursor: not-allowed; transform: none !important; }
 
 #viewer {
   width: 100%; height: 480px; background: #010409;
   border: 1.5px solid #21262d; position: relative; overflow: hidden;
 }
 #viewer.solo { border-radius: 10px; }
-#viewer.multi { border-radius: 0 0 0 0; }
+#viewer.multi { border-radius: 0; }
 
 #ph {
   position: absolute; inset: 0; display: flex; flex-direction: column;
@@ -107,7 +103,6 @@ select:focus { border-color: #38bdf8; }
   text-align: center; gap: 10px; font-size: 0.8rem; font-family: monospace; pointer-events: none;
 }
 
-/* Progress bar */
 #progwrap { display: none; height: 4px; background: #21262d; border-radius: 0 0 10px 10px; overflow: hidden; }
 #progfill { height: 100%; background: linear-gradient(90deg,#38bdf8,#0ea5e9); width: 0%; transition: width 0.15s; }
 
@@ -117,9 +112,8 @@ select:focus { border-color: #38bdf8; }
 <body>
 
 <div class="title">⚗️ Molecule Viewer</div>
-<div class="subtitle">// lazy-loading · handles 1000s of structures instantly</div>
+<div class="subtitle">// lazy-loading · handles 1000s of structures · any element</div>
 
-<!-- Drop zone -->
 <div id="dropzone">
   <div style="font-size:1.5rem;margin-bottom:6px">📂</div>
   <div>Drop file here or <strong style="color:#38bdf8;cursor:pointer" id="ubtn">click to upload</strong></div>
@@ -131,16 +125,14 @@ select:focus { border-color: #38bdf8; }
 </div>
 <input type="file" id="filein" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.txt">
 
-<!-- Loading progress bar -->
 <div id="loadingbar">
   <div class="lmsg" id="lmsg">Scanning file...</div>
   <div id="lbtrack"><div id="lbfill"></div></div>
 </div>
 
 <textarea id="coords" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG or SMILES...
-For large multi-structure XYZ: use file upload (drag & drop) for best performance."></textarea>
+Multi-structure XYZ: paste all blocks together or use file upload for large files."></textarea>
 
-<!-- Controls -->
 <div class="row">
   <div class="field">
     <div class="lbl">FORMAT</div>
@@ -197,9 +189,7 @@ For large multi-structure XYZ: use file upload (drag & drop) for best performanc
 <div id="status"></div>
 <div id="infobar"></div>
 
-<!-- Viewer -->
 <div id="viewerwrap">
-
   <div id="multibar">
     <div>
       <div id="struct-counter">Structure <span id="cur-num">1</span> / <span id="tot-num">?</span></div>
@@ -216,13 +206,13 @@ For large multi-structure XYZ: use file upload (drag & drop) for best performanc
     <div id="ph">
       <div style="font-size:2.5rem;opacity:0.3">⚛️</div>
       <div>Load a molecule to begin</div>
-      <div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · LOG · SMILES · Large multi-XYZ</div>
+      <div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · Multi-structure XYZ</div>
     </div>
   </div>
 
   <div id="nav-panel">
     <button class="nav-btn" id="btn-first" onclick="goTo(0)" title="First">⏮</button>
-    <button class="nav-btn" id="btn-prev"  onclick="goTo(curIdx-1)" title="Prev">◀</button>
+    <button class="nav-btn" id="btn-prev"  onclick="goTo(curIdx-1)" title="Previous">◀</button>
     <button class="nav-btn" id="btn-next"  onclick="goTo(curIdx+1)" title="Next">▶</button>
     <button class="nav-btn" id="btn-last"  onclick="goTo(offsets.length-1)" title="Last">⏭</button>
   </div>
@@ -235,158 +225,176 @@ For large multi-structure XYZ: use file upload (drag & drop) for best performanc
 <script>
 'use strict';
 
-// ── State ─────────────────────────────────────────────────────
-var gv       = null;
-var gLabels  = false;
-var gSpin    = false;
-var gBg      = false;
-var curIdx   = 0;
+// ── Global state ──────────────────────────────────────────────
+var gv      = null;
+var gLabels = false;
+var gSpin   = false;
+var gBg     = false;
+var curIdx  = 0;
+var offsets = [];   // [{lineStart, n, comment}]  — index only, no coord data
+var lines   = [];   // full file split into lines, kept in memory once
 
-// Lazy-loading state
-var fileText = '';       // full raw text (stored once)
-var offsets  = [];       // [{start: lineIdx, atomCount: n, comment: str}]
-var lines    = [];       // all lines split once
-
-// ── Helpers ───────────────────────────────────────────────────
+// ── UI helpers ────────────────────────────────────────────────
 function setStatus(msg, cls) {
   var el = document.getElementById('status');
-  el.textContent = msg;
-  el.className = cls;
-  if (cls !== 'inf') setTimeout(function(){ el.style.display = 'none'; }, 8000);
+  el.textContent = msg; el.className = cls;
+  if (cls !== 'inf') setTimeout(function(){ el.style.display='none'; }, 9000);
 }
-
-function showInfo(atomCount, fmt, name) {
+function showInfo(n, fmt, name) {
   var el = document.getElementById('infobar');
-  el.innerHTML = 'Atoms: <span>' + atomCount + '</span> &nbsp;|&nbsp; Format: <span>' + fmt + '</span> &nbsp;|&nbsp; Name: <span>' + (name||'—') + '</span>';
+  el.innerHTML = 'Atoms: <span>'+n+'</span> &nbsp;|&nbsp; Format: <span>'+fmt+'</span> &nbsp;|&nbsp; Name: <span>'+(name||'—')+'</span>';
   el.style.display = 'block';
 }
-
 function setLoading(show, msg, pct) {
   document.getElementById('loadingbar').style.display = show ? 'block' : 'none';
-  if (msg) document.getElementById('lmsg').textContent = msg;
+  if (msg !== undefined) document.getElementById('lmsg').textContent = msg;
   if (pct !== undefined) document.getElementById('lbfill').style.width = pct + '%';
 }
 
-// ── ELEMENT TABLES ────────────────────────────────────────────
-var ANUM = {1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',
-            11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',
-            19:'K',20:'Ca',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',
-            35:'Br',46:'Pd',47:'Ag',53:'I',78:'Pt',79:'Au',80:'Hg'};
+// ── Element tables ────────────────────────────────────────────
+var ANUM = {};
+// atomic number → symbol
+var _sym = ['','H','He','Li','Be','B','C','N','O','F','Ne',
+  'Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca',
+  'Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn',
+  'Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr',
+  'Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn',
+  'Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd',
+  'Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb',
+  'Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg',
+  'Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th',
+  'Pa','U','Np','Pu'];
+for (var _i=1;_i<_sym.length;_i++) ANUM[_i]=_sym[_i];
+
+// symbol → canonical (for any capitalisation)
 var ELEMS = {};
-'H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Pd Ag In Sn Te I Xe Cs Ba La Pt Au Hg Pb Bi U'
-  .split(' ').forEach(function(e){ ELEMS[e.toLowerCase()] = e; });
+for (var _i=1;_i<_sym.length;_i++) ELEMS[_sym[_i].toLowerCase()] = _sym[_i];
+
+// ── KEY FIX: coord-line detector ─────────────────────────────
+// Checks if a line looks like "ELEM  x  y  z" or "N  N  N  x  y  z"
+// Does NOT require the element to be in any list — just checks that
+// columns 1,2,3 (or 3,4,5 for Gaussian) are valid floats.
+function looksLikeXYZCoord(line) {
+  if (!line || !line.trim()) return false;
+  var p = line.trim().split(/\s+/);
+  // Standard XYZ: ELEM x y z  (≥4 tokens, tokens 1-3 are floats)
+  if (p.length >= 4) {
+    var x = parseFloat(p[1]), y = parseFloat(p[2]), z = parseFloat(p[3]);
+    if (!isNaN(x) && !isNaN(y) && !isNaN(z)) return true;
+  }
+  // Gaussian: n  atomicnum  type  x  y  z  (≥6 tokens, tokens 3-5 are floats)
+  if (p.length >= 6) {
+    var x2 = parseFloat(p[3]), y2 = parseFloat(p[4]), z2 = parseFloat(p[5]);
+    if (!isNaN(x2) && !isNaN(y2) && !isNaN(z2)) return true;
+  }
+  return false;
+}
 
 // ── LAZY INDEX BUILDER ────────────────────────────────────────
-// Scans line-by-line for XYZ block headers WITHOUT storing all blocks.
-// Only stores: line index of start, atomCount, comment.
-// This runs in chunks using setTimeout so it never freezes the page.
+// Scans the lines array in chunks, yielding to browser via setTimeout.
+// Stores ONLY position metadata — never copies coordinate strings.
 function buildIndex(rawLines, onDone) {
   var result = [];
   var i = 0;
   var total = rawLines.length;
+  var CHUNK = 8000;  // lines per tick — tune up/down if needed
 
-  function chunk() {
-    var end = Math.min(i + 5000, total);
+  function tick() {
+    var end = Math.min(i + CHUNK, total);
     while (i < end) {
       var t = rawLines[i].trim();
+      // A line that is purely an integer could be an XYZ atom-count header
       if (/^\d+$/.test(t)) {
-        var n = parseInt(t);
-        if (n > 0 && i + n + 1 < total) {
-          // Peek: does line i+2 (or i+1 if no comment) look like coords?
-          var commentLine = rawLines[i + 1] ? rawLines[i + 1].trim() : '';
-          var firstCoord  = rawLines[i + 2] ? rawLines[i + 2].trim() : '';
-          var fp = firstCoord.split(/\s+/);
-          var looksLikeCoord = (fp.length >= 4 && (ELEMS[fp[0].toLowerCase()] || /^\d+$/.test(fp[0])));
-          if (looksLikeCoord) {
-            result.push({ start: i, n: n, comment: commentLine });
-            i += n + 2;
+        var n = parseInt(t, 10);
+        // Sanity: n > 0, and there must be room for comment + n coord lines
+        if (n > 0 && (i + n + 2) <= total) {
+          // The line after the comment (i+2) should look like a coord line
+          // Use i+2 as the first coord line (standard XYZ with comment at i+1)
+          if (looksLikeXYZCoord(rawLines[i + 2])) {
+            var comment = rawLines[i + 1] ? rawLines[i + 1].trim() : '';
+            result.push({ lineStart: i, n: n, comment: comment });
+            i += n + 2;   // jump past this entire block
             continue;
           }
         }
       }
       i++;
     }
-    // Update progress
-    var pct = Math.round((i / total) * 100);
-    setLoading(true, 'Indexing structures... ' + pct + '%', pct);
+
+    var pct = Math.min(99, Math.round((i / total) * 100));
+    setLoading(true, 'Indexing structures… ' + pct + '% (' + result.length + ' found)', pct);
 
     if (i < total) {
-      setTimeout(chunk, 0);  // yield to browser between chunks
+      setTimeout(tick, 0);
     } else {
       setLoading(false);
       onDone(result);
     }
   }
-  setTimeout(chunk, 0);
+
+  setTimeout(tick, 0);
 }
 
-// ── EXTRACT SINGLE STRUCTURE BY INDEX ────────────────────────
-// Given offsets[idx], pull lines from the global `lines` array.
+// ── Extract one structure on demand ──────────────────────────
 function extractStructure(idx) {
   var o = offsets[idx];
-  var n = o.n;
-  // lines[o.start]   = atom count
-  // lines[o.start+1] = comment
-  // lines[o.start+2 .. o.start+1+n] = coordinates
-  var comment = lines[o.start + 1] ? lines[o.start + 1].trim() : ('structure ' + (idx + 1));
-  var coordLines = [];
-  for (var j = o.start + 2; j <= o.start + 1 + n && j < lines.length; j++) {
-    coordLines.push(lines[j]);
-  }
-  return n + '\n' + comment + '\n' + coordLines.join('\n');
+  // lines[o.lineStart]     = atom count
+  // lines[o.lineStart + 1] = comment
+  // lines[o.lineStart + 2 .. lineStart + 1 + n] = coord lines
+  var comment = o.comment || ('Structure ' + (idx + 1));
+  var end = o.lineStart + 1 + o.n;
+  var coordLines = lines.slice(o.lineStart + 2, end + 1);
+  return o.n + '\n' + comment + '\n' + coordLines.join('\n');
 }
 
-// ── VIEWER HELPERS ────────────────────────────────────────────
+// ── Viewer ────────────────────────────────────────────────────
 function makeViewer() {
   var cont = document.getElementById('viewer');
   cont.innerHTML = '';
-  var bg = gBg ? '#f8fafc' : '#010409';
-  gv = $3Dmol.createViewer(cont, { backgroundColor: bg, antialias: true });
+  gv = $3Dmol.createViewer(cont, { backgroundColor: gBg ? '#f8fafc' : '#010409', antialias: true });
 }
 
 function applyStyle() {
   if (!gv) return;
-  try { gv.removeAllSurfaces(); } catch(e){}
-  try { gv.removeAllLabels();   } catch(e){}
+  try { gv.removeAllSurfaces(); } catch(e) {}
+  try { gv.removeAllLabels();   } catch(e) {}
   var s = document.getElementById('sty').value;
   var c = document.getElementById('col').value;
   var u = document.getElementById('sur').value;
   var co = { colorscheme: c };
   gv.setStyle({});
-  if      (s==='bs')     gv.setStyle({},{stick:Object.assign({radius:0.15},co),sphere:Object.assign({radius:0.35},co)});
-  else if (s==='stick')  gv.setStyle({},{stick:Object.assign({radius:0.2},co)});
-  else if (s==='sphere') gv.setStyle({},{sphere:Object.assign({scale:1},co)});
-  else if (s==='line')   gv.setStyle({},{line:co});
-  else if (s==='cross')  gv.setStyle({},{cross:Object.assign({radius:0.3},co)});
-  if (u !== 'none') try { gv.addSurface($3Dmol.SurfaceType[u],{opacity:0.4,colorscheme:c}); } catch(e){}
-  if (gLabels) gv.addPropertyLabels('elem',{},{font:'Arial',fontSize:12,fontColor:'white',showBackground:false,alignment:'center'});
+  if      (s==='bs')     gv.setStyle({}, { stick: Object.assign({radius:0.15},co), sphere: Object.assign({radius:0.35},co) });
+  else if (s==='stick')  gv.setStyle({}, { stick: Object.assign({radius:0.2},co) });
+  else if (s==='sphere') gv.setStyle({}, { sphere: Object.assign({scale:1},co) });
+  else if (s==='line')   gv.setStyle({}, { line: co });
+  else if (s==='cross')  gv.setStyle({}, { cross: Object.assign({radius:0.3},co) });
+  if (u !== 'none') try { gv.addSurface($3Dmol.SurfaceType[u], {opacity:0.4, colorscheme:c}); } catch(e) {}
+  if (gLabels) gv.addPropertyLabels('elem', {}, {font:'Arial',fontSize:12,fontColor:'white',showBackground:false,alignment:'center'});
   gv.spin(gSpin);
   gv.render();
 }
 
-// ── SHOW STRUCTURE (instant after indexing) ───────────────────
+// ── Show structure by index (instant) ────────────────────────
 function showStructure(idx) {
   if (!offsets.length) return;
   idx = Math.max(0, Math.min(idx, offsets.length - 1));
   curIdx = idx;
 
-  var xyzBlock = extractStructure(idx);
   try {
     makeViewer();
-    gv.addModel(xyzBlock, 'xyz');
+    gv.addModel(extractStructure(idx), 'xyz');
     applyStyle();
     gv.zoomTo();
     gv.render();
 
-    var atoms = gv.getModel().selectedAtoms({});
+    var atoms = gv.getModel().selectedAtoms({}).length;
     var comment = offsets[idx].comment || ('Structure ' + (idx+1));
 
-    // Update UI
-    document.getElementById('cur-num').textContent = idx + 1;
-    document.getElementById('struct-info').textContent = comment + ' · ' + atoms.length + ' atoms';
-    document.getElementById('jump-input').value = idx + 1;
+    document.getElementById('cur-num').textContent    = idx + 1;
+    document.getElementById('struct-info').textContent = comment + ' · ' + atoms + ' atoms';
+    document.getElementById('jump-input').value        = idx + 1;
 
-    var pct = offsets.length > 1 ? ((idx / (offsets.length - 1)) * 100) : 100;
+    var pct = offsets.length > 1 ? (idx / (offsets.length - 1)) * 100 : 100;
     document.getElementById('progfill').style.width = pct.toFixed(1) + '%';
 
     document.getElementById('btn-first').disabled = (idx === 0);
@@ -394,64 +402,99 @@ function showStructure(idx) {
     document.getElementById('btn-next').disabled  = (idx === offsets.length - 1);
     document.getElementById('btn-last').disabled  = (idx === offsets.length - 1);
 
-    showInfo(atoms.length, 'XYZ', 'Structure ' + (idx+1) + ' / ' + offsets.length);
+    showInfo(atoms, 'XYZ', 'Structure '+(idx+1)+' / '+offsets.length);
   } catch(e) {
-    setStatus('Render error at structure ' + (idx+1) + ': ' + e.message, 'err');
+    setStatus('Render error at structure '+(idx+1)+': '+e.message, 'err');
     console.error(e);
   }
 }
 
-function goTo(idx) { showStructure(idx); }
-function doJump() {
-  var v = parseInt(document.getElementById('jump-input').value);
-  if (!isNaN(v)) showStructure(v - 1);
-}
+function goTo(idx)  { showStructure(idx); }
+function doJump()   { var v = parseInt(document.getElementById('jump-input').value); if (!isNaN(v)) showStructure(v-1); }
 
-// ── KEYBOARD NAVIGATION ───────────────────────────────────────
+// ── Keyboard navigation ───────────────────────────────────────
 document.addEventListener('keydown', function(e) {
   if (!offsets.length || offsets.length <= 1) return;
-  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
-  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(curIdx + 1); }
-  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goTo(curIdx - 1); }
-  if (e.key === 'Home') { e.preventDefault(); goTo(0); }
-  if (e.key === 'End')  { e.preventDefault(); goTo(offsets.length - 1); }
+  if (e.target.tagName==='TEXTAREA' || e.target.tagName==='INPUT') return;
+  if (e.key==='ArrowRight'||e.key==='ArrowDown') { e.preventDefault(); goTo(curIdx+1); }
+  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   { e.preventDefault(); goTo(curIdx-1); }
+  if (e.key==='Home') { e.preventDefault(); goTo(0); }
+  if (e.key==='End')  { e.preventDefault(); goTo(offsets.length-1); }
 });
 
-// ── PROCESS LARGE MULTI-XYZ FILE ─────────────────────────────
-function processMultiXYZ(text, filename) {
-  setLoading(true, 'Reading file...', 0);
-  lines = text.split(/\r?\n/);
-
-  buildIndex(lines, function(result) {
-    offsets = result;
-    if (offsets.length === 0) {
-      // Not a multi-XYZ — try as single
-      setLoading(false);
-      processSingle(text, 'auto', filename);
-      return;
-    }
-    if (offsets.length === 1) {
-      setLoading(false);
-      var single = extractStructure(0);
-      renderSingle(single, 'xyz', 'XYZ', filename || 'pasted');
-      return;
-    }
-
-    // Multi-structure: show UI
-    document.getElementById('multibar').style.display = 'flex';
-    document.getElementById('nav-panel').style.display = 'flex';
-    document.getElementById('progwrap').style.display = 'block';
-    document.getElementById('viewer').className = 'multi';
-    document.getElementById('tot-num').textContent = offsets.length;
-    document.getElementById('jump-input').max = offsets.length;
-
-    showStructure(0);
-    setStatus('✓ Indexed ' + offsets.length + ' structures — navigating instantly from ' +
-              Math.round(text.length/1024) + ' KB file', 'ok');
-  });
+// ── Show multi-structure UI ───────────────────────────────────
+function showMultiUI(count) {
+  document.getElementById('multibar').style.display = 'flex';
+  document.getElementById('nav-panel').style.display = 'flex';
+  document.getElementById('progwrap').style.display  = 'block';
+  document.getElementById('viewer').className         = 'multi';
+  document.getElementById('tot-num').textContent      = count;
+  document.getElementById('jump-input').max           = count;
 }
 
-// ── SINGLE STRUCTURE ──────────────────────────────────────────
+function hideMultiUI() {
+  document.getElementById('multibar').style.display = 'none';
+  document.getElementById('nav-panel').style.display = 'none';
+  document.getElementById('progwrap').style.display  = 'none';
+  document.getElementById('viewer').className         = 'solo';
+}
+
+// ── Process multi-XYZ (with lazy indexing) ────────────────────
+function processMultiXYZ(text, filename) {
+  setLoading(true, 'Splitting into lines…', 2);
+  setTimeout(function() {
+    lines = text.split(/\r?\n/);
+    setLoading(true, 'Indexing structures…', 5);
+    buildIndex(lines, function(result) {
+      if (result.length === 0) {
+        // Couldn't find any XYZ blocks — try as single structure
+        processSingle(text, 'auto', filename);
+        return;
+      }
+      offsets = result;
+      if (result.length === 1) {
+        hideMultiUI();
+        showStructure(0);
+        setStatus('✓ 1 structure loaded', 'ok');
+        return;
+      }
+      showMultiUI(result.length);
+      showStructure(0);
+      var kb = Math.round(text.length / 1024);
+      setStatus('✓ Indexed ' + result.length + ' structures from ' + kb + ' KB — navigation is instant', 'ok');
+    });
+  }, 20);
+}
+
+// ── Process single non-multi structure ───────────────────────
+function gaussianToXYZ(text) {
+  var ls = text.split(/\r?\n/), last = [];
+  for (var i = 0; i < ls.length; i++) {
+    if (ls[i].indexOf('Standard orientation:') !== -1 || ls[i].indexOf('Input orientation:') !== -1) {
+      i += 5; var cur = [];
+      while (i < ls.length && ls[i].indexOf('---') === -1) {
+        var p = ls[i].trim().split(/\s+/);
+        if (p.length >= 6) { var el = ANUM[parseInt(p[1])]; if(el) cur.push(el+' '+parseFloat(p[3]).toFixed(5)+' '+parseFloat(p[4]).toFixed(5)+' '+parseFloat(p[5]).toFixed(5)); }
+        i++;
+      }
+      if (cur.length) last = cur;
+    }
+  }
+  return last.length ? last.length+'\nGaussian\n'+last.join('\n') : null;
+}
+
+function bareToXYZ(text) {
+  var ls = text.trim().split(/\r?\n/), rows = [];
+  for (var i = 0; i < ls.length; i++) {
+    var p = ls[i].trim().split(/\s+/);
+    var el = null, x, y, z;
+    if (p.length >= 4 && ELEMS[p[0].toLowerCase()]) { el=ELEMS[p[0].toLowerCase()]; x=parseFloat(p[1]);y=parseFloat(p[2]);z=parseFloat(p[3]); }
+    else if (p.length >= 6 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) { el=ANUM[parseInt(p[1])]||null; x=parseFloat(p[3]);y=parseFloat(p[4]);z=parseFloat(p[5]); }
+    if (el && !isNaN(x)) rows.push(el+' '+x.toFixed(5)+' '+y.toFixed(5)+' '+z.toFixed(5));
+  }
+  return rows.length ? rows.length+'\nGenerated\n'+rows.join('\n') : null;
+}
+
 function renderSingle(data, fmt, label, name) {
   try {
     makeViewer();
@@ -459,58 +502,26 @@ function renderSingle(data, fmt, label, name) {
     applyStyle();
     gv.zoomTo();
     gv.render();
-    var atoms = gv.getModel().selectedAtoms({});
-    document.getElementById('viewer').className = 'solo';
-    document.getElementById('multibar').style.display = 'none';
-    document.getElementById('nav-panel').style.display = 'none';
-    document.getElementById('progwrap').style.display = 'none';
+    var atoms = gv.getModel().selectedAtoms({}).length;
+    hideMultiUI();
     offsets = []; lines = [];
-    showInfo(atoms.length, label, name);
-    setStatus('✓ Loaded — ' + atoms.length + ' atoms (' + label + ')', 'ok');
+    showInfo(atoms, label, name);
+    setStatus('✓ Loaded — ' + atoms + ' atoms (' + label + ')', 'ok');
   } catch(e) {
     setStatus('Render error: ' + e.message, 'err'); console.error(e);
   }
 }
 
-function bareToXYZ(text) {
-  var ls = text.trim().split(/\r?\n/), rows = [];
-  for (var i = 0; i < ls.length; i++) {
-    var p = ls[i].trim().split(/\s+/), elem = null, x, y, z;
-    if (p.length >= 4 && ELEMS[p[0].toLowerCase()]) { elem = ELEMS[p[0].toLowerCase()]; x=parseFloat(p[1]);y=parseFloat(p[2]);z=parseFloat(p[3]); }
-    else if (p.length >= 6 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) { elem=ANUM[parseInt(p[1])]||null; x=parseFloat(p[3]);y=parseFloat(p[4]);z=parseFloat(p[5]); }
-    if (elem && !isNaN(x)) rows.push(elem+' '+x.toFixed(5)+' '+y.toFixed(5)+' '+z.toFixed(5));
-  }
-  return rows.length ? rows.length+'\nGenerated\n'+rows.join('\n') : null;
-}
-
-function gaussianToXYZ(text) {
-  var ls = text.split(/\r?\n/), last = [];
-  for (var i = 0; i < ls.length; i++) {
-    if (ls[i].indexOf('Standard orientation:')!==-1||ls[i].indexOf('Input orientation:')!==-1) {
-      i+=5; var cur=[];
-      while (i<ls.length&&ls[i].indexOf('---')===-1) {
-        var p=ls[i].trim().split(/\s+/);
-        if (p.length>=6) { var el=ANUM[parseInt(p[1])]; if(el) cur.push(el+' '+parseFloat(p[3]).toFixed(5)+' '+parseFloat(p[4]).toFixed(5)+' '+parseFloat(p[5]).toFixed(5)); }
-        i++;
-      }
-      if (cur.length) last=cur;
-    }
-  }
-  return last.length ? last.length+'\nGaussian\n'+last.join('\n') : null;
-}
-
 function processSingle(text, hint, filename) {
-  var fmt = hint;
+  var fmt = hint || 'auto';
+  var ext = filename ? filename.split('.').pop().toLowerCase() : '';
   if (fmt === 'auto') {
-    if (filename) {
-      var ext = filename.split('.').pop().toLowerCase();
-      if (ext==='log'||ext==='gjf'||ext==='com') fmt='gaussian';
-      else if (ext==='pdb') fmt='pdb';
-      else if (ext==='mol2') fmt='mol2';
-      else if (ext==='sdf') fmt='sdf';
-      else if (ext==='mol') fmt='mol';
-      else fmt='guess';
-    } else fmt='guess';
+    if (ext==='log'||ext==='gjf'||ext==='com') fmt='gaussian';
+    else if (ext==='pdb')  fmt='pdb';
+    else if (ext==='mol2') fmt='mol2';
+    else if (ext==='sdf')  fmt='sdf';
+    else if (ext==='mol')  fmt='mol';
+    else fmt='guess';
   }
   if (fmt==='guess') {
     if (/^(ATOM  |HETATM|REMARK|HEADER)/m.test(text)) fmt='pdb';
@@ -518,152 +529,135 @@ function processSingle(text, hint, filename) {
     else if (/\$\$\$\$/.test(text)) fmt='sdf';
     else if (/(V2000|V3000|M  END)/.test(text)) fmt='mol';
     else if (/Standard orientation:|Input orientation:/.test(text)) fmt='gaussian';
-    else if (/^[A-Z][a-z]?\s+[-\d.]+\s+[-\d.]+/m.test(text)) fmt='bare';
     else fmt='xyz';
   }
   var data = text, label = fmt.toUpperCase();
   if (fmt==='gaussian') { var r=gaussianToXYZ(text); if(r){data=r;fmt='xyz';label='Gaussian LOG';} }
   else if (fmt==='bare') { var r2=bareToXYZ(text); if(r2){data=r2;fmt='xyz';label='Bare XYZ';} }
+  // Fix missing comment line in single XYZ
+  if (fmt==='xyz') {
+    var fl = data.trim().split(/\r?\n/);
+    if (fl.length > 1 && /^\d+$/.test(fl[0].trim())) {
+      var p2 = fl[1].trim().split(/\s+/);
+      if (p2.length >= 4 && !isNaN(parseFloat(p2[1]))) {
+        data = fl[0]+'\nmolecule\n'+fl.slice(1).join('\n');
+      }
+    }
+  }
   renderSingle(data, fmt, label, filename||'pasted');
 }
 
-// ── MAIN LOAD ─────────────────────────────────────────────────
+// ── Main load (from textarea) ─────────────────────────────────
 function doLoad() {
   var text = document.getElementById('coords').value.trim();
   if (!text) { setStatus('Paste coordinates or upload a file first', 'inf'); return; }
   var fmt = document.getElementById('fmt').value;
 
   if (fmt === 'smiles') {
-    setStatus('Fetching from NIH CACTUS...', 'inf');
-    fetch('https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(text)+'/file?format=sdf&get3d=true')
-      .then(function(r){return r.text();})
+    setStatus('Fetching 3D coords from NIH CACTUS…', 'inf');
+    fetch('https://cactus.nci.nih.gov/chemical/structure/' + encodeURIComponent(text) + '/file?format=sdf&get3d=true')
+      .then(function(r){ return r.text(); })
       .then(function(sdf){
-        if (sdf.toLowerCase().indexOf('not found')>-1||sdf.length<20) { setStatus('Could not resolve SMILES','err'); return; }
+        if (sdf.toLowerCase().indexOf('not found') > -1 || sdf.length < 20) { setStatus('Could not resolve SMILES','err'); return; }
         document.getElementById('coords').value = sdf;
-        renderSingle(sdf,'sdf','SMILES',text);
-      }).catch(function(){ setStatus('Network error','err'); });
+        renderSingle(sdf, 'sdf', 'SMILES', text);
+      }).catch(function(){ setStatus('Network error for SMILES resolution','err'); });
     return;
   }
 
-  // Check if it could be multi-XYZ
-  if (fmt==='auto'||fmt==='xyz'||fmt==='bare') {
-    var firstLine = text.split(/\r?\n/)[0].trim();
-    if (/^\d+$/.test(firstLine)) {
-      processMultiXYZ(text, null);
-      return;
-    }
+  // If format hint is XYZ-like and first line is a number → try multi
+  var firstLine = text.split(/\r?\n/)[0].trim();
+  if ((fmt==='auto'||fmt==='xyz'||fmt==='bare') && /^\d+$/.test(firstLine)) {
+    processMultiXYZ(text, null);
+    return;
   }
   processSingle(text, fmt, null);
 }
 
-// ── SAVE PNG ──────────────────────────────────────────────────
+// ── Save PNG ──────────────────────────────────────────────────
 function doSave() {
   if (!gv) { setStatus('No molecule loaded','inf'); return; }
   try {
     var canvas = document.querySelector('#viewer canvas');
     if (canvas) {
-      canvas.toBlob(function(blob){
+      canvas.toBlob(function(blob) {
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
         var name = offsets.length > 1 ? 'struct_'+(curIdx+1)+'_of_'+offsets.length : 'molecule';
-        a.href=url; a.download=name+'_GMP.png';
+        a.href = url; a.download = name+'_GMP.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
         setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-      },'image/png'); return;
+      }, 'image/png'); return;
     }
     var uri = gv.pngURI();
     var a = document.createElement('a');
-    a.href=uri; a.download='molecule_GMP.png';
+    a.href = uri; a.download = 'molecule_GMP.png';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  } catch(e){ setStatus('Save error: '+e.message,'err'); }
+  } catch(e) { setStatus('Save error: '+e.message,'err'); }
 }
 
-// ── CLEAR ─────────────────────────────────────────────────────
+// ── Clear ─────────────────────────────────────────────────────
 function doClear() {
   if (gv) { try{gv.clear();gv.render();}catch(e){} }
-  gv=null; offsets=[]; lines=[]; fileText=''; curIdx=0; gLabels=false; gSpin=false;
-  document.getElementById('coords').value='';
-  document.getElementById('status').style.display='none';
-  document.getElementById('infobar').style.display='none';
-  document.getElementById('multibar').style.display='none';
-  document.getElementById('nav-panel').style.display='none';
-  document.getElementById('progwrap').style.display='none';
-  document.getElementById('viewer').className='solo';
+  gv=null; offsets=[]; lines=[]; curIdx=0; gLabels=false; gSpin=false;
+  document.getElementById('coords').value = '';
+  ['status','infobar'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  hideMultiUI();
   document.getElementById('lblbtn').classList.remove('on');
   document.getElementById('spnbtn').classList.remove('on');
-  document.getElementById('viewer').innerHTML=
+  document.getElementById('viewer').innerHTML =
     '<div id="ph"><div style="font-size:2.5rem;opacity:0.3">⚛️</div>'+
     '<div>Load a molecule to begin</div>'+
-    '<div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · LOG · SMILES · Large multi-XYZ</div></div>';
+    '<div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · Multi-structure XYZ</div></div>';
 }
 
-// ── TOGGLES ───────────────────────────────────────────────────
-function doToggleLabels() {
-  gLabels=!gLabels;
-  document.getElementById('lblbtn').classList.toggle('on',gLabels);
-  if (gv) applyStyle();
+// ── Toggles ───────────────────────────────────────────────────
+function doToggleLabels(){ gLabels=!gLabels; document.getElementById('lblbtn').classList.toggle('on',gLabels); if(gv) applyStyle(); }
+function doToggleSpin()  { gSpin=!gSpin;     document.getElementById('spnbtn').classList.toggle('on',gSpin);   if(gv) gv.spin(gSpin); }
+function doToggleBg()    {
+  gBg=!gBg; document.getElementById('bgbtn').classList.toggle('on',gBg);
+  if (gv) { if (offsets.length>1) showStructure(curIdx); else { var t=document.getElementById('coords').value.trim(); if(t) doLoad(); } }
 }
-function doToggleSpin() {
-  gSpin=!gSpin;
-  document.getElementById('spnbtn').classList.toggle('on',gSpin);
-  if (gv) gv.spin(gSpin);
-}
-function doToggleBg() {
-  gBg=!gBg;
-  document.getElementById('bgbtn').classList.toggle('on',gBg);
-  if (gv) {
-    if (offsets.length>1) showStructure(curIdx);
-    else { var t=document.getElementById('coords').value.trim(); if(t) doLoad(); }
-  }
-}
-
 ['sty','col','sur'].forEach(function(id){
-  document.getElementById(id).addEventListener('change',function(){
-    if (gv) {
-      if (offsets.length>1) applyStyle();
-      else applyStyle();
-    }
-  });
+  document.getElementById(id).addEventListener('change', function(){ if(gv) applyStyle(); });
 });
 
-// ── FILE UPLOAD ───────────────────────────────────────────────
-document.getElementById('filein').addEventListener('change', function(e){
-  var f = e.target.files[0]; if (!f) return;
-  setLoading(true,'Reading file ('+Math.round(f.size/1024)+' KB)...',0);
+// ── File upload ───────────────────────────────────────────────
+function handleFile(file) {
+  if (!file) return;
+  setLoading(true, 'Reading ' + Math.round(file.size/1024) + ' KB…', 1);
   var r = new FileReader();
-  r.onload = function(ev){
+  r.onload = function(ev) {
     var text = ev.target.result;
-    document.getElementById('coords').value = text.substring(0, 500) + (text.length>500?'\n... ('+Math.round(text.length/1024)+' KB file loaded)':'');
-    setLoading(true,'Scanning for structures...',5);
-    setTimeout(function(){
-      var ext = f.name.split('.').pop().toLowerCase();
-      if (ext==='log'||ext==='gjf'||ext==='com') { setLoading(false); processSingle(text,'gaussian',f.name); }
-      else if (ext==='pdb'||ext==='mol2'||ext==='sdf'||ext==='mol') { setLoading(false); processSingle(text,ext,f.name); }
-      else { processMultiXYZ(text, f.name); }
-    }, 50);
-  };
-  r.onerror = function(){ setLoading(false); setStatus('File read error','err'); };
-  r.readAsText(f);
-  e.target.value='';
-});
+    // Show first few lines in textarea as preview
+    var preview = text.substring(0, 400);
+    if (text.length > 400) preview += '\n… (' + Math.round(text.length/1024) + ' KB file — lazy-loading)';
+    document.getElementById('coords').value = preview;
 
-document.getElementById('ubtn').addEventListener('click',function(e){ e.stopPropagation(); document.getElementById('filein').click(); });
-document.getElementById('dropzone').addEventListener('click',function(){ document.getElementById('filein').click(); });
+    var ext = file.name.split('.').pop().toLowerCase();
+    setTimeout(function() {
+      if (ext==='log'||ext==='gjf'||ext==='com') { setLoading(false); processSingle(text,'gaussian',file.name); }
+      else if (ext==='pdb')  { setLoading(false); processSingle(text,'pdb',file.name);  }
+      else if (ext==='mol2') { setLoading(false); processSingle(text,'mol2',file.name); }
+      else if (ext==='sdf')  { setLoading(false); processSingle(text,'sdf',file.name);  }
+      else if (ext==='mol')  { setLoading(false); processSingle(text,'mol',file.name);  }
+      else { processMultiXYZ(text, file.name); }  // .xyz and anything else → multi-XYZ scan
+    }, 30);
+  };
+  r.onerror = function(){ setLoading(false); setStatus('Could not read file','err'); };
+  r.readAsText(file);
+}
+
+document.getElementById('filein').addEventListener('change', function(e){ handleFile(e.target.files[0]); e.target.value=''; });
+document.getElementById('ubtn').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('filein').click(); });
+document.getElementById('dropzone').addEventListener('click', function(){ document.getElementById('filein').click(); });
 
 var dz = document.getElementById('dropzone');
-dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('over'); });
-dz.addEventListener('dragleave', function(){ dz.classList.remove('over'); });
+dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', function(){  dz.classList.remove('over'); });
 dz.addEventListener('drop', function(e){
   e.preventDefault(); dz.classList.remove('over');
-  var f = e.dataTransfer.files[0]; if (!f) return;
-  setLoading(true,'Reading '+Math.round(f.size/1024)+' KB...',0);
-  var r = new FileReader();
-  r.onload = function(ev){
-    var text = ev.target.result;
-    document.getElementById('coords').value = text.substring(0,500)+(text.length>500?'\n...('+Math.round(text.length/1024)+' KB)':'');
-    setTimeout(function(){ processMultiXYZ(text, f.name); }, 50);
-  };
-  r.readAsText(f);
+  handleFile(e.dataTransfer.files[0]);
 });
 </script>
 </body>
