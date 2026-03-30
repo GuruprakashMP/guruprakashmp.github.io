@@ -1,6 +1,6 @@
 # Guruprakash M P — Personal Academic Website
 
-This is the source code for my personal academic website hosted at **[guruprakashmp.github.io](https://guruprakashmp.github.io/)**, built using the [Academic Pages](https://github.com/academicpages/academicpages.github.io) Jekyll template.
+This is the source code for my personal academic website hosted at **[guruprakashmp.github.io](https://guruprakashmp.github.io/)**, built using the [Academic Pages](https://github.com/academicpages/academicpages.github.io) Jekyll template.   
 
 ---
 
