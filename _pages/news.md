@@ -13,9 +13,8 @@ author_profile: true
 - 📚 **November 2025** - Completed **CATALOOP Introductory Course** at Chemnitz University of Technology, Germany
 - 🎉 **September 2025** - Started PhD as **Marie Curie Fellow** at CiQUS, University of Santiago de Compostela, Spain
 
-## Visitor Map
-<div style="text-align:center; padding: 10px 0; max-width: 400px; margin: 0 auto;">
-  <img src="https://visitor-badge.laobi.icu/badge?page_id=GuruprakashMP.guruprakashmp.github.io" alt="Visitor Count"/>
-  <br><br>
-  <script type="text/javascript" id="mmvst_globe" src="//mapmyvisitors.com/globe.js?d=_dkf-NAzynK9sTsLtiJncd9kWO5UPUAnfrdxwbjVf0M"></script>
+## 🌍 Visitor Map
+
+<div style="text-align:center; padding: 12px 0; max-width: 450px; margin: 0 auto;">
+  <script type="text/javascript" id="mapmyvisitors" src="//mapmyvisitors.com/map.js?d=Thkdcv0ILFiwVdvbCE-SlGnFp84WcLDMlZAKiCYjbxE&cl=ffffff&w=a"></script>
 </div>
