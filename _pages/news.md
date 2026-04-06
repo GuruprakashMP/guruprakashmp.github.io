@@ -1,7 +1,7 @@
 ---
 layout: single
 title: "News & Updates"
-permalink: /news/
+permalink: /news/   
 author_profile: true
 ---
 
