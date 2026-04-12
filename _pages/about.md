@@ -43,8 +43,10 @@ Prior to my PhD, I worked as a **Junior Research Fellow (JRF)** at **IIT Madras*
 
 ## Achievements
 
-- **CSIR NET** (2020) — Score: 95 (Cutoff: 89) | **All India Rank 86**
-- **IIT JAM** (2019) — Score: 32 (Cutoff: 18.28) | **All India Rank 1759**
+| | |
+|:---|---:|
+| **CSIR NET** (2020) — Score: 95 (Cutoff: 89) | **All India Rank 86** |
+| **IIT JAM** (2019) — Score: 32 (Cutoff: 18.28) | **All India Rank 1759** |
 
 ---
 
