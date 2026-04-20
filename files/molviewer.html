@@ -246,7 +246,20 @@ Multi-structure XYZ: paste all blocks together or use file upload for large file
   <div class="row" style="margin-top:10px">
     <button class="btn btn-sec" onclick="doSIViewAll()">👁 View All in Viewer</button>
     <button class="btn btn-sec" onclick="doSIDownloadAll()">⬇ Download All as XYZ</button>
+    <button class="toggle" id="dbgbtn" onclick="toggleDebug()">🔍 Debug Text</button>
     <button class="btn btn-red" onclick="doSIClear()">✕ Clear</button>
+  </div>
+
+  <!-- Debug panel: raw extracted text + manual paste fallback -->
+  <div id="si-debug" style="display:none;margin-top:10px">
+    <div class="lbl" style="margin-bottom:4px;color:#eab308">RAW EXTRACTED TEXT (first 300 lines) — check if coord lines look correct:</div>
+    <textarea id="si-rawtext" style="height:160px;font-size:0.68rem;color:#8b949e;background:#0d1117;border-color:#30363d" readonly
+      placeholder="Extracted text appears here after processing…"></textarea>
+    <div class="lbl" style="margin-top:8px;margin-bottom:4px;color:#8b949e">If lines look wrong, paste corrected/copied SI text here and click Parse:</div>
+    <textarea id="si-manualtext" style="height:90px;font-size:0.68rem" placeholder="Paste SI text manually (copy from PDF viewer) → then click Parse below…"></textarea>
+    <div class="row" style="margin-top:6px">
+      <button class="btn btn-yellow" onclick="doSIParseManual()">🔬 Parse Pasted Text</button>
+    </div>
   </div>
 </div>
 
@@ -563,22 +576,41 @@ async function extractPDFLines(file) {
     var page = await pdf.getPage(p);
     var content = await page.getTextContent();
 
-    // Group items by Y coordinate (within 3px tolerance) → reconstruct lines
-    var yMap = {};
+    // ── Robust line clustering ──────────────────────────────────
+    // Sort all items by Y descending (PDF Y=0 is bottom, so large Y = top of page).
+    // Group items whose Y values are within Y_THRESH of the running group Y.
+    // This handles baseline jitter much better than rounding to a fixed grid.
+    var Y_THRESH = 5;   // px — covers most font baseline variations
+
+    var allItems = [];
     content.items.forEach(function(item) {
-      if (!item.str) return;
-      var y = Math.round(item.transform[5] / 3) * 3;
-      if (!yMap[y]) yMap[y] = [];
-      yMap[y].push({ x: item.transform[4], str: item.str });
+      var s = (item.str || '').trim();
+      if (!s) return;
+      allItems.push({ x: item.transform[4], y: item.transform[5], str: s });
     });
 
-    var yVals = Object.keys(yMap).map(Number).sort(function(a,b){ return b-a; }); // top→bottom
-    yVals.forEach(function(y) {
-      var items = yMap[y].sort(function(a,b){ return a.x-b.x; });
-      allLines.push(items.map(function(i){ return i.str; }).join(' '));
+    // Sort top-to-bottom (descending Y in PDF coords)
+    allItems.sort(function(a, b) { return b.y - a.y; });
+
+    var groups = [];
+    allItems.forEach(function(item) {
+      if (!groups.length || Math.abs(groups[groups.length-1].refY - item.y) > Y_THRESH) {
+        groups.push({ refY: item.y, items: [item] });
+      } else {
+        groups[groups.length-1].items.push(item);
+      }
     });
+
+    groups.forEach(function(g) {
+      // Sort items within each line left-to-right
+      g.items.sort(function(a, b) { return a.x - b.x; });
+      var lineStr = g.items.map(function(i) { return i.str; }).join(' ');
+      // Collapse multiple spaces (PDF sometimes has wide gaps)
+      lineStr = lineStr.replace(/\s{2,}/g, ' ').trim();
+      if (lineStr) allLines.push(lineStr);
+    });
+
     allLines.push('<<BREAK:' + p + '>>');
-
     var pct = Math.round((p / pdf.numPages) * 80) + 5;
     setLoading(true, 'Extracting PDF text… ' + p + '/' + pdf.numPages + ' pages', pct);
   }
@@ -599,33 +631,40 @@ async function extractDOCXLines(file) {
   var doc = parser.parseFromString(xmlText, 'application/xml');
   var W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 
-  function paraText(p) {
-    var texts = p.querySelectorAll('t');
+  // Collect all text runs from a paragraph element using namespace-aware query
+  function paraText(el) {
+    var tNodes = el.getElementsByTagNameNS(W, 't');
     var parts = [];
-    texts.forEach(function(t){ if(t.textContent) parts.push(t.textContent); });
+    for (var j = 0; j < tNodes.length; j++) {
+      if (tNodes[j].textContent) parts.push(tNodes[j].textContent);
+    }
     return parts.join('');
   }
 
   var lines = [];
-  var body = doc.querySelector('body');
-  if (!body) throw new Error('Cannot find document body');
+  var bodyEls = doc.getElementsByTagNameNS(W, 'body');
+  if (!bodyEls.length) throw new Error('Cannot find document body in DOCX');
+  var body = bodyEls[0];
 
-  body.childNodes.forEach(function(child) {
-    var tag = child.localName;
-    if (tag === 'p') {
+  for (var ci = 0; ci < body.childNodes.length; ci++) {
+    var child = body.childNodes[ci];
+    var localName = child.localName || child.nodeName.replace(/^.*:/, '');
+
+    if (localName === 'p') {
       var txt = paraText(child).trim();
-      lines.push(txt || '');
-    } else if (tag === 'tbl') {
-      var rows = child.querySelectorAll('tr');
-      rows.forEach(function(tr) {
-        var cells = tr.querySelectorAll('tc');
-        cells.forEach(function(tc) {
-          var cellTxt = paraText(tc).trim();
+      lines.push(txt || '');   // preserve blank paragraphs as separators
+
+    } else if (localName === 'tbl') {
+      var trNodes = child.getElementsByTagNameNS(W, 'tr');
+      for (var ri = 0; ri < trNodes.length; ri++) {
+        var tcNodes = trNodes[ri].getElementsByTagNameNS(W, 'tc');
+        for (var tci = 0; tci < tcNodes.length; tci++) {
+          var cellTxt = paraText(tcNodes[tci]).trim();
           if (cellTxt) lines.push(cellTxt);
-        });
-      });
+        }
+      }
     }
-  });
+  }
   return lines;
 }
 
@@ -634,6 +673,31 @@ async function extractDOCXLines(file) {
 // ══════════════════════════════════════════════════════════════
 var siExtracted = [];  // global SI result: [{name, xyzString, energy, natoms}]
 var siFile = null;
+var siRawLines = [];   // kept for debug display
+
+function toggleDebug() {
+  var el = document.getElementById('si-debug');
+  var btn = document.getElementById('dbgbtn');
+  var show = el.style.display === 'none';
+  el.style.display = show ? 'block' : 'none';
+  btn.classList.toggle('on', show);
+}
+
+function doSIParseManual() {
+  var text = document.getElementById('si-manualtext').value.trim();
+  if (!text) { setStatus('Paste some SI text first', 'inf'); return; }
+  var minAtoms = parseInt(document.getElementById('si-minatoms').value) || 3;
+  var defCharge = parseInt(document.getElementById('si-charge').value) || 0;
+  var defMult   = parseInt(document.getElementById('si-mult').value) || 1;
+  var lines = text.split(/\r?\n/);
+  var mols = parseSI(lines, defCharge, defMult, minAtoms);
+  if (!mols.length) { setStatus('No structures found in pasted text', 'err'); return; }
+  siExtracted = mols.map(function(mol) {
+    return { name: mol.name, xyzString: molToXYZ(mol), energy: mol.energy, natoms: mol.atoms.length };
+  });
+  renderSIList();
+  setStatus('✓ Parsed ' + siExtracted.length + ' structures from pasted text', 'ok');
+}
 
 async function doSILoad() {
   if (!siFile) { setStatus('Upload a SI file first (.pdf, .docx, or .txt)', 'inf'); return; }
@@ -663,6 +727,10 @@ async function doSILoad() {
 
     setLoading(true, 'Parsing structures… ', 88);
     await new Promise(function(r){ setTimeout(r, 0); });
+
+    // Show first 300 lines in debug panel
+    siRawLines = lines;
+    document.getElementById('si-rawtext').value = lines.slice(0, 300).join('\n');
 
     var mols = parseSI(lines, defCharge, defMult, minAtoms);
     setLoading(false);
@@ -729,10 +797,23 @@ function doSIViewAll() {
 }
 
 function doSIClear() {
-  siExtracted = []; siFile = null;
+  siExtracted = []; siFile = null; siRawLines = [];
   document.getElementById('si-result').style.display = 'none';
+  document.getElementById('si-rawtext').value = '';
+  document.getElementById('si-manualtext').value = '';
+  document.getElementById('si-debug').style.display = 'none';
+  document.getElementById('dbgbtn').classList.remove('on');
   document.getElementById('status').style.display = 'none';
   setLoading(false);
+  // Reset drop zone label
+  document.getElementById('dz-si').innerHTML =
+    '<div style="font-size:1.4rem;margin-bottom:5px">📑</div>' +
+    '<div>Drop SI file or <strong style="color:#eab308;cursor:pointer" id="si-ubtn">click to upload</strong></div>' +
+    '<div class="tags"><span class="tag" style="border-color:rgba(234,179,8,0.3);color:#eab308">.pdf</span>' +
+    '<span class="tag" style="border-color:rgba(234,179,8,0.3);color:#eab308">.docx</span>' +
+    '<span class="tag" style="border-color:rgba(234,179,8,0.3);color:#eab308">.txt</span></div>';
+  // Re-attach upload click handler
+  document.getElementById('si-ubtn').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('si-filein').click(); });
 }
 
 function doSIDownloadAll() {
