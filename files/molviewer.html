@@ -3,192 +3,263 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Molecule Viewer</title>
+<title>Molecule Viewer — GMP</title>
+<!-- 3D viewer -->
 <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+<!-- PDF extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<!-- DOCX/ZIP extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 16px; min-height: 100vh; }
-.title { font-size: 1.1rem; font-weight: 700; color: #38bdf8; margin-bottom: 4px; }
-.subtitle { font-size: 0.75rem; color: #8b949e; margin-bottom: 16px; font-family: monospace; }
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',sans-serif;background:#0d1117;color:#e6edf3;padding:16px;min-height:100vh}
+.title{font-size:1.1rem;font-weight:700;color:#38bdf8;margin-bottom:2px}
+.subtitle{font-size:0.75rem;color:#8b949e;margin-bottom:14px;font-family:monospace}
 
-#dropzone {
-  border: 2px dashed #30363d; border-radius: 10px; padding: 16px;
-  text-align: center; cursor: pointer; color: #8b949e; font-size: 0.8rem;
-  margin-bottom: 12px; transition: all 0.2s;
-}
-#dropzone:hover, #dropzone.over { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.04); }
-.tags { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; margin-top: 8px; }
-.tag { background: #21262d; color: #8b949e; font-family: monospace; font-size: 0.68rem; padding: 2px 7px; border-radius: 4px; border: 1px solid #30363d; }
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:1.5px solid #21262d}
+.tab{padding:8px 18px;font-size:0.78rem;font-family:monospace;letter-spacing:0.05em;
+  cursor:pointer;color:#8b949e;border-bottom:2px solid transparent;margin-bottom:-1.5px;
+  transition:all 0.2s;background:none;border-top:none;border-left:none;border-right:none}
+.tab:hover{color:#c9d1d9}
+.tab.active{color:#38bdf8;border-bottom-color:#38bdf8;font-weight:600}
+.tab-panel{display:none}.tab-panel.active{display:block}
 
-#loadingbar {
-  display: none; background: #161b22; border: 1.5px solid #30363d;
-  border-radius: 10px; padding: 16px; margin-bottom: 12px; text-align: center;
-}
-#loadingbar .lmsg { font-family: monospace; font-size: 0.8rem; color: #38bdf8; margin-bottom: 8px; }
-#lbtrack { height: 6px; background: #21262d; border-radius: 3px; overflow: hidden; }
-#lbfill { height: 100%; background: linear-gradient(90deg,#38bdf8,#0ea5e9); width: 0%; transition: width 0.1s; }
+/* ── Drop zones ── */
+.dropzone{border:2px dashed #30363d;border-radius:10px;padding:14px;
+  text-align:center;cursor:pointer;color:#8b949e;font-size:0.8rem;
+  margin-bottom:10px;transition:all 0.2s}
+.dropzone:hover,.dropzone.over{border-color:#38bdf8;color:#38bdf8;background:rgba(56,189,248,0.04)}
+.tags{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-top:7px}
+.tag{background:#21262d;color:#8b949e;font-family:monospace;font-size:0.67rem;
+  padding:2px 7px;border-radius:4px;border:1px solid #30363d}
 
-textarea {
-  width: 100%; height: 90px; background: #161b22; border: 1.5px solid #30363d;
-  border-radius: 8px; color: #c9d1d9; font-family: monospace; font-size: 0.75rem;
-  padding: 10px; resize: vertical; outline: none;
-}
-textarea:focus { border-color: #38bdf8; }
+/* ── SI section special styling ── */
+.si-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.65rem;
+  font-family:monospace;letter-spacing:0.1em;font-weight:600;
+  background:rgba(234,179,8,0.12);color:#eab308;border:1px solid rgba(234,179,8,0.25);
+  margin-bottom:8px}
+.si-note{font-size:0.7rem;color:#8b949e;font-family:monospace;
+  background:#161b22;border:1px solid #21262d;border-radius:6px;
+  padding:8px 12px;margin-bottom:10px;line-height:1.7}
+.si-note code{color:#38bdf8;background:rgba(56,189,248,0.08);
+  padding:1px 5px;border-radius:3px;font-size:0.7rem}
 
-.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-top: 10px; }
-.field { flex: 1; min-width: 110px; }
-.lbl { font-size: 0.68rem; color: #8b949e; margin-bottom: 4px; font-family: monospace; }
-select { width: 100%; background: #161b22; border: 1.5px solid #30363d; border-radius: 6px; color: #c9d1d9; font-size: 0.78rem; padding: 7px 10px; outline: none; cursor: pointer; }
-select:focus { border-color: #38bdf8; }
+/* ── Loading bar ── */
+#loadingbar{display:none;background:#161b22;border:1.5px solid #30363d;
+  border-radius:10px;padding:14px;margin-bottom:10px;text-align:center}
+#loadingbar .lmsg{font-family:monospace;font-size:0.78rem;color:#38bdf8;margin-bottom:7px}
+#lbtrack{height:6px;background:#21262d;border-radius:3px;overflow:hidden}
+#lbfill{height:100%;background:linear-gradient(90deg,#38bdf8,#0ea5e9);width:0%;transition:width 0.1s}
 
-.btn { padding: 9px 18px; border-radius: 7px; border: none; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.btn-primary { background: linear-gradient(135deg,#38bdf8,#0ea5e9); color: #0d1117; }
-.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(56,189,248,0.4); }
-.btn-sec { background: #21262d; color: #c9d1d9; border: 1.5px solid #30363d; }
-.btn-sec:hover { border-color: #38bdf8; color: #38bdf8; }
-.btn-red { background: #21262d; color: #f85149; border: 1.5px solid #30363d; }
-.btn-red:hover { border-color: #f85149; }
+textarea{width:100%;height:90px;background:#161b22;border:1.5px solid #30363d;
+  border-radius:8px;color:#c9d1d9;font-family:monospace;font-size:0.75rem;
+  padding:10px;resize:vertical;outline:none}
+textarea:focus{border-color:#38bdf8}
 
-.toggle { padding: 7px 12px; border-radius: 7px; border: 1.5px solid #30363d; background: #161b22; color: #8b949e; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
-.toggle:hover { border-color: #38bdf8; color: #38bdf8; }
-.toggle.on { border-color: #38bdf8; color: #38bdf8; background: rgba(56,189,248,0.1); }
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:10px}
+.field{flex:1;min-width:100px}
+.lbl{font-size:0.67rem;color:#8b949e;margin-bottom:4px;font-family:monospace}
+select{width:100%;background:#161b22;border:1.5px solid #30363d;border-radius:6px;
+  color:#c9d1d9;font-size:0.78rem;padding:7px 10px;outline:none;cursor:pointer}
+select:focus{border-color:#38bdf8}
 
-#status { display: none; padding: 8px 12px; border-radius: 7px; font-family: monospace; font-size: 0.73rem; margin-top: 10px; }
-#status.ok  { background: rgba(63,185,80,0.1);  border: 1px solid #3fb950; color: #3fb950;  display: block; }
-#status.err { background: rgba(248,81,73,0.1);  border: 1px solid #f85149; color: #f85149;  display: block; }
-#status.inf { background: rgba(56,189,248,0.1); border: 1px solid #38bdf8; color: #38bdf8;  display: block; }
+.btn{padding:9px 18px;border-radius:7px;border:none;font-size:0.8rem;font-weight:600;
+  cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.btn-primary{background:linear-gradient(135deg,#38bdf8,#0ea5e9);color:#0d1117}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(56,189,248,0.4)}
+.btn-sec{background:#21262d;color:#c9d1d9;border:1.5px solid #30363d}
+.btn-sec:hover{border-color:#38bdf8;color:#38bdf8}
+.btn-red{background:#21262d;color:#f85149;border:1.5px solid #30363d}
+.btn-red:hover{border-color:#f85149}
+.btn-yellow{background:rgba(234,179,8,0.1);color:#eab308;border:1.5px solid rgba(234,179,8,0.3)}
+.btn-yellow:hover{background:rgba(234,179,8,0.2)}
 
-#infobar { display: none; padding: 8px 12px; border-radius: 7px; font-family: monospace; font-size: 0.7rem; color: #8b949e; background: #161b22; border: 1px solid #21262d; margin-top: 8px; }
-#infobar span { color: #38bdf8; font-weight: bold; }
+.toggle{padding:7px 12px;border-radius:7px;border:1.5px solid #30363d;
+  background:#161b22;color:#8b949e;font-size:0.78rem;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.toggle:hover{border-color:#38bdf8;color:#38bdf8}
+.toggle.on{border-color:#38bdf8;color:#38bdf8;background:rgba(56,189,248,0.1)}
 
-#viewerwrap { position: relative; margin-top: 12px; }
+#status{display:none;padding:8px 12px;border-radius:7px;font-family:monospace;font-size:0.73rem;margin-top:10px}
+#status.ok {background:rgba(63,185,80,0.1); border:1px solid #3fb950;color:#3fb950; display:block}
+#status.err{background:rgba(248,81,73,0.1); border:1px solid #f85149;color:#f85149; display:block}
+#status.inf{background:rgba(56,189,248,0.1);border:1px solid #38bdf8;color:#38bdf8; display:block}
 
-#multibar {
-  display: none; align-items: center; justify-content: space-between;
-  background: #161b22; border: 1.5px solid #21262d;
-  border-radius: 10px 10px 0 0; padding: 8px 14px; border-bottom: none;
-}
-#struct-counter { font-family: monospace; font-size: 0.88rem; color: #e6edf3; font-weight: 700; }
-#struct-counter span { color: #38bdf8; }
-#struct-info { font-family: monospace; font-size: 0.7rem; color: #8b949e; margin-top: 2px; }
-#jump-row { display: flex; gap: 6px; align-items: center; }
-#jump-input { width: 60px; background: #0d1117; border: 1px solid #30363d; border-radius: 4px; color: #c9d1d9; font-family: monospace; font-size: 0.78rem; padding: 4px 6px; outline: none; text-align: center; }
-#jump-input:focus { border-color: #38bdf8; }
-#jump-go { padding: 4px 10px; border-radius: 4px; border: none; background: #38bdf8; color: #0d1117; font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-.jlbl { font-family: monospace; font-size: 0.7rem; color: #8b949e; }
+#infobar{display:none;padding:8px 12px;border-radius:7px;font-family:monospace;font-size:0.7rem;
+  color:#8b949e;background:#161b22;border:1px solid #21262d;margin-top:8px}
+#infobar span{color:#38bdf8;font-weight:bold}
 
-#nav-panel {
-  display: none; position: absolute; right: 10px; top: 50%;
-  transform: translateY(-50%); flex-direction: column; gap: 8px; z-index: 100;
-}
-.nav-btn {
-  width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid rgba(56,189,248,0.3);
-  background: rgba(13,17,23,0.85); color: #38bdf8; font-size: 1rem;
-  cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center;
-  backdrop-filter: blur(4px);
-}
-.nav-btn:hover:not(:disabled) { background: rgba(56,189,248,0.3); transform: scale(1.1); }
-.nav-btn:disabled { opacity: 0.2; cursor: not-allowed; transform: none !important; }
+/* ── Viewer ── */
+#viewerwrap{position:relative;margin-top:12px}
+#multibar{display:none;align-items:center;justify-content:space-between;
+  background:#161b22;border:1.5px solid #21262d;border-radius:10px 10px 0 0;
+  padding:8px 14px;border-bottom:none}
+#struct-counter{font-family:monospace;font-size:0.88rem;color:#e6edf3;font-weight:700}
+#struct-counter span{color:#38bdf8}
+#struct-info{font-family:monospace;font-size:0.7rem;color:#8b949e;margin-top:2px}
+#jump-row{display:flex;gap:6px;align-items:center}
+#jump-input{width:60px;background:#0d1117;border:1px solid #30363d;border-radius:4px;
+  color:#c9d1d9;font-family:monospace;font-size:0.78rem;padding:4px 6px;outline:none;text-align:center}
+#jump-input:focus{border-color:#38bdf8}
+#jump-go{padding:4px 10px;border-radius:4px;border:none;background:#38bdf8;
+  color:#0d1117;font-size:0.75rem;font-weight:700;cursor:pointer}
+.jlbl{font-family:monospace;font-size:0.7rem;color:#8b949e}
 
-#viewer {
-  width: 100%; height: 480px; background: #010409;
-  border: 1.5px solid #21262d; position: relative; overflow: hidden;
-}
-#viewer.solo { border-radius: 10px; }
-#viewer.multi { border-radius: 0; }
+#nav-panel{display:none;position:absolute;right:10px;top:50%;
+  transform:translateY(-50%);flex-direction:column;gap:8px;z-index:100}
+.nav-btn{width:38px;height:38px;border-radius:50%;border:1.5px solid rgba(56,189,248,0.3);
+  background:rgba(13,17,23,0.85);color:#38bdf8;font-size:1rem;cursor:pointer;
+  transition:all 0.2s;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+.nav-btn:hover:not(:disabled){background:rgba(56,189,248,0.3);transform:scale(1.1)}
+.nav-btn:disabled{opacity:0.2;cursor:not-allowed;transform:none!important}
 
-#ph {
-  position: absolute; inset: 0; display: flex; flex-direction: column;
-  align-items: center; justify-content: center; color: #30363d;
-  text-align: center; gap: 10px; font-size: 0.8rem; font-family: monospace; pointer-events: none;
-}
+#viewer{width:100%;height:480px;background:#010409;border:1.5px solid #21262d;position:relative;overflow:hidden}
+#viewer.solo{border-radius:10px}
+#viewer.multi{border-radius:0}
+#ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;color:#30363d;text-align:center;gap:10px;font-size:0.8rem;
+  font-family:monospace;pointer-events:none}
+#progwrap{display:none;height:4px;background:#21262d;border-radius:0 0 10px 10px;overflow:hidden}
+#progfill{height:100%;background:linear-gradient(90deg,#38bdf8,#0ea5e9);width:0%;transition:width 0.15s}
+.hint-foot{text-align:center;font-size:0.65rem;color:#21262d;font-family:monospace;margin-top:6px}
 
-#progwrap { display: none; height: 4px; background: #21262d; border-radius: 0 0 10px 10px; overflow: hidden; }
-#progfill { height: 100%; background: linear-gradient(90deg,#38bdf8,#0ea5e9); width: 0%; transition: width 0.15s; }
-
-.hint-foot { text-align: center; font-size: 0.65rem; color: #21262d; font-family: monospace; margin-top: 6px; }
+/* SI extracted structures list */
+#si-result{display:none;margin-top:10px;background:#161b22;border:1.5px solid #21262d;
+  border-radius:8px;padding:10px;max-height:180px;overflow-y:auto}
+#si-result .si-row{display:flex;align-items:center;gap:8px;padding:4px 0;
+  border-bottom:1px solid #21262d;font-family:monospace;font-size:0.72rem;cursor:pointer;
+  transition:background 0.1s;border-radius:4px;padding:5px 8px}
+#si-result .si-row:last-child{border-bottom:none}
+#si-result .si-row:hover{background:rgba(56,189,248,0.06)}
+#si-result .si-row.active-row{background:rgba(56,189,248,0.1);color:#38bdf8}
+#si-result .si-num{color:#38bdf8;min-width:32px;font-weight:700}
+#si-result .si-name{flex:1;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#si-result .si-atoms{color:#8b949e;min-width:50px;text-align:right}
+#si-result .si-energy{color:#eab308;min-width:80px;text-align:right;font-size:0.68rem}
 </style>
 </head>
 <body>
 
-<div class="title">⚗️ Molecule Viewer</div>
-<div class="subtitle">// lazy-loading · handles 1000s of structures · any element</div>
+<div class="title">⚗️ Molecule Viewer — GMP</div>
+<div class="subtitle">// 3D viewer · multi-structure XYZ · SI extractor (PDF/DOCX)</div>
 
-<div id="dropzone">
-  <div style="font-size:1.5rem;margin-bottom:6px">📂</div>
-  <div>Drop file here or <strong style="color:#38bdf8;cursor:pointer" id="ubtn">click to upload</strong></div>
-  <div class="tags">
-    <span class="tag">.xyz (multi)</span><span class="tag">.log</span>
-    <span class="tag">.pdb</span><span class="tag">.mol</span>
-    <span class="tag">.sdf</span><span class="tag">.mol2</span>
+<!-- ── TABS ── -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('xyz',this)">📄 XYZ / Paste</button>
+  <button class="tab" onclick="switchTab('si',this)">📑 SI Extractor</button>
+</div>
+
+<!-- ══════════ TAB 1: XYZ ══════════ -->
+<div class="tab-panel active" id="tab-xyz">
+  <div class="dropzone" id="dz-xyz">
+    <div style="font-size:1.4rem;margin-bottom:5px">📂</div>
+    <div>Drop file or <strong style="color:#38bdf8;cursor:pointer" id="ubtn">click to upload</strong></div>
+    <div class="tags">
+      <span class="tag">.xyz (multi)</span><span class="tag">.log</span>
+      <span class="tag">.pdb</span><span class="tag">.mol</span>
+      <span class="tag">.sdf</span><span class="tag">.mol2</span>
+    </div>
   </div>
-</div>
-<input type="file" id="filein" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.txt">
+  <input type="file" id="filein" style="display:none" accept=".xyz,.log,.pdb,.mol,.sdf,.mol2,.gjf,.com,.txt">
 
-<div id="loadingbar">
-  <div class="lmsg" id="lmsg">Scanning file...</div>
-  <div id="lbtrack"><div id="lbfill"></div></div>
-</div>
-
-<textarea id="coords" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG or SMILES...
+  <textarea id="coords" placeholder="Paste XYZ, PDB, MOL, SDF, Gaussian LOG or SMILES…
 Multi-structure XYZ: paste all blocks together or use file upload for large files."></textarea>
 
-<div class="row">
-  <div class="field">
-    <div class="lbl">FORMAT</div>
-    <select id="fmt">
-      <option value="auto">Auto Detect</option>
-      <option value="xyz">XYZ</option>
-      <option value="bare">Bare XYZ / Gaussian</option>
-      <option value="pdb">PDB</option>
-      <option value="mol">MOL</option>
-      <option value="mol2">MOL2</option>
-      <option value="sdf">SDF</option>
-      <option value="smiles">SMILES</option>
-    </select>
+  <div class="row">
+    <div class="field"><div class="lbl">FORMAT</div>
+      <select id="fmt">
+        <option value="auto">Auto Detect</option><option value="xyz">XYZ</option>
+        <option value="bare">Bare XYZ / Gaussian</option><option value="pdb">PDB</option>
+        <option value="mol">MOL</option><option value="mol2">MOL2</option>
+        <option value="sdf">SDF</option><option value="smiles">SMILES</option>
+      </select></div>
+    <div class="field"><div class="lbl">STYLE</div>
+      <select id="sty">
+        <option value="stick">Stick</option><option value="bs" selected>Ball &amp; Stick</option>
+        <option value="sphere">Space Filling</option><option value="line">Line</option><option value="cross">Cross</option>
+      </select></div>
+    <div class="field"><div class="lbl">COLOUR</div>
+      <select id="col">
+        <option value="Jmol" selected>By Element (CPK)</option><option value="chain">By Chain</option>
+        <option value="residue">By Residue</option><option value="spectrum">Rainbow</option>
+      </select></div>
+    <div class="field"><div class="lbl">SURFACE</div>
+      <select id="sur">
+        <option value="none">No Surface</option><option value="VDW">Van der Waals</option>
+        <option value="SAS">Solvent Accessible</option><option value="SES">Solvent Excluded</option>
+      </select></div>
   </div>
-  <div class="field">
-    <div class="lbl">STYLE</div>
-    <select id="sty">
-      <option value="stick">Stick</option>
-      <option value="bs" selected>Ball &amp; Stick</option>
-      <option value="sphere">Space Filling</option>
-      <option value="line">Line</option>
-      <option value="cross">Cross</option>
-    </select>
-  </div>
-  <div class="field">
-    <div class="lbl">COLOUR</div>
-    <select id="col">
-      <option value="Jmol" selected>By Element (CPK)</option>
-      <option value="chain">By Chain</option>
-      <option value="residue">By Residue</option>
-      <option value="spectrum">Rainbow</option>
-    </select>
-  </div>
-  <div class="field">
-    <div class="lbl">SURFACE</div>
-    <select id="sur">
-      <option value="none">No Surface</option>
-      <option value="VDW">Van der Waals</option>
-      <option value="SAS">Solvent Accessible</option>
-      <option value="SES">Solvent Excluded</option>
-    </select>
+
+  <div class="row" style="margin-top:10px">
+    <button class="toggle" id="lblbtn" onclick="doToggleLabels()">🏷️ Labels</button>
+    <button class="toggle" id="spnbtn" onclick="doToggleSpin()">🔄 Spin</button>
+    <button class="toggle" id="bgbtn"  onclick="doToggleBg()">🌗 Light BG</button>
+    <button class="btn btn-primary" onclick="doLoad()">▶ Visualise</button>
+    <button class="btn btn-sec" onclick="doSave()">💾 PNG</button>
+    <button class="btn btn-red" onclick="doClear()">✕ Clear</button>
   </div>
 </div>
 
-<div class="row" style="margin-top:10px">
-  <button class="toggle" id="lblbtn" onclick="doToggleLabels()">🏷️ Labels</button>
-  <button class="toggle" id="spnbtn" onclick="doToggleSpin()">🔄 Spin</button>
-  <button class="toggle" id="bgbtn"  onclick="doToggleBg()">🌗 Light BG</button>
-  <button class="btn btn-primary" onclick="doLoad()">▶ Visualise</button>
-  <button class="btn btn-sec" onclick="doSave()">💾 PNG</button>
-  <button class="btn btn-red" onclick="doClear()">✕ Clear</button>
+<!-- ══════════ TAB 2: SI EXTRACTOR ══════════ -->
+<div class="tab-panel" id="tab-si">
+  <div class="si-badge">🔬 SUPPORTING INFORMATION EXTRACTOR</div>
+  <div class="si-note">
+    Extracts Cartesian coordinates from journal Supporting Information files.<br>
+    Handles all common formats: <code>Element x y z</code> · <code>AtomNum x y z</code> · <code>Idx Element x y z</code> · Gaussian tables.<br>
+    Works with <code>Total Energy =</code> · <code>Eopt =</code> · <code>Gibbs energy =</code> · <code>SCF Done</code> separators.
+  </div>
+
+  <div class="dropzone" id="dz-si">
+    <div style="font-size:1.4rem;margin-bottom:5px">📑</div>
+    <div>Drop SI file or <strong style="color:#eab308;cursor:pointer" id="si-ubtn">click to upload</strong></div>
+    <div class="tags">
+      <span class="tag" style="border-color:rgba(234,179,8,0.3);color:#eab308">.pdf</span>
+      <span class="tag" style="border-color:rgba(234,179,8,0.3);color:#eab308">.docx</span>
+      <span class="tag" style="border-color:rgba(234,179,8,0.3);color:#eab308">.txt</span>
+    </div>
+  </div>
+  <input type="file" id="si-filein" style="display:none" accept=".pdf,.docx,.txt,.gjf,.xyz">
+
+  <!-- SI extraction controls -->
+  <div class="row" style="margin-top:0">
+    <div class="field"><div class="lbl">DEFAULT CHARGE</div>
+      <select id="si-charge">
+        <option value="0">0</option><option value="1">+1</option>
+        <option value="-1">-1</option><option value="2">+2</option><option value="-2">-2</option>
+      </select></div>
+    <div class="field"><div class="lbl">DEFAULT MULT</div>
+      <select id="si-mult">
+        <option value="1">1 (singlet)</option><option value="2">2 (doublet)</option>
+        <option value="3">3 (triplet)</option>
+      </select></div>
+    <div class="field"><div class="lbl">MIN ATOMS</div>
+      <select id="si-minatoms">
+        <option value="2">2+</option><option value="3" selected>3+</option>
+        <option value="5">5+</option><option value="10">10+</option>
+      </select></div>
+    <button class="btn btn-yellow" onclick="doSILoad()" style="align-self:flex-end">🔬 Extract Structures</button>
+  </div>
+
+  <!-- Extracted structures list -->
+  <div id="si-result"></div>
+
+  <div class="row" style="margin-top:10px">
+    <button class="btn btn-sec" onclick="doSIViewAll()">👁 View All in Viewer</button>
+    <button class="btn btn-sec" onclick="doSIDownloadAll()">⬇ Download All as XYZ</button>
+    <button class="btn btn-red" onclick="doSIClear()">✕ Clear</button>
+  </div>
+</div>
+
+<!-- ── Loading bar (shared) ── -->
+<div id="loadingbar">
+  <div class="lmsg" id="lmsg">Processing…</div>
+  <div id="lbtrack"><div id="lbfill"></div></div>
 </div>
 
 <div id="status"></div>
 <div id="infobar"></div>
 
+<!-- ── 3D VIEWER ── -->
 <div id="viewerwrap">
   <div id="multibar">
     <div>
@@ -206,7 +277,7 @@ Multi-structure XYZ: paste all blocks together or use file upload for large file
     <div id="ph">
       <div style="font-size:2.5rem;opacity:0.3">⚛️</div>
       <div>Load a molecule to begin</div>
-      <div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · Multi-structure XYZ</div>
+      <div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · SI PDF/DOCX</div>
     </div>
   </div>
 
@@ -214,7 +285,7 @@ Multi-structure XYZ: paste all blocks together or use file upload for large file
     <button class="nav-btn" id="btn-first" onclick="goTo(0)" title="First">⏮</button>
     <button class="nav-btn" id="btn-prev"  onclick="goTo(curIdx-1)" title="Previous">◀</button>
     <button class="nav-btn" id="btn-next"  onclick="goTo(curIdx+1)" title="Next">▶</button>
-    <button class="nav-btn" id="btn-last"  onclick="goTo(offsets.length-1)" title="Last">⏭</button>
+    <button class="nav-btn" id="btn-last"  onclick="goTo(totalStructures()-1)" title="Last">⏭</button>
   </div>
 
   <div id="progwrap"><div id="progfill"></div></div>
@@ -225,16 +296,504 @@ Multi-structure XYZ: paste all blocks together or use file upload for large file
 <script>
 'use strict';
 
-// ── Global state ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
 var gv      = null;
 var gLabels = false;
 var gSpin   = false;
 var gBg     = false;
 var curIdx  = 0;
-var offsets = [];   // [{lineStart, n, comment}]  — index only, no coord data
-var lines   = [];   // full file split into lines, kept in memory once
 
-// ── UI helpers ────────────────────────────────────────────────
+// Mode A: lazy-loaded large XYZ file
+var offsets = [];   // [{lineStart, n, comment}]
+var lines   = [];   // all file lines
+
+// Mode B: SI-extracted structures (or small multi-XYZ)
+var siMols  = [];   // [{name, xyzString, energy, atoms}]
+var mode    = '';   // 'lazy' | 'si'
+
+function totalStructures() {
+  if (mode === 'lazy') return offsets.length;
+  if (mode === 'si')   return siMols.length;
+  return 0;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ELEMENT TABLES  (all 94 elements)
+// ══════════════════════════════════════════════════════════════
+var ANUM = {};
+var _SYM = ['','H','He','Li','Be','B','C','N','O','F','Ne',
+  'Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca',
+  'Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn',
+  'Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr',
+  'Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn',
+  'Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd',
+  'Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb',
+  'Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg',
+  'Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th',
+  'Pa','U','Np','Pu'];
+for (var _i=1;_i<_SYM.length;_i++) ANUM[_i]=_SYM[_i];
+var ELEMS = {};
+for (var _i=1;_i<_SYM.length;_i++) ELEMS[_SYM[_i].toLowerCase()]=_SYM[_i];
+
+// ══════════════════════════════════════════════════════════════
+// SI PARSER — ported from Python si_to_gjf.py
+// ══════════════════════════════════════════════════════════════
+
+// Normalise unicode dashes → ASCII minus
+function norm(s) {
+  if (!s) return '';
+  return s.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uff0d]/g, '-')
+           .replace(/\u00a0|\u202f/g, ' ');
+}
+
+// Structure-boundary header detection
+var HEADER_RE = /total\s+energy\s*=|gibbs(?:\s+energy)?\s*=|zero[- ]?point\s+(?:energy|correction)|scf\s+done|number\s+of\s+(?:imaginary\s+)?(?:negative\s+)?freq|thermal\s+correction|imaginary\s+frequencies|\bE_?opt\s+[+-]?\d|\bEelec\s+[+-]?\d|\bEtot\s+[+-]?\d|\bE_?rel\s+[+-]?\d/i;
+
+var ENERGY_RE = /(?:total\s+energy|gibbs(?:\s+energy)?|scf\s+done|E_?opt|Eelec|Etot|E_?rel|e)\s*[=:\s]\s*([+-]?\d+\.\d+)/i;
+
+var CHGMULT_RE = /(?:charge\s*[=:]\s*)?([+-]?\d)\s*[,\s]+(?:mult(?:iplicity)?\s*[=:]\s*)?(\d)\b/i;
+
+// Coordinate line parser — handles all 5 formats
+function parseCoordLine(raw) {
+  var line = norm(raw);
+  var t = line.trim().split(/\s+/);
+  if (t.length < 4) return null;
+
+  function flt(s) { var v=parseFloat(s); return isNaN(v)?null:v; }
+  function hasDot(s) { return s.indexOf('.')!==-1; }
+  function isAtnum(s) { var n=parseInt(s,10); return !isNaN(n) && n>=1 && ANUM[n]; }
+  function isElem(s)  { return s && ELEMS[s.toLowerCase()]; }
+
+  var x,y,z,el;
+
+  // Format A: AtomNum x y z
+  if (isAtnum(t[0]) && hasDot(t[1]) && hasDot(t[2]) && hasDot(t[3])) {
+    x=flt(t[1]);y=flt(t[2]);z=flt(t[3]);
+    if (x!==null && y!==null && z!==null) return [ANUM[parseInt(t[0],10)],x,y,z];
+  }
+  // Format B: Element x y z
+  if (isElem(t[0]) && hasDot(t[1]) && hasDot(t[2]) && hasDot(t[3])) {
+    x=flt(t[1]);y=flt(t[2]);z=flt(t[3]);
+    if (x!==null && y!==null && z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z];
+  }
+  if (t.length >= 5) {
+    // Format C: Idx Element x y z
+    if (isElem(t[1]) && hasDot(t[2]) && hasDot(t[3]) && hasDot(t[4])) {
+      x=flt(t[2]);y=flt(t[3]);z=flt(t[4]);
+      if (x!==null && y!==null && z!==null) return [ELEMS[t[1].toLowerCase()],x,y,z];
+    }
+    // Format D: Idx AtomNum x y z
+    if (isAtnum(t[1]) && hasDot(t[2]) && hasDot(t[3]) && hasDot(t[4])) {
+      x=flt(t[2]);y=flt(t[3]);z=flt(t[4]);
+      if (x!==null && y!==null && z!==null) return [ANUM[parseInt(t[1],10)],x,y,z];
+    }
+    // Format E: Element AtomNum x y z
+    if (isElem(t[0]) && isAtnum(t[1]) && hasDot(t[2]) && hasDot(t[3]) && hasDot(t[4])) {
+      x=flt(t[2]);y=flt(t[3]);z=flt(t[4]);
+      if (x!==null && y!==null && z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z];
+    }
+  }
+  return null;
+}
+
+// Convert parsed Molecule to XYZ string
+function molToXYZ(mol) {
+  var comment = mol.name + (mol.energy ? '  E='+mol.energy : '');
+  var lines = [mol.atoms.length.toString(), comment];
+  mol.atoms.forEach(function(a) {
+    lines.push(a[0]+'  '+a[1].toFixed(8)+'  '+a[2].toFixed(8)+'  '+a[3].toFixed(8));
+  });
+  return lines.join('\n');
+}
+
+// Safe filename from name
+function safeName(name) {
+  return (name||'Structure').replace(/[\x00-\x1f\x7f<>:"/\\|?*\s]+/g,'_').replace(/^[_.]+|[_.]+$/g,'').substring(0,60) || 'Structure';
+}
+
+// Name extraction — simplified port of Python extract_name
+var NAME_STOP_RE = /total\s+energy|gibbs|zero.?point|scf\s+done|number\s+of|thermal|enthalpy|entropy|imaginary|\bE_?opt\s|\bEelec\s|\bEtot\s|\bE_?rel\s|\bE\s*=\s*[+-]?\d|\bE_[a-z]/i;
+var NOT_NAME_RE  = /^\s*(?:page\s*\d+|[Ss]\d{1,4}\s*$|[Ss]\.\d+\b|\d+\s*$|supporting\s+inf|table\s+of\s+contents|references?|figure\s+s?\d+\s*$)\s*$/i;
+var CHGMULT_LINE_RE = /charge\s*=\s*[+-]?\d|multiplicity\s*=\s*\d/i;
+var META_LINE_RE = /(?:number\s+of|imaginary|thermal|zero.?point|scf\s+done|electronic\s+energy|vibrational|entropy|convergence|frequencies)/i;
+var SEC_KW_RE = /\b(?:cartesian|coordinates?|optimized|geometr|states?|intermediates?|structures?|molecules?|compounds?|species|supporting|section|table|figure|transition|appendix)\b/i;
+
+function extractName(headerLine, contextLines) {
+  // Try name embedded in header line
+  if (headerLine) {
+    var h = norm(headerLine);
+    var m = NAME_STOP_RE.exec(h);
+    if (m) {
+      var before = h.substring(0, m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
+      if (before && /[A-Za-z0-9]/.test(before) && !/^[\d\s.+\-]+$/.test(before)) {
+        if (!SEC_KW_RE.test(before) && before.split(/\s+/).length <= 6) {
+          return before;
+        }
+        // Try to get the last meaningful token
+        var words = before.split(/\s+/);
+        var last = words[words.length-1].replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
+        if (last && /^[A-Za-z0-9]/.test(last) && last.length <= 20) return last;
+        return before;
+      }
+    }
+  }
+
+  // Scan context lines
+  var window = [];
+  for (var i = Math.max(0, contextLines.length-20); i < contextLines.length; i++) {
+    var l = norm(contextLines[i]).trim();
+    if (!l || l.startsWith('<<')) continue;
+    window.push(l);
+  }
+  for (var wi = window.length-1; wi >= 0; wi--) {
+    var line = window[wi];
+    if (HEADER_RE.test(line)) continue;
+    if (CHGMULT_LINE_RE.test(line)) continue;
+    if (META_LINE_RE.test(line)) continue;
+    if (NOT_NAME_RE.test(line)) continue;
+    if (/^[\d\s.+\-]+$/.test(line)) continue;
+    if (line.split(/\s+/).length > 10) continue;
+    if (line.length > 100) continue;
+
+    var cand = null;
+    // "coordinates of NAME"
+    var cm = /\bcoordinates?\s+of\s+([A-Za-z0-9(][\w\s()\-+.,]{0,60}?)(?:\s*$|\s*[.,])/.exec(line);
+    if (cm) cand = cm[1].trim().replace(/[.,\s]+$/, '');
+    // Compound/Structure PREFIX NAME
+    if (!cand) { cm = /^(?:compound|structure|molecule|intermediate|transition[\s-]+state|substrate|catalyst|adduct)\s+(.+)$/i.exec(line); if(cm) cand=cm[1].trim().replace(/\.$/,''); }
+    if (!cand && /[A-Za-z]/.test(line) && line.split(/\s+/).length <= 8) cand = line;
+
+    if (cand) return cand;
+  }
+  return null;
+}
+
+// ── MAIN SI PARSER ────────────────────────────────────────────
+function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
+  var structs = [];
+  var ctx = [];
+  var atoms = [];
+  var blkCtx = [];
+  var blkPreLen = 0;
+  var hdrLine = null;
+  var inBlock = false;
+  var counter = 0;
+
+  function flush() {
+    if (atoms.length < minAtoms) {
+      inBlock=false; atoms=[]; blkCtx=[]; blkPreLen=0; hdrLine=null; return;
+    }
+    counter++;
+    var name = extractName(hdrLine, blkCtx.slice(0, blkPreLen));
+    if (!name) name = 'Structure_' + counter;
+
+    var energy = null;
+    for (var li = blkCtx.length-1; li >= Math.max(0, blkCtx.length-15); li--) {
+      var em = ENERGY_RE.exec(norm(blkCtx[li]));
+      if (em) { energy = em[1]; break; }
+    }
+    var charge = defaultCharge, mult = defaultMult;
+    for (var li = blkCtx.length-1; li >= Math.max(0, blkCtx.length-10); li--) {
+      var cm = CHGMULT_RE.exec(norm(blkCtx[li]));
+      if (cm) { try{ charge=parseInt(cm[1]); mult=parseInt(cm[2]); }catch(e){} break; }
+    }
+
+    structs.push({ name: safeName(name), atoms: atoms.slice(), charge: charge, mult: mult, energy: energy });
+    inBlock=false; atoms=[]; blkCtx=[]; blkPreLen=0; hdrLine=null;
+  }
+
+  for (var i = 0; i < textLines.length; i++) {
+    var raw = textLines[i];
+    var n = norm(raw);
+    var stripped = n.trim();
+
+    if (raw.startsWith && raw.startsWith('<<BREAK')) { ctx.push(raw); continue; }
+    if (!stripped) {
+      ctx.push(raw);
+      continue;
+    }
+    if (HEADER_RE.test(n)) {
+      if (inBlock) flush();
+      ctx.push(raw);
+      hdrLine = raw;
+      continue;
+    }
+    var coord = parseCoordLine(n);
+    if (coord) {
+      if (!inBlock) {
+        inBlock = true;
+        blkCtx = ctx.slice();
+        blkPreLen = blkCtx.length;
+        atoms = [];
+      }
+      atoms.push(coord);
+    } else {
+      ctx.push(raw);
+      if (inBlock) blkCtx.push(raw);
+    }
+  }
+  if (inBlock && atoms.length >= minAtoms) flush();
+
+  // Deduplicate names
+  var seen = {};
+  structs.forEach(function(mol) {
+    var b = mol.name;
+    seen[b] = (seen[b]||0) + 1;
+    if (seen[b] > 1) mol.name = b + '_' + seen[b];
+  });
+
+  return structs;
+}
+
+// ══════════════════════════════════════════════════════════════
+// PDF TEXT EXTRACTION (PDF.js)
+// ══════════════════════════════════════════════════════════════
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+async function extractPDFLines(file) {
+  var arrayBuf = await file.arrayBuffer();
+  var pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
+  var allLines = [];
+  setLoading(true, 'Extracting PDF text… 0/' + pdf.numPages + ' pages', 2);
+
+  for (var p = 1; p <= pdf.numPages; p++) {
+    var page = await pdf.getPage(p);
+    var content = await page.getTextContent();
+
+    // Group items by Y coordinate (within 3px tolerance) → reconstruct lines
+    var yMap = {};
+    content.items.forEach(function(item) {
+      if (!item.str) return;
+      var y = Math.round(item.transform[5] / 3) * 3;
+      if (!yMap[y]) yMap[y] = [];
+      yMap[y].push({ x: item.transform[4], str: item.str });
+    });
+
+    var yVals = Object.keys(yMap).map(Number).sort(function(a,b){ return b-a; }); // top→bottom
+    yVals.forEach(function(y) {
+      var items = yMap[y].sort(function(a,b){ return a.x-b.x; });
+      allLines.push(items.map(function(i){ return i.str; }).join(' '));
+    });
+    allLines.push('<<BREAK:' + p + '>>');
+
+    var pct = Math.round((p / pdf.numPages) * 80) + 5;
+    setLoading(true, 'Extracting PDF text… ' + p + '/' + pdf.numPages + ' pages', pct);
+  }
+  return allLines;
+}
+
+// ══════════════════════════════════════════════════════════════
+// DOCX TEXT EXTRACTION (JSZip + DOMParser)
+// ══════════════════════════════════════════════════════════════
+async function extractDOCXLines(file) {
+  var buf = await file.arrayBuffer();
+  var zip = await JSZip.loadAsync(buf);
+  var xmlFile = zip.file('word/document.xml');
+  if (!xmlFile) throw new Error('word/document.xml not found in DOCX');
+  var xmlText = await xmlFile.async('text');
+
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(xmlText, 'application/xml');
+  var W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+
+  function paraText(p) {
+    var texts = p.querySelectorAll('t');
+    var parts = [];
+    texts.forEach(function(t){ if(t.textContent) parts.push(t.textContent); });
+    return parts.join('');
+  }
+
+  var lines = [];
+  var body = doc.querySelector('body');
+  if (!body) throw new Error('Cannot find document body');
+
+  body.childNodes.forEach(function(child) {
+    var tag = child.localName;
+    if (tag === 'p') {
+      var txt = paraText(child).trim();
+      lines.push(txt || '');
+    } else if (tag === 'tbl') {
+      var rows = child.querySelectorAll('tr');
+      rows.forEach(function(tr) {
+        var cells = tr.querySelectorAll('tc');
+        cells.forEach(function(tc) {
+          var cellTxt = paraText(tc).trim();
+          if (cellTxt) lines.push(cellTxt);
+        });
+      });
+    }
+  });
+  return lines;
+}
+
+// ══════════════════════════════════════════════════════════════
+// SI UI LOGIC
+// ══════════════════════════════════════════════════════════════
+var siExtracted = [];  // global SI result: [{name, xyzString, energy, natoms}]
+var siFile = null;
+
+async function doSILoad() {
+  if (!siFile) { setStatus('Upload a SI file first (.pdf, .docx, or .txt)', 'inf'); return; }
+  var minAtoms = parseInt(document.getElementById('si-minatoms').value) || 3;
+  var defCharge = parseInt(document.getElementById('si-charge').value) || 0;
+  var defMult   = parseInt(document.getElementById('si-mult').value) || 1;
+
+  setLoading(true, 'Reading file…', 2);
+  siExtracted = [];
+  document.getElementById('si-result').style.display = 'none';
+
+  try {
+    var lines;
+    var ext = siFile.name.split('.').pop().toLowerCase();
+
+    if (ext === 'pdf') {
+      lines = await extractPDFLines(siFile);
+    } else if (ext === 'docx') {
+      setLoading(true, 'Parsing DOCX…', 5);
+      lines = await extractDOCXLines(siFile);
+    } else {
+      // Plain text / GJF / XYZ
+      setLoading(true, 'Reading text…', 5);
+      var txt = await siFile.text();
+      lines = txt.split(/\r?\n/);
+    }
+
+    setLoading(true, 'Parsing structures… ', 88);
+    await new Promise(function(r){ setTimeout(r, 0); });
+
+    var mols = parseSI(lines, defCharge, defMult, minAtoms);
+    setLoading(false);
+
+    if (!mols.length) {
+      setStatus('No coordinate blocks found. Is the file text-based (not a scanned image)?', 'err');
+      return;
+    }
+
+    // Convert to XYZ strings
+    siExtracted = mols.map(function(mol) {
+      return {
+        name: mol.name,
+        xyzString: molToXYZ(mol),
+        energy: mol.energy,
+        natoms: mol.atoms.length
+      };
+    });
+
+    renderSIList();
+    setStatus('✓ Extracted ' + siExtracted.length + ' structures from ' + siFile.name, 'ok');
+  } catch(e) {
+    setLoading(false);
+    setStatus('Extraction error: ' + e.message, 'err');
+    console.error(e);
+  }
+}
+
+function renderSIList() {
+  var el = document.getElementById('si-result');
+  el.innerHTML = '';
+  siExtracted.forEach(function(s, i) {
+    var row = document.createElement('div');
+    row.className = 'si-row';
+    row.dataset.idx = i;
+    row.innerHTML =
+      '<span class="si-num">' + (i+1) + '</span>' +
+      '<span class="si-name" title="'+s.name+'">'+s.name+'</span>' +
+      '<span class="si-atoms">'+s.natoms+' atoms</span>' +
+      '<span class="si-energy">'+(s.energy ? 'E='+s.energy : '')+'</span>';
+    row.addEventListener('click', function() {
+      document.querySelectorAll('.si-row').forEach(function(r){ r.classList.remove('active-row'); });
+      row.classList.add('active-row');
+      // Show this single structure in viewer
+      siMols = [siExtracted[i]];
+      mode = 'si'; curIdx = 0;
+      switchTab('xyz', document.querySelectorAll('.tab')[0]);
+      renderSIMol(0);
+    });
+    el.appendChild(row);
+  });
+  el.style.display = 'block';
+}
+
+function doSIViewAll() {
+  if (!siExtracted.length) { setStatus('Extract structures first', 'inf'); return; }
+  siMols = siExtracted.slice();
+  mode = 'si'; curIdx = 0;
+  offsets = []; lines = [];
+  showMultiUI(siMols.length);
+  renderSIMol(0);
+  switchTab('xyz', document.querySelectorAll('.tab')[0]);
+  setStatus('✓ Viewing all ' + siMols.length + ' SI structures', 'ok');
+}
+
+function doSIClear() {
+  siExtracted = []; siFile = null;
+  document.getElementById('si-result').style.display = 'none';
+  document.getElementById('status').style.display = 'none';
+  setLoading(false);
+}
+
+function doSIDownloadAll() {
+  if (!siExtracted.length) { setStatus('Nothing to download', 'inf'); return; }
+  var all = siExtracted.map(function(s){ return s.xyzString; }).join('\n\n');
+  var blob = new Blob([all], {type:'text/plain'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = 'SI_structures_all.xyz';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+}
+
+// Render a single SI mol by index
+function renderSIMol(idx) {
+  if (!siMols.length) return;
+  idx = Math.max(0, Math.min(idx, siMols.length-1));
+  curIdx = idx;
+
+  var mol = siMols[idx];
+  try {
+    makeViewer();
+    gv.addModel(mol.xyzString, 'xyz');
+    applyStyle();
+    gv.zoomTo();
+    gv.render();
+    var atoms = gv.getModel().selectedAtoms({}).length;
+
+    if (siMols.length > 1) {
+      showMultiUI(siMols.length);
+      document.getElementById('cur-num').textContent = idx+1;
+      document.getElementById('struct-info').textContent = mol.name + (mol.energy?' · E='+mol.energy:'') + ' · ' + atoms + ' atoms';
+      document.getElementById('jump-input').value = idx+1;
+      var pct = siMols.length>1 ? (idx/(siMols.length-1))*100 : 100;
+      document.getElementById('progfill').style.width = pct.toFixed(1)+'%';
+      document.getElementById('btn-first').disabled = (idx===0);
+      document.getElementById('btn-prev').disabled  = (idx===0);
+      document.getElementById('btn-next').disabled  = (idx===siMols.length-1);
+      document.getElementById('btn-last').disabled  = (idx===siMols.length-1);
+    } else {
+      hideMultiUI();
+    }
+    showInfo(atoms, 'XYZ (SI)', mol.name);
+  } catch(e) {
+    setStatus('Render error: '+e.message, 'err'); console.error(e);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p){ p.classList.remove('active'); });
+  if (btn) btn.classList.add('active');
+  document.getElementById('tab-'+id).classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════════
 function setStatus(msg, cls) {
   var el = document.getElementById('status');
   el.textContent = msg; el.className = cls;
@@ -246,112 +805,32 @@ function showInfo(n, fmt, name) {
   el.style.display = 'block';
 }
 function setLoading(show, msg, pct) {
-  document.getElementById('loadingbar').style.display = show ? 'block' : 'none';
-  if (msg !== undefined) document.getElementById('lmsg').textContent = msg;
-  if (pct !== undefined) document.getElementById('lbfill').style.width = pct + '%';
+  document.getElementById('loadingbar').style.display = show?'block':'none';
+  if (msg!==undefined) document.getElementById('lmsg').textContent = msg;
+  if (pct!==undefined) document.getElementById('lbfill').style.width = pct+'%';
+}
+function showMultiUI(count) {
+  document.getElementById('multibar').style.display = 'flex';
+  document.getElementById('nav-panel').style.display = 'flex';
+  document.getElementById('progwrap').style.display  = 'block';
+  document.getElementById('viewer').className         = 'multi';
+  document.getElementById('tot-num').textContent      = count;
+  document.getElementById('jump-input').max           = count;
+}
+function hideMultiUI() {
+  document.getElementById('multibar').style.display = 'none';
+  document.getElementById('nav-panel').style.display = 'none';
+  document.getElementById('progwrap').style.display  = 'none';
+  document.getElementById('viewer').className         = 'solo';
 }
 
-// ── Element tables ────────────────────────────────────────────
-var ANUM = {};
-// atomic number → symbol
-var _sym = ['','H','He','Li','Be','B','C','N','O','F','Ne',
-  'Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca',
-  'Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn',
-  'Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr',
-  'Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn',
-  'Sb','Te','I','Xe','Cs','Ba','La','Ce','Pr','Nd',
-  'Pm','Sm','Eu','Gd','Tb','Dy','Ho','Er','Tm','Yb',
-  'Lu','Hf','Ta','W','Re','Os','Ir','Pt','Au','Hg',
-  'Tl','Pb','Bi','Po','At','Rn','Fr','Ra','Ac','Th',
-  'Pa','U','Np','Pu'];
-for (var _i=1;_i<_sym.length;_i++) ANUM[_i]=_sym[_i];
-
-// symbol → canonical (for any capitalisation)
-var ELEMS = {};
-for (var _i=1;_i<_sym.length;_i++) ELEMS[_sym[_i].toLowerCase()] = _sym[_i];
-
-// ── KEY FIX: coord-line detector ─────────────────────────────
-// Checks if a line looks like "ELEM  x  y  z" or "N  N  N  x  y  z"
-// Does NOT require the element to be in any list — just checks that
-// columns 1,2,3 (or 3,4,5 for Gaussian) are valid floats.
-function looksLikeXYZCoord(line) {
-  if (!line || !line.trim()) return false;
-  var p = line.trim().split(/\s+/);
-  // Standard XYZ: ELEM x y z  (≥4 tokens, tokens 1-3 are floats)
-  if (p.length >= 4) {
-    var x = parseFloat(p[1]), y = parseFloat(p[2]), z = parseFloat(p[3]);
-    if (!isNaN(x) && !isNaN(y) && !isNaN(z)) return true;
-  }
-  // Gaussian: n  atomicnum  type  x  y  z  (≥6 tokens, tokens 3-5 are floats)
-  if (p.length >= 6) {
-    var x2 = parseFloat(p[3]), y2 = parseFloat(p[4]), z2 = parseFloat(p[5]);
-    if (!isNaN(x2) && !isNaN(y2) && !isNaN(z2)) return true;
-  }
-  return false;
-}
-
-// ── LAZY INDEX BUILDER ────────────────────────────────────────
-// Scans the lines array in chunks, yielding to browser via setTimeout.
-// Stores ONLY position metadata — never copies coordinate strings.
-function buildIndex(rawLines, onDone) {
-  var result = [];
-  var i = 0;
-  var total = rawLines.length;
-  var CHUNK = 8000;  // lines per tick — tune up/down if needed
-
-  function tick() {
-    var end = Math.min(i + CHUNK, total);
-    while (i < end) {
-      var t = rawLines[i].trim();
-      // A line that is purely an integer could be an XYZ atom-count header
-      if (/^\d+$/.test(t)) {
-        var n = parseInt(t, 10);
-        // Sanity: n > 0, and there must be room for comment + n coord lines
-        if (n > 0 && (i + n + 2) <= total) {
-          // The line after the comment (i+2) should look like a coord line
-          // Use i+2 as the first coord line (standard XYZ with comment at i+1)
-          if (looksLikeXYZCoord(rawLines[i + 2])) {
-            var comment = rawLines[i + 1] ? rawLines[i + 1].trim() : '';
-            result.push({ lineStart: i, n: n, comment: comment });
-            i += n + 2;   // jump past this entire block
-            continue;
-          }
-        }
-      }
-      i++;
-    }
-
-    var pct = Math.min(99, Math.round((i / total) * 100));
-    setLoading(true, 'Indexing structures… ' + pct + '% (' + result.length + ' found)', pct);
-
-    if (i < total) {
-      setTimeout(tick, 0);
-    } else {
-      setLoading(false);
-      onDone(result);
-    }
-  }
-
-  setTimeout(tick, 0);
-}
-
-// ── Extract one structure on demand ──────────────────────────
-function extractStructure(idx) {
-  var o = offsets[idx];
-  // lines[o.lineStart]     = atom count
-  // lines[o.lineStart + 1] = comment
-  // lines[o.lineStart + 2 .. lineStart + 1 + n] = coord lines
-  var comment = o.comment || ('Structure ' + (idx + 1));
-  var end = o.lineStart + 1 + o.n;
-  var coordLines = lines.slice(o.lineStart + 2, end + 1);
-  return o.n + '\n' + comment + '\n' + coordLines.join('\n');
-}
-
-// ── Viewer ────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// VIEWER
+// ══════════════════════════════════════════════════════════════
 function makeViewer() {
   var cont = document.getElementById('viewer');
   cont.innerHTML = '';
-  gv = $3Dmol.createViewer(cont, { backgroundColor: gBg ? '#f8fafc' : '#010409', antialias: true });
+  gv = $3Dmol.createViewer(cont, { backgroundColor: gBg?'#f8fafc':'#010409', antialias: true });
 }
 
 function applyStyle() {
@@ -363,164 +842,154 @@ function applyStyle() {
   var u = document.getElementById('sur').value;
   var co = { colorscheme: c };
   gv.setStyle({});
-  if      (s==='bs')     gv.setStyle({}, { stick: Object.assign({radius:0.15},co), sphere: Object.assign({radius:0.35},co) });
-  else if (s==='stick')  gv.setStyle({}, { stick: Object.assign({radius:0.2},co) });
-  else if (s==='sphere') gv.setStyle({}, { sphere: Object.assign({scale:1},co) });
-  else if (s==='line')   gv.setStyle({}, { line: co });
-  else if (s==='cross')  gv.setStyle({}, { cross: Object.assign({radius:0.3},co) });
-  if (u !== 'none') try { gv.addSurface($3Dmol.SurfaceType[u], {opacity:0.4, colorscheme:c}); } catch(e) {}
-  if (gLabels) gv.addPropertyLabels('elem', {}, {font:'Arial',fontSize:12,fontColor:'white',showBackground:false,alignment:'center'});
+  if      (s==='bs')     gv.setStyle({},{stick:Object.assign({radius:0.15},co),sphere:Object.assign({radius:0.35},co)});
+  else if (s==='stick')  gv.setStyle({},{stick:Object.assign({radius:0.2},co)});
+  else if (s==='sphere') gv.setStyle({},{sphere:Object.assign({scale:1},co)});
+  else if (s==='line')   gv.setStyle({},{line:co});
+  else if (s==='cross')  gv.setStyle({},{cross:Object.assign({radius:0.3},co)});
+  if (u!=='none') try { gv.addSurface($3Dmol.SurfaceType[u],{opacity:0.4,colorscheme:c}); } catch(e) {}
+  if (gLabels) gv.addPropertyLabels('elem',{},{font:'Arial',fontSize:12,fontColor:'white',showBackground:false,alignment:'center'});
   gv.spin(gSpin);
   gv.render();
 }
 
-// ── Show structure by index (instant) ────────────────────────
-function showStructure(idx) {
-  if (!offsets.length) return;
-  idx = Math.max(0, Math.min(idx, offsets.length - 1));
-  curIdx = idx;
-
-  try {
-    makeViewer();
-    gv.addModel(extractStructure(idx), 'xyz');
-    applyStyle();
-    gv.zoomTo();
-    gv.render();
-
-    var atoms = gv.getModel().selectedAtoms({}).length;
-    var comment = offsets[idx].comment || ('Structure ' + (idx+1));
-
-    document.getElementById('cur-num').textContent    = idx + 1;
-    document.getElementById('struct-info').textContent = comment + ' · ' + atoms + ' atoms';
-    document.getElementById('jump-input').value        = idx + 1;
-
-    var pct = offsets.length > 1 ? (idx / (offsets.length - 1)) * 100 : 100;
-    document.getElementById('progfill').style.width = pct.toFixed(1) + '%';
-
-    document.getElementById('btn-first').disabled = (idx === 0);
-    document.getElementById('btn-prev').disabled  = (idx === 0);
-    document.getElementById('btn-next').disabled  = (idx === offsets.length - 1);
-    document.getElementById('btn-last').disabled  = (idx === offsets.length - 1);
-
-    showInfo(atoms, 'XYZ', 'Structure '+(idx+1)+' / '+offsets.length);
-  } catch(e) {
-    setStatus('Render error at structure '+(idx+1)+': '+e.message, 'err');
-    console.error(e);
+// ══════════════════════════════════════════════════════════════
+// LARGE XYZ LAZY LOADING (existing logic, preserved)
+// ══════════════════════════════════════════════════════════════
+function looksLikeXYZCoord(line) {
+  if (!line || !line.trim()) return false;
+  var p = line.trim().split(/\s+/);
+  if (p.length >= 4) {
+    var x=parseFloat(p[1]),y=parseFloat(p[2]),z=parseFloat(p[3]);
+    if (!isNaN(x)&&!isNaN(y)&&!isNaN(z)) return true;
   }
+  if (p.length >= 6) {
+    var x2=parseFloat(p[3]),y2=parseFloat(p[4]),z2=parseFloat(p[5]);
+    if (!isNaN(x2)&&!isNaN(y2)&&!isNaN(z2)) return true;
+  }
+  return false;
 }
 
-function goTo(idx)  { showStructure(idx); }
-function doJump()   { var v = parseInt(document.getElementById('jump-input').value); if (!isNaN(v)) showStructure(v-1); }
+function buildIndex(rawLines, onDone) {
+  var result=[], i=0, total=rawLines.length, CHUNK=8000;
+  function tick() {
+    var end=Math.min(i+CHUNK,total);
+    while (i<end) {
+      var t=rawLines[i].trim();
+      if (/^\d+$/.test(t)) {
+        var n=parseInt(t,10);
+        if (n>0&&(i+n+2)<=total&&looksLikeXYZCoord(rawLines[i+2])) {
+          result.push({lineStart:i,n:n,comment:rawLines[i+1]?rawLines[i+1].trim():''});
+          i+=n+2; continue;
+        }
+      }
+      i++;
+    }
+    setLoading(true,'Indexing…  '+Math.min(99,Math.round(i/total*100))+'% ('+result.length+' found)',Math.min(99,Math.round(i/total*100)));
+    if (i<total) setTimeout(tick,0); else { setLoading(false); onDone(result); }
+  }
+  setTimeout(tick,0);
+}
 
-// ── Keyboard navigation ───────────────────────────────────────
+function extractLazyStructure(idx) {
+  var o=offsets[idx];
+  var comment=o.comment||('Structure '+(idx+1));
+  return o.n+'\n'+comment+'\n'+lines.slice(o.lineStart+2,o.lineStart+1+o.n+1).join('\n');
+}
+
+// ── Universal goTo ───────────────────────────────────────────
+function goTo(idx) {
+  if (mode==='lazy') showLazyStructure(idx);
+  else if (mode==='si') renderSIMol(idx);
+}
+function doJump() { var v=parseInt(document.getElementById('jump-input').value); if(!isNaN(v)) goTo(v-1); }
+
+function showLazyStructure(idx) {
+  if (!offsets.length) return;
+  idx=Math.max(0,Math.min(idx,offsets.length-1));
+  curIdx=idx;
+  try {
+    makeViewer();
+    gv.addModel(extractLazyStructure(idx),'xyz');
+    applyStyle(); gv.zoomTo(); gv.render();
+    var atoms=gv.getModel().selectedAtoms({}).length;
+    var comment=offsets[idx].comment||('Structure '+(idx+1));
+    document.getElementById('cur-num').textContent = idx+1;
+    document.getElementById('struct-info').textContent = comment+' · '+atoms+' atoms';
+    document.getElementById('jump-input').value = idx+1;
+    var pct=offsets.length>1?(idx/(offsets.length-1))*100:100;
+    document.getElementById('progfill').style.width=pct.toFixed(1)+'%';
+    document.getElementById('btn-first').disabled=(idx===0);
+    document.getElementById('btn-prev').disabled=(idx===0);
+    document.getElementById('btn-next').disabled=(idx===offsets.length-1);
+    document.getElementById('btn-last').disabled=(idx===offsets.length-1);
+    showInfo(atoms,'XYZ','Structure '+(idx+1)+' / '+offsets.length);
+  } catch(e) { setStatus('Render error: '+e.message,'err'); }
+}
+
+// Keyboard nav
 document.addEventListener('keydown', function(e) {
-  if (!offsets.length || offsets.length <= 1) return;
-  if (e.target.tagName==='TEXTAREA' || e.target.tagName==='INPUT') return;
+  var tot = totalStructures();
+  if (!tot || tot<=1) return;
+  if (e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') return;
   if (e.key==='ArrowRight'||e.key==='ArrowDown') { e.preventDefault(); goTo(curIdx+1); }
   if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   { e.preventDefault(); goTo(curIdx-1); }
   if (e.key==='Home') { e.preventDefault(); goTo(0); }
-  if (e.key==='End')  { e.preventDefault(); goTo(offsets.length-1); }
+  if (e.key==='End')  { e.preventDefault(); goTo(tot-1); }
 });
 
-// ── Show multi-structure UI ───────────────────────────────────
-function showMultiUI(count) {
-  document.getElementById('multibar').style.display = 'flex';
-  document.getElementById('nav-panel').style.display = 'flex';
-  document.getElementById('progwrap').style.display  = 'block';
-  document.getElementById('viewer').className         = 'multi';
-  document.getElementById('tot-num').textContent      = count;
-  document.getElementById('jump-input').max           = count;
-}
-
-function hideMultiUI() {
-  document.getElementById('multibar').style.display = 'none';
-  document.getElementById('nav-panel').style.display = 'none';
-  document.getElementById('progwrap').style.display  = 'none';
-  document.getElementById('viewer').className         = 'solo';
-}
-
-// ── Process multi-XYZ (with lazy indexing) ────────────────────
+// ══════════════════════════════════════════════════════════════
+// XYZ TAB LOAD
+// ══════════════════════════════════════════════════════════════
 function processMultiXYZ(text, filename) {
-  setLoading(true, 'Splitting into lines…', 2);
-  setTimeout(function() {
-    lines = text.split(/\r?\n/);
-    setLoading(true, 'Indexing structures…', 5);
-    buildIndex(lines, function(result) {
-      if (result.length === 0) {
-        // Couldn't find any XYZ blocks — try as single structure
-        processSingle(text, 'auto', filename);
-        return;
-      }
-      offsets = result;
-      if (result.length === 1) {
-        hideMultiUI();
-        showStructure(0);
-        setStatus('✓ 1 structure loaded', 'ok');
-        return;
-      }
+  setLoading(true,'Splitting…',2);
+  setTimeout(function(){
+    lines=text.split(/\r?\n/);
+    buildIndex(lines, function(result){
+      if (!result.length) { processSingle(text,'auto',filename); return; }
+      offsets=result; mode='lazy'; siMols=[];
+      if (result.length===1) { hideMultiUI(); showLazyStructure(0); setStatus('✓ 1 structure loaded','ok'); return; }
       showMultiUI(result.length);
-      showStructure(0);
-      var kb = Math.round(text.length / 1024);
-      setStatus('✓ Indexed ' + result.length + ' structures from ' + kb + ' KB — navigation is instant', 'ok');
+      showLazyStructure(0);
+      setStatus('✓ Indexed '+result.length+' structures from '+Math.round(text.length/1024)+' KB — instant navigation','ok');
     });
-  }, 20);
+  },20);
 }
 
-// ── Process single non-multi structure ───────────────────────
 function gaussianToXYZ(text) {
-  var ls = text.split(/\r?\n/), last = [];
-  for (var i = 0; i < ls.length; i++) {
-    if (ls[i].indexOf('Standard orientation:') !== -1 || ls[i].indexOf('Input orientation:') !== -1) {
-      i += 5; var cur = [];
-      while (i < ls.length && ls[i].indexOf('---') === -1) {
-        var p = ls[i].trim().split(/\s+/);
-        if (p.length >= 6) { var el = ANUM[parseInt(p[1])]; if(el) cur.push(el+' '+parseFloat(p[3]).toFixed(5)+' '+parseFloat(p[4]).toFixed(5)+' '+parseFloat(p[5]).toFixed(5)); }
+  var ls=text.split(/\r?\n/),last=[];
+  for (var i=0;i<ls.length;i++) {
+    if (ls[i].indexOf('Standard orientation:')!==-1||ls[i].indexOf('Input orientation:')!==-1) {
+      i+=5; var cur=[];
+      while (i<ls.length&&ls[i].indexOf('---')===-1) {
+        var p=ls[i].trim().split(/\s+/);
+        if (p.length>=6) { var el=ANUM[parseInt(p[1])]; if(el) cur.push(el+' '+parseFloat(p[3]).toFixed(5)+' '+parseFloat(p[4]).toFixed(5)+' '+parseFloat(p[5]).toFixed(5)); }
         i++;
       }
-      if (cur.length) last = cur;
+      if (cur.length) last=cur;
     }
   }
-  return last.length ? last.length+'\nGaussian\n'+last.join('\n') : null;
-}
-
-function bareToXYZ(text) {
-  var ls = text.trim().split(/\r?\n/), rows = [];
-  for (var i = 0; i < ls.length; i++) {
-    var p = ls[i].trim().split(/\s+/);
-    var el = null, x, y, z;
-    if (p.length >= 4 && ELEMS[p[0].toLowerCase()]) { el=ELEMS[p[0].toLowerCase()]; x=parseFloat(p[1]);y=parseFloat(p[2]);z=parseFloat(p[3]); }
-    else if (p.length >= 6 && /^\d+$/.test(p[0]) && /^\d+$/.test(p[1])) { el=ANUM[parseInt(p[1])]||null; x=parseFloat(p[3]);y=parseFloat(p[4]);z=parseFloat(p[5]); }
-    if (el && !isNaN(x)) rows.push(el+' '+x.toFixed(5)+' '+y.toFixed(5)+' '+z.toFixed(5));
-  }
-  return rows.length ? rows.length+'\nGenerated\n'+rows.join('\n') : null;
+  return last.length?last.length+'\nGaussian\n'+last.join('\n'):null;
 }
 
 function renderSingle(data, fmt, label, name) {
   try {
     makeViewer();
-    gv.addModel(data, fmt);
-    applyStyle();
-    gv.zoomTo();
-    gv.render();
-    var atoms = gv.getModel().selectedAtoms({}).length;
-    hideMultiUI();
-    offsets = []; lines = [];
-    showInfo(atoms, label, name);
-    setStatus('✓ Loaded — ' + atoms + ' atoms (' + label + ')', 'ok');
-  } catch(e) {
-    setStatus('Render error: ' + e.message, 'err'); console.error(e);
-  }
+    gv.addModel(data,fmt);
+    applyStyle(); gv.zoomTo(); gv.render();
+    var atoms=gv.getModel().selectedAtoms({}).length;
+    hideMultiUI(); offsets=[]; lines=[]; mode='';
+    showInfo(atoms,label,name);
+    setStatus('✓ Loaded — '+atoms+' atoms ('+label+')','ok');
+  } catch(e) { setStatus('Render error: '+e.message,'err'); }
 }
 
 function processSingle(text, hint, filename) {
-  var fmt = hint || 'auto';
-  var ext = filename ? filename.split('.').pop().toLowerCase() : '';
-  if (fmt === 'auto') {
+  var fmt=hint||'auto', ext=filename?filename.split('.').pop().toLowerCase():'';
+  if (fmt==='auto') {
     if (ext==='log'||ext==='gjf'||ext==='com') fmt='gaussian';
-    else if (ext==='pdb')  fmt='pdb';
-    else if (ext==='mol2') fmt='mol2';
-    else if (ext==='sdf')  fmt='sdf';
-    else if (ext==='mol')  fmt='mol';
+    else if (ext==='pdb') fmt='pdb'; else if (ext==='mol2') fmt='mol2';
+    else if (ext==='sdf') fmt='sdf'; else if (ext==='mol') fmt='mol';
     else fmt='guess';
   }
   if (fmt==='guess') {
@@ -531,134 +1000,139 @@ function processSingle(text, hint, filename) {
     else if (/Standard orientation:|Input orientation:/.test(text)) fmt='gaussian';
     else fmt='xyz';
   }
-  var data = text, label = fmt.toUpperCase();
+  var data=text, label=fmt.toUpperCase();
   if (fmt==='gaussian') { var r=gaussianToXYZ(text); if(r){data=r;fmt='xyz';label='Gaussian LOG';} }
-  else if (fmt==='bare') { var r2=bareToXYZ(text); if(r2){data=r2;fmt='xyz';label='Bare XYZ';} }
-  // Fix missing comment line in single XYZ
   if (fmt==='xyz') {
-    var fl = data.trim().split(/\r?\n/);
-    if (fl.length > 1 && /^\d+$/.test(fl[0].trim())) {
-      var p2 = fl[1].trim().split(/\s+/);
-      if (p2.length >= 4 && !isNaN(parseFloat(p2[1]))) {
-        data = fl[0]+'\nmolecule\n'+fl.slice(1).join('\n');
-      }
+    var fl=data.trim().split(/\r?\n/);
+    if (fl.length>1&&/^\d+$/.test(fl[0].trim())) {
+      var p2=fl[1].trim().split(/\s+/);
+      if (p2.length>=4&&!isNaN(parseFloat(p2[1]))) data=fl[0]+'\nmolecule\n'+fl.slice(1).join('\n');
     }
   }
-  renderSingle(data, fmt, label, filename||'pasted');
+  renderSingle(data,fmt,label,filename||'pasted');
 }
 
-// ── Main load (from textarea) ─────────────────────────────────
 function doLoad() {
-  var text = document.getElementById('coords').value.trim();
-  if (!text) { setStatus('Paste coordinates or upload a file first', 'inf'); return; }
-  var fmt = document.getElementById('fmt').value;
-
-  if (fmt === 'smiles') {
-    setStatus('Fetching 3D coords from NIH CACTUS…', 'inf');
-    fetch('https://cactus.nci.nih.gov/chemical/structure/' + encodeURIComponent(text) + '/file?format=sdf&get3d=true')
-      .then(function(r){ return r.text(); })
+  var text=document.getElementById('coords').value.trim();
+  if (!text) { setStatus('Paste coordinates or upload a file first','inf'); return; }
+  var fmt=document.getElementById('fmt').value;
+  if (fmt==='smiles') {
+    setStatus('Fetching from NIH CACTUS…','inf');
+    fetch('https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(text)+'/file?format=sdf&get3d=true')
+      .then(function(r){return r.text();})
       .then(function(sdf){
-        if (sdf.toLowerCase().indexOf('not found') > -1 || sdf.length < 20) { setStatus('Could not resolve SMILES','err'); return; }
-        document.getElementById('coords').value = sdf;
-        renderSingle(sdf, 'sdf', 'SMILES', text);
-      }).catch(function(){ setStatus('Network error for SMILES resolution','err'); });
+        if (sdf.toLowerCase().indexOf('not found')>-1||sdf.length<20){setStatus('Could not resolve SMILES','err');return;}
+        document.getElementById('coords').value=sdf;
+        renderSingle(sdf,'sdf','SMILES',text);
+      }).catch(function(){setStatus('Network error','err');});
     return;
   }
-
-  // If format hint is XYZ-like and first line is a number → try multi
-  var firstLine = text.split(/\r?\n/)[0].trim();
-  if ((fmt==='auto'||fmt==='xyz'||fmt==='bare') && /^\d+$/.test(firstLine)) {
-    processMultiXYZ(text, null);
-    return;
-  }
-  processSingle(text, fmt, null);
+  var firstLine=text.split(/\r?\n/)[0].trim();
+  if ((fmt==='auto'||fmt==='xyz'||fmt==='bare')&&/^\d+$/.test(firstLine)) { processMultiXYZ(text,null); return; }
+  processSingle(text,fmt,null);
 }
 
-// ── Save PNG ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// SAVE / CLEAR / TOGGLES
+// ══════════════════════════════════════════════════════════════
 function doSave() {
   if (!gv) { setStatus('No molecule loaded','inf'); return; }
   try {
-    var canvas = document.querySelector('#viewer canvas');
+    var canvas=document.querySelector('#viewer canvas');
     if (canvas) {
-      canvas.toBlob(function(blob) {
-        var url = URL.createObjectURL(blob);
-        var a = document.createElement('a');
-        var name = offsets.length > 1 ? 'struct_'+(curIdx+1)+'_of_'+offsets.length : 'molecule';
-        a.href = url; a.download = name+'_GMP.png';
+      canvas.toBlob(function(blob){
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement('a');
+        var tot=totalStructures();
+        var name=tot>1?'struct_'+(curIdx+1)+'_of_'+tot:'molecule';
+        a.href=url; a.download=name+'_GMP.png';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
-      }, 'image/png'); return;
+        setTimeout(function(){URL.revokeObjectURL(url);},1000);
+      },'image/png'); return;
     }
-    var uri = gv.pngURI();
-    var a = document.createElement('a');
-    a.href = uri; a.download = 'molecule_GMP.png';
+    var uri=gv.pngURI();
+    var a=document.createElement('a');
+    a.href=uri; a.download='molecule_GMP.png';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  } catch(e) { setStatus('Save error: '+e.message,'err'); }
+  } catch(e){setStatus('Save error: '+e.message,'err');}
 }
 
-// ── Clear ─────────────────────────────────────────────────────
 function doClear() {
-  if (gv) { try{gv.clear();gv.render();}catch(e){} }
-  gv=null; offsets=[]; lines=[]; curIdx=0; gLabels=false; gSpin=false;
-  document.getElementById('coords').value = '';
-  ['status','infobar'].forEach(function(id){ document.getElementById(id).style.display='none'; });
+  if (gv){try{gv.clear();gv.render();}catch(e){}}
+  gv=null; offsets=[]; lines=[]; siMols=[]; mode=''; curIdx=0; gLabels=false; gSpin=false;
+  document.getElementById('coords').value='';
+  ['status','infobar'].forEach(function(id){document.getElementById(id).style.display='none';});
   hideMultiUI();
   document.getElementById('lblbtn').classList.remove('on');
   document.getElementById('spnbtn').classList.remove('on');
-  document.getElementById('viewer').innerHTML =
+  document.getElementById('viewer').innerHTML=
     '<div id="ph"><div style="font-size:2.5rem;opacity:0.3">⚛️</div>'+
     '<div>Load a molecule to begin</div>'+
-    '<div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · Multi-structure XYZ</div></div>';
+    '<div style="font-size:0.65rem;color:#21262d;margin-top:4px">XYZ · PDB · MOL · SDF · Gaussian LOG · SMILES · SI PDF/DOCX</div></div>';
 }
 
-// ── Toggles ───────────────────────────────────────────────────
-function doToggleLabels(){ gLabels=!gLabels; document.getElementById('lblbtn').classList.toggle('on',gLabels); if(gv) applyStyle(); }
-function doToggleSpin()  { gSpin=!gSpin;     document.getElementById('spnbtn').classList.toggle('on',gSpin);   if(gv) gv.spin(gSpin); }
+function doToggleLabels(){gLabels=!gLabels;document.getElementById('lblbtn').classList.toggle('on',gLabels);if(gv)applyStyle();}
+function doToggleSpin()  {gSpin=!gSpin;document.getElementById('spnbtn').classList.toggle('on',gSpin);if(gv)gv.spin(gSpin);}
 function doToggleBg()    {
-  gBg=!gBg; document.getElementById('bgbtn').classList.toggle('on',gBg);
-  if (gv) { if (offsets.length>1) showStructure(curIdx); else { var t=document.getElementById('coords').value.trim(); if(t) doLoad(); } }
+  gBg=!gBg;document.getElementById('bgbtn').classList.toggle('on',gBg);
+  if (gv){if(mode==='lazy')showLazyStructure(curIdx);else if(mode==='si')renderSIMol(curIdx);}
 }
 ['sty','col','sur'].forEach(function(id){
-  document.getElementById(id).addEventListener('change', function(){ if(gv) applyStyle(); });
+  document.getElementById(id).addEventListener('change',function(){if(gv)applyStyle();});
 });
 
-// ── File upload ───────────────────────────────────────────────
-function handleFile(file) {
+// ══════════════════════════════════════════════════════════════
+// FILE HANDLERS
+// ══════════════════════════════════════════════════════════════
+function handleXYZFile(file) {
   if (!file) return;
-  setLoading(true, 'Reading ' + Math.round(file.size/1024) + ' KB…', 1);
-  var r = new FileReader();
-  r.onload = function(ev) {
-    var text = ev.target.result;
-    // Show first few lines in textarea as preview
-    var preview = text.substring(0, 400);
-    if (text.length > 400) preview += '\n… (' + Math.round(text.length/1024) + ' KB file — lazy-loading)';
-    document.getElementById('coords').value = preview;
-
-    var ext = file.name.split('.').pop().toLowerCase();
-    setTimeout(function() {
-      if (ext==='log'||ext==='gjf'||ext==='com') { setLoading(false); processSingle(text,'gaussian',file.name); }
-      else if (ext==='pdb')  { setLoading(false); processSingle(text,'pdb',file.name);  }
-      else if (ext==='mol2') { setLoading(false); processSingle(text,'mol2',file.name); }
-      else if (ext==='sdf')  { setLoading(false); processSingle(text,'sdf',file.name);  }
-      else if (ext==='mol')  { setLoading(false); processSingle(text,'mol',file.name);  }
-      else { processMultiXYZ(text, file.name); }  // .xyz and anything else → multi-XYZ scan
-    }, 30);
+  setLoading(true,'Reading '+Math.round(file.size/1024)+' KB…',1);
+  var r=new FileReader();
+  r.onload=function(ev){
+    var text=ev.target.result;
+    var preview=text.substring(0,400)+(text.length>400?'\n…('+Math.round(text.length/1024)+' KB)':'');
+    document.getElementById('coords').value=preview;
+    var ext=file.name.split('.').pop().toLowerCase();
+    setTimeout(function(){
+      if (ext==='log'||ext==='gjf'||ext==='com'){setLoading(false);processSingle(text,'gaussian',file.name);}
+      else if (ext==='pdb'){setLoading(false);processSingle(text,'pdb',file.name);}
+      else if (ext==='mol2'){setLoading(false);processSingle(text,'mol2',file.name);}
+      else if (ext==='sdf'){setLoading(false);processSingle(text,'sdf',file.name);}
+      else if (ext==='mol'){setLoading(false);processSingle(text,'mol',file.name);}
+      else { processMultiXYZ(text,file.name); }
+    },30);
   };
-  r.onerror = function(){ setLoading(false); setStatus('Could not read file','err'); };
+  r.onerror=function(){setLoading(false);setStatus('Could not read file','err');};
   r.readAsText(file);
 }
 
-document.getElementById('filein').addEventListener('change', function(e){ handleFile(e.target.files[0]); e.target.value=''; });
-document.getElementById('ubtn').addEventListener('click', function(e){ e.stopPropagation(); document.getElementById('filein').click(); });
-document.getElementById('dropzone').addEventListener('click', function(){ document.getElementById('filein').click(); });
+function handleSIFile(file) {
+  siFile = file;
+  document.getElementById('dz-si').innerHTML =
+    '<div style="font-size:1.4rem;margin-bottom:5px">📑</div>' +
+    '<div style="color:#eab308">📎 <strong>' + file.name + '</strong> (' + Math.round(file.size/1024) + ' KB)</div>' +
+    '<div style="font-size:0.7rem;color:#8b949e;margin-top:5px">Click "Extract Structures" to process</div>';
+}
 
-var dz = document.getElementById('dropzone');
-dz.addEventListener('dragover',  function(e){ e.preventDefault(); dz.classList.add('over'); });
-dz.addEventListener('dragleave', function(){  dz.classList.remove('over'); });
-dz.addEventListener('drop', function(e){
-  e.preventDefault(); dz.classList.remove('over');
-  handleFile(e.dataTransfer.files[0]);
-});
+document.getElementById('filein').addEventListener('change',function(e){handleXYZFile(e.target.files[0]);e.target.value='';});
+document.getElementById('ubtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('filein').click();});
+
+document.getElementById('si-filein').addEventListener('change',function(e){handleSIFile(e.target.files[0]);e.target.value='';});
+document.getElementById('si-ubtn').addEventListener('click',function(e){e.stopPropagation();document.getElementById('si-filein').click();});
+
+// Drag and drop – XYZ zone
+var dz=document.getElementById('dz-xyz');
+dz.addEventListener('click',function(){document.getElementById('filein').click();});
+dz.addEventListener('dragover',function(e){e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',function(){dz.classList.remove('over');});
+dz.addEventListener('drop',function(e){e.preventDefault();dz.classList.remove('over');handleXYZFile(e.dataTransfer.files[0]);});
+
+// Drag and drop – SI zone
+var dzsi=document.getElementById('dz-si');
+dzsi.addEventListener('click',function(){document.getElementById('si-filein').click();});
+dzsi.addEventListener('dragover',function(e){e.preventDefault();dzsi.classList.add('over');});
+dzsi.addEventListener('dragleave',function(){dzsi.classList.remove('over');});
+dzsi.addEventListener('drop',function(e){e.preventDefault();dzsi.classList.remove('over');handleSIFile(e.dataTransfer.files[0]);});
 </script>
 </body>
 </html>
