@@ -140,7 +140,7 @@ select:focus{border-color:#38bdf8}
 </head>
 <body>
 
-<div class="title">⚗️ Molecule Viewer — GMP</div>
+<div class="title">GMP - Molecule Viewer</div>
 <div class="subtitle">// 3D viewer · multi-structure XYZ · SI extractor (PDF/DOCX)</div>
 
 <!-- ── TABS ── -->
@@ -351,24 +351,41 @@ var ELEMS = {};
 for (var _i=1;_i<_SYM.length;_i++) ELEMS[_SYM[_i].toLowerCase()]=_SYM[_i];
 
 // ══════════════════════════════════════════════════════════════
-// SI PARSER — ported from Python si_to_gjf.py
+// SI PARSER — full port of si_to_gjf.py (latest version with all fixes)
 // ══════════════════════════════════════════════════════════════
 
-// Normalise unicode dashes → ASCII minus
+// Normalise unicode dashes → ASCII minus + nbsp
 function norm(s) {
   if (!s) return '';
   return s.replace(/[\u2010\u2011\u2012\u2013\u2014\u2015\u2212\uff0d]/g, '-')
            .replace(/\u00a0|\u202f/g, ' ');
 }
 
-// Structure-boundary header detection
-var HEADER_RE = /total\s+energy\s*=|gibbs(?:\s+energy)?\s*=|zero[- ]?point\s+(?:energy|correction)|scf\s+done|number\s+of\s+(?:imaginary\s+)?(?:negative\s+)?freq|thermal\s+correction|imaginary\s+frequencies|\bE_?opt\s+[+-]?\d|\bEelec\s+[+-]?\d|\bEtot\s+[+-]?\d|\bE_?rel\s+[+-]?\d/i;
+// FIX 1: Added electronic\s+energy and \bimaginary\s+freq\b
+var HEADER_RE = /total\s+energy\s*=|gibbs(?:\s+energy)?\s*=|zero[- ]?point\s+(?:energy|correction)|scf\s+done|number\s+of\s+(?:imaginary\s+)?(?:negative\s+)?freq|thermal\s+correction|imaginary\s+frequencies|\bE_?opt\s+[+-]?\d|\bEelec\s+[+-]?\d|\bEtot\s+[+-]?\d|\bE_?rel\s+[+-]?\d|electronic\s+energy|\bimaginary\s+freq\b/i;
 
-var ENERGY_RE = /(?:total\s+energy|gibbs(?:\s+energy)?|scf\s+done|E_?opt|Eelec|Etot|E_?rel|e)\s*[=:\s]\s*([+-]?\d+\.\d+)/i;
+// FIX 2: Added electronic\s+energy\s+bs[12]? for "Electronic Energy BS1 = -3010.920..."
+var ENERGY_RE = /(?:total\s+energy|gibbs(?:\s+energy)?|scf\s+done|electronic\s+energy\s+bs[12]?|E_?opt|Eelec|Etot|E_?rel|e)\s*[=:\s]\s*([+-]?\d+\.\d+)/i;
 
 var CHGMULT_RE = /(?:charge\s*[=:]\s*)?([+-]?\d)\s*[,\s]+(?:mult(?:iplicity)?\s*[=:]\s*)?(\d)\b/i;
+var CHGMULT_LINE_RE = /charge\s*=\s*[+-]?\d|multiplicity\s*=\s*\d/i;
 
-// Coordinate line parser — handles all 5 formats
+// FIX 1a also in NAME_STOP_RE: added electronic\s+energy
+var NAME_STOP_RE = /total\s+energy|gibbs|zero.?point|scf\s+done|number\s+of|thermal|enthalpy|entropy|imaginary|electronic\s+energy|\bE_?opt\s|\bEelec\s|\bEtot\s|\bE_?rel\s|\bE\s*=\s*[+-]?\d|\bE_[a-z]/i;
+
+// FIX 4: removed |\d+\s*$ — bare integers handled separately in extractName (TYPE 7)
+var NOT_NAME_RE = /^\s*(?:page\s*\d+|[Ss]\d{1,4}\s*$|[Ss]\.\d+\b|supporting\s+inf|table\s+of\s+contents|references?|figure\s+s?\d+\s*$)\s*$/i;
+
+var META_LINE_RE = /(?:number\s+of|imaginary|thermal|zero.?point|scf\s+done|electronic\s+energy|vibrational|entropy|zero\s+point|convergence|optimization|stationary|frequencies|normal\s+mode)/i;
+
+var SEC_KW_RE = /\b(?:cartesian|coordinates?|optimized|geometr|states?|intermediates?|structures?|molecules?|compounds?|species|supporting|section|table|figure|transition|appendix)\b/i;
+
+var SEC_SPLIT_RE = /(?:[Ss]\.?\d+\s+)?(?:cartesian\s+)?coordinates?\s+of\s+|(?:intermediates?\s+and\s+)?transition\s+states?\s+|optimized\s+(?:cartesian\s+)?(?:coordinates?|structures?)\s+|\bstates?\s+|\bstructures?\s+|\bspecies\s+|\bmolecules?\s+/i;
+
+// Page-break sentinel character (used inside window array, never appears in text)
+var BRKSEN = '\x00';
+
+// ── Coordinate line parser (all 5 formats) ────────────────────
 function parseCoordLine(raw) {
   var line = norm(raw);
   var t = line.trim().split(/\s+/);
@@ -376,75 +393,78 @@ function parseCoordLine(raw) {
 
   function flt(s) { var v=parseFloat(s); return isNaN(v)?null:v; }
   function hasDot(s) { return s.indexOf('.')!==-1; }
-  function isAtnum(s) { var n=parseInt(s,10); return !isNaN(n) && n>=1 && ANUM[n]; }
-  function isElem(s)  { return s && ELEMS[s.toLowerCase()]; }
+  function isAtnum(s) { var n=parseInt(s,10); return !isNaN(n) && n>=1 && !!ANUM[n]; }
+  function isElem(s)  { return !!(s && ELEMS[s.toLowerCase()]); }
 
-  var x,y,z,el;
+  var x,y,z;
 
   // Format A: AtomNum x y z
   if (isAtnum(t[0]) && hasDot(t[1]) && hasDot(t[2]) && hasDot(t[3])) {
     x=flt(t[1]);y=flt(t[2]);z=flt(t[3]);
-    if (x!==null && y!==null && z!==null) return [ANUM[parseInt(t[0],10)],x,y,z];
+    if (x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[0],10)],x,y,z];
   }
   // Format B: Element x y z
   if (isElem(t[0]) && hasDot(t[1]) && hasDot(t[2]) && hasDot(t[3])) {
     x=flt(t[1]);y=flt(t[2]);z=flt(t[3]);
-    if (x!==null && y!==null && z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z];
+    if (x!==null&&y!==null&&z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z];
   }
   if (t.length >= 5) {
     // Format C: Idx Element x y z
     if (isElem(t[1]) && hasDot(t[2]) && hasDot(t[3]) && hasDot(t[4])) {
       x=flt(t[2]);y=flt(t[3]);z=flt(t[4]);
-      if (x!==null && y!==null && z!==null) return [ELEMS[t[1].toLowerCase()],x,y,z];
+      if (x!==null&&y!==null&&z!==null) return [ELEMS[t[1].toLowerCase()],x,y,z];
     }
     // Format D: Idx AtomNum x y z
     if (isAtnum(t[1]) && hasDot(t[2]) && hasDot(t[3]) && hasDot(t[4])) {
       x=flt(t[2]);y=flt(t[3]);z=flt(t[4]);
-      if (x!==null && y!==null && z!==null) return [ANUM[parseInt(t[1],10)],x,y,z];
+      if (x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z];
     }
     // Format E: Element AtomNum x y z
     if (isElem(t[0]) && isAtnum(t[1]) && hasDot(t[2]) && hasDot(t[3]) && hasDot(t[4])) {
       x=flt(t[2]);y=flt(t[3]);z=flt(t[4]);
-      if (x!==null && y!==null && z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z];
+      if (x!==null&&y!==null&&z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z];
     }
   }
   return null;
 }
 
-// Convert parsed Molecule to XYZ string
+// ── XYZ builder ───────────────────────────────────────────────
 function molToXYZ(mol) {
   var comment = mol.name + (mol.energy ? '  E='+mol.energy : '');
-  var lines = [mol.atoms.length.toString(), comment];
+  var out = [mol.atoms.length.toString(), comment];
   mol.atoms.forEach(function(a) {
-    lines.push(a[0]+'  '+a[1].toFixed(8)+'  '+a[2].toFixed(8)+'  '+a[3].toFixed(8));
+    out.push(a[0]+'  '+a[1].toFixed(8)+'  '+a[2].toFixed(8)+'  '+a[3].toFixed(8));
   });
-  return lines.join('\n');
+  return out.join('\n');
 }
 
-// Safe filename from name
+// FIX 5: normalise "- " inside names "III- Z,R" → "III-Z,R"
 function safeName(name) {
-  return (name||'Structure').replace(/[\x00-\x1f\x7f<>:"/\\|?*\s]+/g,'_').replace(/^[_.]+|[_.]+$/g,'').substring(0,60) || 'Structure';
+  if (!name) return 'Structure';
+  name = name.replace(/[\x00-\x1f\x7f]/g, '');
+  name = name.replace(/-\s+/g, '-').replace(/\s+-/g, '-');   // FIX 5
+  name = name.replace(/[<>:"/\\|?*]+/g, '_');
+  name = name.replace(/\s+/g, '_').replace(/^[_.]+|[_.]+$/g, '');
+  return name.substring(0, 80) || 'Structure';
 }
 
-// Name extraction — simplified port of Python extract_name
-var NAME_STOP_RE = /total\s+energy|gibbs|zero.?point|scf\s+done|number\s+of|thermal|enthalpy|entropy|imaginary|\bE_?opt\s|\bEelec\s|\bEtot\s|\bE_?rel\s|\bE\s*=\s*[+-]?\d|\bE_[a-z]/i;
-var NOT_NAME_RE  = /^\s*(?:page\s*\d+|[Ss]\d{1,4}\s*$|[Ss]\.\d+\b|\d+\s*$|supporting\s+inf|table\s+of\s+contents|references?|figure\s+s?\d+\s*$)\s*$/i;
-var CHGMULT_LINE_RE = /charge\s*=\s*[+-]?\d|multiplicity\s*=\s*\d/i;
-var META_LINE_RE = /(?:number\s+of|imaginary|thermal|zero.?point|scf\s+done|electronic\s+energy|vibrational|entropy|convergence|frequencies)/i;
-var SEC_KW_RE = /\b(?:cartesian|coordinates?|optimized|geometr|states?|intermediates?|structures?|molecules?|compounds?|species|supporting|section|table|figure|transition|appendix)\b/i;
-
+// ── Name extraction — full port of Python extract_name ────────
 function extractName(headerLine, contextLines) {
-  // Try name embedded in header line
+
+  // TYPE 1: name on same line as energy header
   if (headerLine) {
     var h = norm(headerLine);
     var m = NAME_STOP_RE.exec(h);
     if (m) {
       var before = h.substring(0, m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
       if (before && /[A-Za-z0-9]/.test(before) && !/^[\d\s.+\-]+$/.test(before)) {
-        if (!SEC_KW_RE.test(before) && before.split(/\s+/).length <= 6) {
-          return before;
+        if (!SEC_KW_RE.test(before) && before.split(/\s+/).length <= 6) return before;
+        // Section title pollutes the line → extract label after section keywords
+        var parts = before.split(SEC_SPLIT_RE);
+        if (parts.length > 1) {
+          var tail = parts[parts.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
+          if (tail && tail.split(/\s+/).length <= 4 && /[A-Za-z0-9]/.test(tail)) return tail;
         }
-        // Try to get the last meaningful token
         var words = before.split(/\s+/);
         var last = words[words.length-1].replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
         if (last && /^[A-Za-z0-9]/.test(last) && last.length <= 20) return last;
@@ -453,37 +473,92 @@ function extractName(headerLine, contextLines) {
     }
   }
 
-  // Scan context lines
+  // Build window (last 25 context lines), replacing <<BREAK>> with sentinel
   var window = [];
-  for (var i = Math.max(0, contextLines.length-20); i < contextLines.length; i++) {
+  for (var i = Math.max(0, contextLines.length-25); i < contextLines.length; i++) {
     var l = norm(contextLines[i]).trim();
-    if (!l || l.startsWith('<<')) continue;
+    if (!l) continue;
+    if (l.indexOf('<<') === 0) { window.push(BRKSEN); continue; }
+    // filter artifact lines (mostly non-printable / image junk)
+    var printable = l.replace(/[^\x20-\x7e]/g, '');
+    if (printable.length < l.length * 0.5) continue;
     window.push(l);
   }
+
   for (var wi = window.length-1; wi >= 0; wi--) {
     var line = window[wi];
+    var fwdIdx = wi;   // forward index in window[]
+
+    if (line === BRKSEN) continue;
     if (HEADER_RE.test(line)) continue;
+    // FIX 3: skip coord-table column headers like "Chemical symbol X, Y, Z"
+    if (/\bchemical\s+symbol\b/i.test(line)) continue;
     if (CHGMULT_LINE_RE.test(line)) continue;
-    if (META_LINE_RE.test(line)) continue;
     if (NOT_NAME_RE.test(line)) continue;
-    if (/^[\d\s.+\-]+$/.test(line)) continue;
+
+    // Handle pure-number lines
+    if (/^[\d\s.+\-]+$/.test(line)) {
+      // FIX 4 / TYPE 7: bare integer immediately before an energy header
+      // on the SAME page (no sentinel between them) = genuine structure ID
+      if (/^\d{1,6}\s*$/.test(line)) {
+        var nxt = fwdIdx + 1;
+        while (nxt < window.length && window[nxt] === BRKSEN) nxt++;
+        if (nxt < window.length &&
+            /electronic\s+energy|zero.?point|thermal\s+correction|\bimaginary\s+freq\b/i.test(window[nxt])) {
+          // confirm no page-break between this integer and the energy header
+          var gap = window.slice(fwdIdx+1, nxt);
+          if (!gap.some(function(g){ return g===BRKSEN; })) return line.trim();
+        }
+      }
+      continue;
+    }
+
     if (line.split(/\s+/).length > 10) continue;
     if (line.length > 100) continue;
+    if (META_LINE_RE.test(line)) continue;
 
     var cand = null;
-    // "coordinates of NAME"
+
+    // TYPE 4a: "... coordinates of NAME"
     var cm = /\bcoordinates?\s+of\s+([A-Za-z0-9(][\w\s()\-+.,]{0,60}?)(?:\s*$|\s*[.,])/.exec(line);
-    if (cm) cand = cm[1].trim().replace(/[.,\s]+$/, '');
-    // Compound/Structure PREFIX NAME
+    if (cm) cand = cm[1].trim().replace(/[.,\s]+$/,'');
+
+    // TYPE 4b: "Cartesian Coordinates NAME" (without "of")
+    if (!cand) { cm = /^cartesian\s+coordinates?\s+(.+)$/i.exec(line); if(cm) cand=cm[1].trim().replace(/\.$/,''); }
+
+    // TYPE 5a: "Reactant/Product complex NAME"
+    if (!cand) { cm = /^(?:reactant|product|encounter|ion[\s-]?pair)(?:\s+complex)?\s+(\S.{0,40})$/i.exec(line); if(cm) cand=cm[1].trim().replace(/\.$/,''); }
+
+    // TYPE 5b: "Compound/Structure/Intermediate NAME"
     if (!cand) { cm = /^(?:compound|structure|molecule|intermediate|transition[\s-]+state|substrate|catalyst|adduct)\s+(.+)$/i.exec(line); if(cm) cand=cm[1].trim().replace(/\.$/,''); }
+
+    // TYPE 6: bare label (has letters, short)
     if (!cand && /[A-Za-z]/.test(line) && line.split(/\s+/).length <= 8) cand = line;
 
-    if (cand) return cand;
+    if (cand) {
+      // Prefix joining: "3\nII (Dissociation)" → "3 II (Dissociation)"
+      // Only join when NOT separated by a page-break sentinel
+      if (fwdIdx > 0 && cand.split(/\s+/).length >= 2) {
+        var prev = window[fwdIdx - 1];
+        if (prev !== BRKSEN) {
+          if (/^\d+\s*$/.test(prev) ||
+              (prev.split(/\s+/).length <= 2 &&
+               /^[A-Za-z0-9]/.test(prev) &&
+               !HEADER_RE.test(prev) &&
+               !CHGMULT_LINE_RE.test(prev) &&
+               !NOT_NAME_RE.test(prev))) {
+            cand = prev.trim() + ' ' + cand;
+          }
+        }
+      }
+      return cand;
+    }
   }
   return null;
 }
 
 // ── MAIN SI PARSER ────────────────────────────────────────────
+// Full port of Python parse() including _is_name_separator lookahead
 function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
   var structs = [];
   var ctx = [];
@@ -503,18 +578,30 @@ function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
     if (!name) name = 'Structure_' + counter;
 
     var energy = null;
-    for (var li = blkCtx.length-1; li >= Math.max(0, blkCtx.length-15); li--) {
+    for (var li = blkCtx.length-1; li >= Math.max(0,blkCtx.length-15); li--) {
       var em = ENERGY_RE.exec(norm(blkCtx[li]));
       if (em) { energy = em[1]; break; }
     }
     var charge = defaultCharge, mult = defaultMult;
-    for (var li = blkCtx.length-1; li >= Math.max(0, blkCtx.length-10); li--) {
+    for (var li = blkCtx.length-1; li >= Math.max(0,blkCtx.length-10); li--) {
       var cm = CHGMULT_RE.exec(norm(blkCtx[li]));
-      if (cm) { try{ charge=parseInt(cm[1]); mult=parseInt(cm[2]); }catch(e){} break; }
+      if (cm) { try{ charge=parseInt(cm[1],10); mult=parseInt(cm[2],10); }catch(e){} break; }
     }
-
-    structs.push({ name: safeName(name), atoms: atoms.slice(), charge: charge, mult: mult, energy: energy });
+    structs.push({ name:safeName(name), atoms:atoms.slice(), charge:charge, mult:mult, energy:energy });
     inBlock=false; atoms=[]; blkCtx=[]; blkPreLen=0; hdrLine=null;
+  }
+
+  // Name-separator detection: a non-coord, non-header line that looks like
+  // a structure label followed immediately by coord lines (Python _is_name_separator)
+  function isNameSeparator(stripped, nstr) {
+    if (!stripped) return false;
+    if (!/^[A-Za-z(]/.test(stripped)) return false;
+    if (HEADER_RE.test(nstr)) return false;
+    if (CHGMULT_LINE_RE.test(nstr)) return false;
+    if (META_LINE_RE.test(nstr)) return false;
+    if (NOT_NAME_RE.test(stripped)) return false;
+    if (stripped.length > 150 || stripped.split(/\s+/).length > 12) return false;
+    return true;
   }
 
   for (var i = 0; i < textLines.length; i++) {
@@ -522,17 +609,22 @@ function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
     var n = norm(raw);
     var stripped = n.trim();
 
-    if (raw.startsWith && raw.startsWith('<<BREAK')) { ctx.push(raw); continue; }
-    if (!stripped) {
-      ctx.push(raw);
-      continue;
+    // Page-break sentinel
+    if (typeof raw === 'string' && raw.indexOf('<<BREAK') === 0) {
+      ctx.push(raw); continue;
     }
+
+    if (!stripped) {
+      ctx.push(raw); continue;
+    }
+
     if (HEADER_RE.test(n)) {
       if (inBlock) flush();
       ctx.push(raw);
       hdrLine = raw;
       continue;
     }
+
     var coord = parseCoordLine(n);
     if (coord) {
       if (!inBlock) {
@@ -543,77 +635,237 @@ function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
       }
       atoms.push(coord);
     } else {
+      // Check if this non-coord line is a name separator for the next block
+      if (inBlock && atoms.length >= minAtoms && isNameSeparator(stripped, n)) {
+        // Lookahead: does a coord line appear within next 4 non-blank lines?
+        var lookahead = false;
+        for (var j = i+1; j < Math.min(i+5, textLines.length); j++) {
+          var nxt = norm(textLines[j]).trim();
+          if (!nxt || nxt.indexOf('<<') === 0) continue;
+          if (parseCoordLine(nxt)) lookahead = true;
+          break;
+        }
+        if (lookahead) {
+          flush();
+          ctx.push(raw);
+          hdrLine = raw;   // treat name line as block identifier
+          continue;
+        }
+      }
       ctx.push(raw);
       if (inBlock) blkCtx.push(raw);
     }
   }
   if (inBlock && atoms.length >= minAtoms) flush();
 
-  // Deduplicate names
+  // Deduplicate names (two passes, matching Python)
   var seen = {};
   structs.forEach(function(mol) {
     var b = mol.name;
-    seen[b] = (seen[b]||0) + 1;
-    if (seen[b] > 1) mol.name = b + '_' + seen[b];
+    seen[b] = (seen[b]||0)+1;
+    if (seen[b] > 1) mol.name = b+'_'+seen[b];
+  });
+  var seen2 = {};
+  structs.forEach(function(mol) {
+    var b = mol.name;
+    if (seen2[b]) { seen2[b]++; mol.name = b+'_'+seen2[b]; }
+    else seen2[b] = 1;
   });
 
   return structs;
 }
 
 // ══════════════════════════════════════════════════════════════
-// PDF TEXT EXTRACTION (PDF.js)
+// PDF TEXT EXTRACTION (PDF.js) — with two-column detection (FIX 6)
 // ══════════════════════════════════════════════════════════════
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
+// ── Column-split detector (port of Python _find_col_splits) ──
+// Returns the x midpoint of the inter-column gap, or null if single-column.
+function findColSplit(items, pageWidth) {
+  var n = items.length;
+  if (n < 6) return null;
+  var midLo = pageWidth * 0.25, midHi = pageWidth * 0.75;
+
+  // Build merged horizontal spans
+  var segs = items.map(function(it){ return [it.x0, it.x1]; })
+                  .sort(function(a,b){ return a[0]-b[0]; });
+  var merged = [];
+  var cL = segs[0][0], cR = segs[0][1];
+  for (var si=1;si<segs.length;si++) {
+    if (segs[si][0] <= cR+3) { cR = Math.max(cR, segs[si][1]); }
+    else { merged.push([cL,cR]); cL=segs[si][0]; cR=segs[si][1]; }
+  }
+  merged.push([cL,cR]);
+
+  var minGap = pageWidth * 0.03, minSide = 0.08;
+  var best = null, bestGap = 0;
+  for (var mi=0;mi<merged.length-1;mi++) {
+    var gL = merged[mi][1], gR = merged[mi+1][0];
+    var gap = gR - gL;
+    if (gap < minGap) continue;
+    var mid = (gL+gR)/2;
+    if (mid < midLo || mid > midHi) continue;
+    var leftN  = items.filter(function(it){ return it.x1 <= mid; }).length;
+    var rightN = items.filter(function(it){ return it.x0 >= mid; }).length;
+    if (leftN/n >= minSide && rightN/n >= minSide && gap > bestGap) {
+      bestGap = gap; best = mid;
+    }
+  }
+  if (best !== null) return best;
+
+  // Histogram valley fallback
+  var bins = 40, bw = pageWidth/bins, hist = new Array(bins).fill(0);
+  items.forEach(function(it){
+    var cx = (it.x0+it.x1)/2;
+    hist[Math.min(Math.floor(cx/bw),bins-1)]++;
+  });
+  var peak = Math.max.apply(null,hist)||1;
+  var loBin = Math.floor(bins*0.30), hiBin = Math.floor(bins*0.70);
+  var valleys = [];
+  for (var bi=loBin;bi<hiBin;bi++) { if(hist[bi]<=peak*0.20) valleys.push(bi); }
+  if (valleys.length) {
+    var centre = bins/2;
+    valleys.sort(function(a,b){ return Math.abs(a-centre)-Math.abs(b-centre); });
+    var sx = (valleys[0]+0.5)*bw;
+    var ln = items.filter(function(it){ return it.x1<=sx; }).length;
+    var rn = items.filter(function(it){ return it.x0>=sx; }).length;
+    if (ln/n>=minSide && rn/n>=minSide) return sx;
+  }
+  return null;
+}
+
+// ── Cluster raw PDF items into text lines ─────────────────────
+function clusterToLines(items) {
+  if (!items.length) return [];
+  items = items.filter(function(it){ return (it.str||'').trim(); });
+  items.sort(function(a,b){ return b.y-a.y; });  // top→bottom
+  var groups = [];
+  var Y_THRESH = 5;
+  items.forEach(function(it) {
+    if (!groups.length || Math.abs(groups[groups.length-1].refY - it.y) > Y_THRESH) {
+      groups.push({ refY: it.y, items: [it] });
+    } else {
+      groups[groups.length-1].items.push(it);
+    }
+  });
+  return groups.map(function(g) {
+    g.items.sort(function(a,b){ return a.x-b.x; });
+    return g.items.map(function(i){ return i.str; }).join(' ').replace(/\s{2,}/g,' ').trim();
+  }).filter(Boolean);
+}
+
+// ── Format-B (rolling two-column) detector ───────────────────
+// Port of Python _detect_perpage_format:
+// if >50% of two-column pages start with a coord line in the left column
+// → use per-page interleaving instead of global left+right accumulation
+function detectPerPage(pageData) {
+  var total = 0, coordStart = 0, firstTwo = true;
+  pageData.forEach(function(pg) {
+    if (pg.type !== 'two') return;
+    var combined = pg.left.concat(pg.right);
+    if (!combined.some(function(l){ return parseCoordLine(norm(l)); })) return;
+    if (firstTwo) { firstTwo=false; return; }
+    if (total >= 8) return;
+    total++;
+    var stripped = pg.left.filter(function(l){ return l.trim(); });
+    if (stripped.length && parseCoordLine(norm(stripped[0]))) coordStart++;
+  });
+  if (!total) return false;
+  return (coordStart/total) > 0.5;
+}
+
+// ── Join split energies: "Eopt -\n1278.777" → one line ───────
+function joinSplitEnergies(lines) {
+  var trailingKW = /(?:eopt|e_opt|eelec|etot|erel|total\s+energy\s*=|electronic\s+energy\s+bs[12]?\s*=|=)\s*[+-]?\s*$/i;
+  var bareNum    = /^[+-]?\d+\.\d+\s*$/;
+  var out = [], i = 0;
+  while (i < lines.length) {
+    var line = lines[i];
+    if (trailingKW.test(norm(line).trim())) {
+      var j = i+1;
+      while (j < lines.length && lines[j].indexOf('<<BREAK') === 0) j++;
+      if (j < lines.length && bareNum.test(norm(lines[j]).trim())) {
+        out.push(line.trimEnd() + lines[j].trim());
+        for (var k=i+1;k<j;k++) out.push(lines[k]);
+        i = j+1; continue;
+      }
+    }
+    out.push(line); i++;
+  }
+  return out;
+}
+
 async function extractPDFLines(file) {
   var arrayBuf = await file.arrayBuffer();
   var pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
-  var allLines = [];
-  setLoading(true, 'Extracting PDF text… 0/' + pdf.numPages + ' pages', 2);
+  setLoading(true, 'Extracting PDF — 0/'+pdf.numPages+' pages', 2);
 
+  // ── Single pass: collect page data ───────────────────────────
+  var pageData = [];
   for (var p = 1; p <= pdf.numPages; p++) {
-    var page = await pdf.getPage(p);
+    var page    = await pdf.getPage(p);
     var content = await page.getTextContent();
+    var pw = page.view[2], ph = page.view[3];
 
-    // ── Robust line clustering ──────────────────────────────────
-    // Sort all items by Y descending (PDF Y=0 is bottom, so large Y = top of page).
-    // Group items whose Y values are within Y_THRESH of the running group Y.
-    // This handles baseline jitter much better than rounding to a fixed grid.
-    var Y_THRESH = 5;   // px — covers most font baseline variations
-
+    // Enrich items with x0, x1, y
     var allItems = [];
     content.items.forEach(function(item) {
-      var s = (item.str || '').trim();
+      var s = (item.str||'').trim();
       if (!s) return;
-      allItems.push({ x: item.transform[4], y: item.transform[5], str: s });
+      var x0 = item.transform[4];
+      var w  = item.width || 0;
+      allItems.push({ str:s, x:x0, x0:x0, x1:x0+Math.max(w,4), y:item.transform[5] });
     });
 
-    // Sort top-to-bottom (descending Y in PDF coords)
-    allItems.sort(function(a, b) { return b.y - a.y; });
+    var splitX = findColSplit(allItems, pw);
+    var pgEntry;
+    if (splitX) {
+      var leftItems  = allItems.filter(function(it){ return it.x1 <= splitX+2; });
+      var rightItems = allItems.filter(function(it){ return it.x0 >= splitX-2; });
+      pgEntry = { type:'two', n:p, left:clusterToLines(leftItems), right:clusterToLines(rightItems) };
+    } else {
+      pgEntry = { type:'one', n:p, lines:clusterToLines(allItems) };
+    }
+    pageData.push(pgEntry);
 
-    var groups = [];
-    allItems.forEach(function(item) {
-      if (!groups.length || Math.abs(groups[groups.length-1].refY - item.y) > Y_THRESH) {
-        groups.push({ refY: item.y, items: [item] });
-      } else {
-        groups[groups.length-1].items.push(item);
-      }
-    });
-
-    groups.forEach(function(g) {
-      // Sort items within each line left-to-right
-      g.items.sort(function(a, b) { return a.x - b.x; });
-      var lineStr = g.items.map(function(i) { return i.str; }).join(' ');
-      // Collapse multiple spaces (PDF sometimes has wide gaps)
-      lineStr = lineStr.replace(/\s{2,}/g, ' ').trim();
-      if (lineStr) allLines.push(lineStr);
-    });
-
-    allLines.push('<<BREAK:' + p + '>>');
-    var pct = Math.round((p / pdf.numPages) * 80) + 5;
-    setLoading(true, 'Extracting PDF text… ' + p + '/' + pdf.numPages + ' pages', pct);
+    var pct = Math.round((p/pdf.numPages)*80)+5;
+    setLoading(true, 'Extracting PDF… '+p+'/'+pdf.numPages+' pages ('+
+      (pageData.filter(function(g){return g.type==='two';}).length)+' 2-col)', pct);
   }
+
+  // ── Format detection: global vs per-page ─────────────────────
+  var usePerPage = detectPerPage(pageData);
+
+  var allLines = [];
+  if (usePerPage) {
+    // FIX 6 Format B: interleave L+R per page
+    pageData.forEach(function(pg) {
+      if (pg.type === 'two') {
+        allLines = allLines.concat(pg.left, pg.right);
+      } else {
+        allLines = allLines.concat(pg.lines);
+      }
+      allLines.push('<<BREAK:'+pg.n+'>>');
+    });
+  } else {
+    // Original strategy: all LEFT pages first, then all RIGHT pages
+    var allLeft = [], allRight = [];
+    pageData.forEach(function(pg) {
+      if (pg.type === 'two') {
+        allLeft  = allLeft.concat(pg.left);
+        allRight = allRight.concat(pg.right);
+      } else {
+        allLeft = allLeft.concat(pg.lines);
+      }
+      allLeft.push('<<BREAK:'+pg.n+'>>');
+      allRight.push('<<BREAK:'+pg.n+'>>');
+    });
+    allLines = allLeft.concat(allRight);
+  }
+
+  allLines = joinSplitEnergies(allLines);
   return allLines;
 }
 
