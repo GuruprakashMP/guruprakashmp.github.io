@@ -140,7 +140,7 @@ select:focus{border-color:#38bdf8}
 </head>
 <body>
 
-<div class="title">GMP - Molecule Viewer</div>
+<div class="title">⚗️ Molecule Viewer — GMP</div>
 <div class="subtitle">// 3D viewer · multi-structure XYZ · SI extractor (PDF/DOCX)</div>
 
 <!-- ── TABS ── -->
@@ -559,7 +559,7 @@ function extractName(headerLine, contextLines) {
 
 // ── MAIN SI PARSER ────────────────────────────────────────────
 // Full port of Python parse() including _is_name_separator lookahead
-function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
+function parseSI(textLines, defaultCharge, defaultMult, minAtoms, isDocx) {
   var structs = [];
   var ctx = [];
   var atoms = [];
@@ -615,7 +615,10 @@ function parseSI(textLines, defaultCharge, defaultMult, minAtoms) {
     }
 
     if (!stripped) {
-      ctx.push(raw); continue;
+      ctx.push(raw);
+      // DOCX mode: blank paragraphs are author-placed separators (matches Python)
+      if (isDocx && inBlock && atoms.length >= minAtoms) flush();
+      continue;
     }
 
     if (HEADER_RE.test(n)) {
@@ -797,6 +800,106 @@ function joinSplitEnergies(lines) {
   return out;
 }
 
+// ── Two-column line splitters (port of Python _split_* helpers) ──
+// Used when PDF.js merges both columns into one line per row.
+
+// "C -4.19 1.02 0.80 C -4.18 1.01 0.79" → two coord lines
+function splitCoordLine(raw) {
+  var t = norm(raw).trim().split(/\s+/);
+  if (t.length === 8) {
+    var L = parseCoordLine(t.slice(0,4).join(' '));
+    var R = parseCoordLine(t.slice(4,8).join(' '));
+    if (L && R) return [t.slice(0,4).join(' '), t.slice(4,8).join(' ')];
+  }
+  if (t.length === 10) {
+    var L = parseCoordLine(t.slice(0,5).join(' '));
+    var R = parseCoordLine(t.slice(5,10).join(' '));
+    if (L && R) return [t.slice(0,5).join(' '), t.slice(5,10).join(' ')];
+  }
+  return null;
+}
+
+// "TS1 Eopt -500.1 TS2 Eopt -501.3" → two header lines
+function splitHeaderLine(raw) {
+  var n = norm(raw);
+  var matches = [];
+  var re = new RegExp(HEADER_RE.source, 'gi');
+  var m;
+  while ((m = re.exec(n)) !== null) matches.push(m);
+  if (matches.length < 2) return null;
+  var firstEnd = matches[0].index + matches[0][0].length;
+  var floatM = /\s*[+-]?\d+\.\d+\S*/.exec(n.slice(firstEnd));
+  if (!floatM) return null;
+  var splitAt = firstEnd + floatM.index + floatM[0].length;
+  var left  = raw.slice(0, splitAt).trim();
+  var right = raw.slice(splitAt).trim();
+  if (!left || !right) return null;
+  return [left, right];
+}
+
+// "47   47" → ["47", "47"]
+function splitCountLine(raw) {
+  var t = raw.trim().split(/\s+/);
+  if (t.length === 2 && /^\d+$/.test(t[0]) && /^\d+$/.test(t[1])) return [t[0], t[1]];
+  return null;
+}
+
+// "TS5I   TS5II" → two name strings (requires ≥2 spaces between them)
+function splitNamePair(raw) {
+  var n = norm(raw).trim();
+  if (HEADER_RE.test(n)) return null;
+  var t = n.split(/\s+/);
+  if (t.length !== 2) return null;
+  function looksLikeLabel(s) { return /^[A-Za-z(]/.test(s) && /\d/.test(s); }
+  if (!looksLikeLabel(t[0]) || !looksLikeLabel(t[1])) return null;
+  var m = new RegExp(t[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '(\\s{2,})' + t[1].replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).exec(raw);
+  if (!m) return null;
+  return [raw.slice(0, m.index + t[0].length).trim(), raw.slice(m.index + t[0].length + m[1].length).trim()];
+}
+
+// Port of Python _decolumn_split: if ≥30% of coord lines are doubled,
+// separate into pre / left / right / post streams.
+function decolumnSplit(lines) {
+  var doubleCoord = 0, totalCoord = 0;
+  lines.forEach(function(l) {
+    var n = norm(l);
+    if (parseCoordLine(n)) totalCoord++;
+    if (splitCoordLine(n)) doubleCoord++;
+  });
+  if (totalCoord === 0 || doubleCoord / Math.max(totalCoord, 1) < 0.30) {
+    return { pre: lines, left: [], right: [], post: [] };
+  }
+
+  var processed = []; // [{left, right, doubled}]
+  var firstDoubled = -1, lastDoubled = -1;
+  lines.forEach(function(raw, idx) {
+    var n = norm(raw).trim();
+    if (raw.indexOf('<<BREAK') === 0 || !n) {
+      processed.push({ left: raw, right: raw, doubled: false }); return;
+    }
+    var pair;
+    pair = splitCoordLine(n);
+    if (pair) { processed.push({ left: pair[0], right: pair[1], doubled: true }); if(firstDoubled===-1) firstDoubled=idx; lastDoubled=idx; return; }
+    pair = splitHeaderLine(raw);
+    if (pair) { processed.push({ left: pair[0], right: pair[1], doubled: true }); if(firstDoubled===-1) firstDoubled=idx; lastDoubled=idx; return; }
+    pair = splitCountLine(n);
+    if (pair) { processed.push({ left: pair[0], right: pair[1], doubled: true }); if(firstDoubled===-1) firstDoubled=idx; lastDoubled=idx; return; }
+    pair = splitNamePair(raw);
+    if (pair) { processed.push({ left: pair[0], right: pair[1], doubled: true }); if(firstDoubled===-1) firstDoubled=idx; lastDoubled=idx; return; }
+    processed.push({ left: raw, right: raw, doubled: false });
+  });
+
+  if (firstDoubled === -1) return { pre: lines, left: [], right: [], post: [] };
+
+  var pre = [], left = [], right = [], post = [];
+  processed.forEach(function(p, idx) {
+    if (idx < firstDoubled)      pre.push(p.left);
+    else if (idx > lastDoubled)  post.push(p.left);
+    else                        { left.push(p.left); right.push(p.right); }
+  });
+  return { pre: pre, left: left, right: right, post: post };
+}
+
 async function extractPDFLines(file) {
   var arrayBuf = await file.arrayBuffer();
   var pdf = await pdfjsLib.getDocument({ data: arrayBuf }).promise;
@@ -826,7 +929,19 @@ async function extractPDFLines(file) {
       var rightItems = allItems.filter(function(it){ return it.x0 >= splitX-2; });
       pgEntry = { type:'two', n:p, left:clusterToLines(leftItems), right:clusterToLines(rightItems) };
     } else {
-      pgEntry = { type:'one', n:p, lines:clusterToLines(allItems) };
+      // Single-column page — but check if PDF.js merged two columns into one line each
+      var rawLines = clusterToLines(allItems);
+      var dc = decolumnSplit(rawLines);
+      if (dc.left.length > 0) {
+        // Merged two-column detected: treat as two-column page
+        pgEntry = {
+          type:'two', n:p,
+          left:  dc.pre.concat(dc.left, dc.post),
+          right: dc.right
+        };
+      } else {
+        pgEntry = { type:'one', n:p, lines: rawLines };
+      }
     }
     pageData.push(pgEntry);
 
@@ -870,12 +985,14 @@ async function extractPDFLines(file) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// DOCX TEXT EXTRACTION (JSZip + DOMParser)
+// DOCX TEXT EXTRACTION — faithful port of Python lines_from_docx
 // ══════════════════════════════════════════════════════════════
 async function extractDOCXLines(file) {
   var buf = await file.arrayBuffer();
   var zip = await JSZip.loadAsync(buf);
-  var xmlFile = zip.file('word/document.xml');
+
+  // Try document.xml then document2.xml (matching Python)
+  var xmlFile = zip.file('word/document.xml') || zip.file('word/document2.xml');
   if (!xmlFile) throw new Error('word/document.xml not found in DOCX');
   var xmlText = await xmlFile.async('text');
 
@@ -883,7 +1000,6 @@ async function extractDOCXLines(file) {
   var doc = parser.parseFromString(xmlText, 'application/xml');
   var W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 
-  // Collect all text runs from a paragraph element using namespace-aware query
   function paraText(el) {
     var tNodes = el.getElementsByTagNameNS(W, 't');
     var parts = [];
@@ -894,6 +1010,17 @@ async function extractDOCXLines(file) {
   }
 
   var lines = [];
+
+  // Port of Python add(): split on internal newlines, preserve blank as separator
+  function addText(text) {
+    var t = (text || '').trim();
+    if (t) {
+      t.split(/\n/).forEach(function(sub) { var s=sub.trim(); if(s) lines.push(s); });
+    } else {
+      lines.push('');  // blank paragraph = block separator for DOCX mode
+    }
+  }
+
   var bodyEls = doc.getElementsByTagNameNS(W, 'body');
   if (!bodyEls.length) throw new Error('Cannot find document body in DOCX');
   var body = bodyEls[0];
@@ -903,18 +1030,33 @@ async function extractDOCXLines(file) {
     var localName = child.localName || child.nodeName.replace(/^.*:/, '');
 
     if (localName === 'p') {
-      var txt = paraText(child).trim();
-      lines.push(txt || '');   // preserve blank paragraphs as separators
+      addText(paraText(child));
 
     } else if (localName === 'tbl') {
       var trNodes = child.getElementsByTagNameNS(W, 'tr');
       for (var ri = 0; ri < trNodes.length; ri++) {
         var tcNodes = trNodes[ri].getElementsByTagNameNS(W, 'tc');
+        var rowParts = [];
         for (var tci = 0; tci < tcNodes.length; tci++) {
-          var cellTxt = paraText(tcNodes[tci]).trim();
-          if (cellTxt) lines.push(cellTxt);
+          // Collect all paragraph text in cell (matching Python cell_text join)
+          var pNodes = tcNodes[tci].getElementsByTagNameNS(W, 'p');
+          var cellParts = [];
+          for (var pi = 0; pi < pNodes.length; pi++) {
+            var pt = paraText(pNodes[pi]).trim();
+            if (pt) cellParts.push(pt);
+          }
+          var cellText = cellParts.join(' ');
+          if (cellText) { addText(cellText); rowParts.push(cellText); }
+        }
+        // Also emit joined row — catches one-number-per-cell tables (matches Python)
+        if (rowParts.length > 1) {
+          var joined = rowParts.join('   ');
+          if (lines.indexOf(joined) === -1) lines.push(joined);
         }
       }
+
+    } else if (localName === 'sectPr') {
+      lines.push('<<BREAK:section>>');  // matches Python
     }
   }
   return lines;
@@ -964,14 +1106,15 @@ async function doSILoad() {
   try {
     var lines;
     var ext = siFile.name.split('.').pop().toLowerCase();
+    var isDocx = false;
 
     if (ext === 'pdf') {
       lines = await extractPDFLines(siFile);
     } else if (ext === 'docx') {
       setLoading(true, 'Parsing DOCX…', 5);
       lines = await extractDOCXLines(siFile);
+      isDocx = true;
     } else {
-      // Plain text / GJF / XYZ
       setLoading(true, 'Reading text…', 5);
       var txt = await siFile.text();
       lines = txt.split(/\r?\n/);
@@ -984,7 +1127,7 @@ async function doSILoad() {
     siRawLines = lines;
     document.getElementById('si-rawtext').value = lines.slice(0, 300).join('\n');
 
-    var mols = parseSI(lines, defCharge, defMult, minAtoms);
+    var mols = parseSI(lines, defCharge, defMult, minAtoms, isDocx);
     setLoading(false);
 
     if (!mols.length) {
