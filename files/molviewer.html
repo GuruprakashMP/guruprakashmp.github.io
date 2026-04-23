@@ -756,10 +756,8 @@ function findColSplit(items, pageWidth) {
 function clusterToLines(items) {
   if (!items.length) return [];
   items = items.filter(function(it){ return (it.str||'').trim(); });
-  items.sort(function(a,b){ return b.y-a.y; });  // top→bottom (PDF coords: large Y = top)
+  items.sort(function(a,b){ return b.y-a.y; });
 
-  // Y_THRESH: items within this many pts of the group's ref-Y join the same line.
-  // 8px is safer than 5px — coordinate rows in some PDFs have baseline jitter > 5px.
   var Y_THRESH = 8;
   var groups = [];
   items.forEach(function(it) {
@@ -774,10 +772,14 @@ function clusterToLines(items) {
     g.items.sort(function(a,b){ return a.x-b.x; });
     var raw = g.items.map(function(i){ return i.str; }).join(' ').replace(/\s{2,}/g,' ').trim();
 
-    // Fix PDF.js artefact: minus sign extracted as separate item
-    // "- 4.194325" → "-4.194325"   and   "- 0.800231" → "-0.800231"
-    raw = raw.replace(/(?<![A-Za-z\d.])-\s+(\d)/g, '-$1');
-    // Fix: "4 .194325" → "4.194325" (decimal point split from integer part)
+    // Fix: minus sign extracted as a separate item by PDF.js
+    // "- 4.194325" → "-4.194325"
+    // NOTE: no lookbehind (Safari compat) — match space-minus-space-digit not
+    //       preceded by something we can check, so use a simpler pattern:
+    //       a minus with a space before a digit where the preceding char is
+    //       a space or start-of-string (i.e., it's a standalone "-")
+    raw = raw.replace(/(^|\s)-\s+(\d)/g, '$1-$2');
+    // Fix: "4 .194325" → "4.194325"
     raw = raw.replace(/(\d)\s+\.(\d)/g, '$1.$2');
 
     return raw;
@@ -785,9 +787,6 @@ function clusterToLines(items) {
 }
 
 // ── Format-B (rolling two-column) detector ───────────────────
-// Port of Python _detect_perpage_format:
-// if >50% of two-column pages start with a coord line in the left column
-// → use per-page interleaving instead of global left+right accumulation
 function detectPerPage(pageData) {
   var total = 0, coordStart = 0, firstTwo = true;
   pageData.forEach(function(pg) {
@@ -804,38 +803,123 @@ function detectPerPage(pageData) {
   return (coordStart/total) > 0.5;
 }
 
-// ── Repair broken coordinate lines caused by PDF.js Y-split ──
-// When a coord row splits across two extracted lines, e.g.:
-//   Line A: "Rh -1.449 1.296"          (element + 2 floats, missing z)
-//   Line B: "0.106"                     (bare float, z coordinate)
-// → join them: "Rh -1.449 1.296 0.106"
+// ── Comprehensive repair of broken coordinate lines ───────────
+// PDF.js can split ONE coordinate row across multiple extracted lines
+// when table cells land at slightly different Y positions. This function
+// reassembles them before the SI parser runs.
 //
-// Also handles sign separated from number by the split:
-//   Line A: "C  -4.194325  1.028453"
-//   Line B: "-0.800231"                 (actually the z value)
-// → this case is already merged by the Y_THRESH increase, but we handle it here too.
+// Cases handled:
+//   A) "Rh"  +  "-1.449 1.296 0.106"      → one item + rest
+//   B) "Rh -1.449"  +  "1.296 0.106"      → elem+1 float + 2 floats
+//   C) "Rh -1.449 1.296"  +  "0.106"      → elem+2 floats + 1 float
+//   D) "6"  +  "-1.449 1.296 0.106"       → AtomNum + 3 floats (Format A)
+//   E) "1 6"  +  "-1.449 1.296 0.106"     → Idx AtomNum + 3 floats (Format D)
 function repairBrokenCoordLines(lines) {
   var out = [];
-  var BARE_FLOAT  = /^[+-]?\d+\.\d+\s*$/;           // lone float: "-0.800231"
-  var PARTIAL_COORD = /^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+(\s+[+-]?\d+\.\d+)?\s*$/; // elem + 1-2 floats
 
-  for (var i = 0; i < lines.length; i++) {
+  // Pattern helpers
+  var BARE_FLOATS_2 = /^[+-]?\d+\.?\d*\s+[+-]?\d+\.?\d*\s*$/;   // 2 bare numbers
+  var BARE_FLOATS_3 = /^[+-]?\d+\.?\d*(\s+[+-]?\d+\.?\d*){2}\s*$/; // 3 bare numbers
+  var BARE_FLOAT_1  = /^[+-]?\d+\.\d+\s*$/;                      // 1 float with dot
+  var ELEM_ONLY     = /^[A-Za-z]{1,2}\s*$/;                      // just element symbol
+  var ATNUM_ONLY    = /^\d{1,2}\s*$/;                             // just atomic number (1-2 digits)
+  var ELEM_1F       = /^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+\s*$/;     // elem + 1 float
+  var ELEM_2F       = /^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+\s+[+-]?\d+\.\d+\s*$/; // elem + 2 floats
+  var ATNUM_1F      = /^\d{1,2}\s+[+-]?\d+\.\d+\s*$/;           // atomnum + 1 float
+  var IDX_ATNUM     = /^\d+\s+\d{1,2}\s*$/;                      // idx atomnum (Format D prefix)
+
+  // Peek ahead to next non-blank, non-break line
+  function peekNext(start) {
+    var j = start;
+    while (j < lines.length) {
+      var s = norm(lines[j]).trim();
+      if (s && s.indexOf('<<BREAK') !== 0) return { idx: j, str: s };
+      j++;
+    }
+    return null;
+  }
+
+  var i = 0;
+  while (i < lines.length) {
     var line = lines[i];
     var n = norm(line).trim();
 
-    // If this line is a partial coord (elem + 1 or 2 floats, missing y or z)
-    // and the next non-break line is a bare float → merge them
-    if (PARTIAL_COORD.test(n)) {
-      // peek ahead (skip blanks and <<BREAK>>)
+    // Skip breaks and blanks
+    if (!n || n.indexOf('<<BREAK') === 0) { out.push(line); i++; continue; }
+
+    // Already a complete coord line → pass through
+    if (parseCoordLine(n)) { out.push(line); i++; continue; }
+
+    var merged = null;
+
+    // Case A: bare element symbol alone — collect up to 3 floats from next lines
+    if (ELEM_ONLY.test(n) || ATNUM_ONLY.test(n)) {
+      var acc = n;
+      var floatCount = 0;
       var j = i + 1;
-      while (j < lines.length && (!norm(lines[j]).trim() || lines[j].indexOf('<<BREAK') === 0)) j++;
-      if (j < lines.length && BARE_FLOAT.test(norm(lines[j]).trim())) {
-        out.push(n + ' ' + norm(lines[j]).trim());
-        i = j; // skip merged line
-        continue;
+      while (floatCount < 3 && j < lines.length) {
+        var pk = peekNext(j);
+        if (!pk) break;
+        var pn = pk.str;
+        // Accept a token that is a float or a series of floats
+        if (/^([+-]?\d+\.\d+(\s+|$)){1,3}/.test(pn)) {
+          var tokens = pn.split(/\s+/).filter(Boolean);
+          // Take only as many floats as we still need
+          var take = Math.min(tokens.length, 3 - floatCount);
+          var taken = tokens.slice(0, take);
+          if (taken.every(function(t){ return /^[+-]?\d+\.\d+$/.test(t); })) {
+            acc += ' ' + taken.join(' ');
+            floatCount += take;
+            j = pk.idx + 1;
+            continue;
+          }
+        }
+        break;
+      }
+      if (floatCount === 3 && parseCoordLine(acc)) {
+        merged = { line: acc, nextI: j };
       }
     }
-    out.push(line);
+
+    // Case B: elem + 1 float, or atomnum + 1 float → need 2 more
+    if (!merged && (ELEM_1F.test(n) || ATNUM_1F.test(n))) {
+      var pk = peekNext(i + 1);
+      if (pk && BARE_FLOATS_2.test(pk.str)) {
+        var candidate = n + ' ' + pk.str.trim();
+        if (parseCoordLine(candidate)) merged = { line: candidate.trim(), nextI: pk.idx + 1 };
+      }
+      // Or just 1 more float (when elem+2floats was cut with only 1 float missing)
+      if (!merged && pk && BARE_FLOAT_1.test(pk.str)) {
+        var candidate2 = n + ' ' + pk.str.trim();
+        if (parseCoordLine(candidate2)) merged = { line: candidate2.trim(), nextI: pk.idx + 1 };
+      }
+    }
+
+    // Case C: elem + 2 floats → need 1 more
+    if (!merged && ELEM_2F.test(n)) {
+      var pk = peekNext(i + 1);
+      if (pk && BARE_FLOAT_1.test(pk.str)) {
+        var candidate = n + ' ' + pk.str.trim();
+        if (parseCoordLine(candidate)) merged = { line: candidate.trim(), nextI: pk.idx + 1 };
+      }
+    }
+
+    // Case D/E: idx+atomnum prefix → look for 3 floats on next line
+    if (!merged && IDX_ATNUM.test(n)) {
+      var pk = peekNext(i + 1);
+      if (pk && BARE_FLOATS_3.test(pk.str)) {
+        var candidate = n + ' ' + pk.str.trim();
+        if (parseCoordLine(candidate)) merged = { line: candidate.trim(), nextI: pk.idx + 1 };
+      }
+    }
+
+    if (merged) {
+      out.push(merged.line);
+      i = merged.nextI;
+    } else {
+      out.push(line);
+      i++;
+    }
   }
   return out;
 }
@@ -1180,12 +1264,19 @@ async function doSILoad() {
       lines = txt.split(/\r?\n/);
     }
 
-    setLoading(true, 'Parsing structures… ', 88);
+    setLoading(true, 'Repairing line fragments…', 90);
     await new Promise(function(r){ setTimeout(r, 0); });
 
-    // Show first 300 lines in debug panel
+    // Apply repair to ALL file types — PDF, DOCX, and text can all have
+    // coordinate lines split across extraction artifacts
+    lines = repairBrokenCoordLines(lines);
+
+    // Show first 300 lines of the REPAIRED stream in debug panel
     siRawLines = lines;
     document.getElementById('si-rawtext').value = lines.slice(0, 300).join('\n');
+
+    setLoading(true, 'Parsing structures…', 93);
+    await new Promise(function(r){ setTimeout(r, 0); });
 
     var mols = parseSI(lines, defCharge, defMult, minAtoms, isDocx);
     setLoading(false);
