@@ -601,6 +601,19 @@ function parseSI(textLines, defaultCharge, defaultMult, minAtoms, isDocx) {
     if (META_LINE_RE.test(nstr)) return false;
     if (NOT_NAME_RE.test(stripped)) return false;
     if (stripped.length > 150 || stripped.split(/\s+/).length > 12) return false;
+
+    // KEY FIX: reject lines that look like a broken coordinate row.
+    // PDF.js can split "Rh -1.449 1.296 0.106" into two lines when the
+    // z-coordinate lands on a slightly different Y. The first fragment
+    // "Rh -1.449 1.296" starts with a letter and is short, so it would
+    // wrongly pass as a name separator and cause a premature block flush.
+    // Signature: starts with 1-2 letter element symbol + at least one float.
+    if (/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+/.test(stripped)) return false;
+    // Also reject if it looks like a bare float fragment (e.g. "0.106" alone)
+    if (/^[+-]?\d+\.\d+/.test(stripped)) return false;
+    // Reject lines that are purely element + integers (Gaussian format fragment)
+    if (/^[A-Za-z]{1,2}(\s+\d+){2,}$/.test(stripped)) return false;
+
     return true;
   }
 
@@ -743,9 +756,12 @@ function findColSplit(items, pageWidth) {
 function clusterToLines(items) {
   if (!items.length) return [];
   items = items.filter(function(it){ return (it.str||'').trim(); });
-  items.sort(function(a,b){ return b.y-a.y; });  // top→bottom
+  items.sort(function(a,b){ return b.y-a.y; });  // top→bottom (PDF coords: large Y = top)
+
+  // Y_THRESH: items within this many pts of the group's ref-Y join the same line.
+  // 8px is safer than 5px — coordinate rows in some PDFs have baseline jitter > 5px.
+  var Y_THRESH = 8;
   var groups = [];
-  var Y_THRESH = 5;
   items.forEach(function(it) {
     if (!groups.length || Math.abs(groups[groups.length-1].refY - it.y) > Y_THRESH) {
       groups.push({ refY: it.y, items: [it] });
@@ -753,9 +769,18 @@ function clusterToLines(items) {
       groups[groups.length-1].items.push(it);
     }
   });
+
   return groups.map(function(g) {
     g.items.sort(function(a,b){ return a.x-b.x; });
-    return g.items.map(function(i){ return i.str; }).join(' ').replace(/\s{2,}/g,' ').trim();
+    var raw = g.items.map(function(i){ return i.str; }).join(' ').replace(/\s{2,}/g,' ').trim();
+
+    // Fix PDF.js artefact: minus sign extracted as separate item
+    // "- 4.194325" → "-4.194325"   and   "- 0.800231" → "-0.800231"
+    raw = raw.replace(/(?<![A-Za-z\d.])-\s+(\d)/g, '-$1');
+    // Fix: "4 .194325" → "4.194325" (decimal point split from integer part)
+    raw = raw.replace(/(\d)\s+\.(\d)/g, '$1.$2');
+
+    return raw;
   }).filter(Boolean);
 }
 
@@ -779,7 +804,41 @@ function detectPerPage(pageData) {
   return (coordStart/total) > 0.5;
 }
 
-// ── Join split energies: "Eopt -\n1278.777" → one line ───────
+// ── Repair broken coordinate lines caused by PDF.js Y-split ──
+// When a coord row splits across two extracted lines, e.g.:
+//   Line A: "Rh -1.449 1.296"          (element + 2 floats, missing z)
+//   Line B: "0.106"                     (bare float, z coordinate)
+// → join them: "Rh -1.449 1.296 0.106"
+//
+// Also handles sign separated from number by the split:
+//   Line A: "C  -4.194325  1.028453"
+//   Line B: "-0.800231"                 (actually the z value)
+// → this case is already merged by the Y_THRESH increase, but we handle it here too.
+function repairBrokenCoordLines(lines) {
+  var out = [];
+  var BARE_FLOAT  = /^[+-]?\d+\.\d+\s*$/;           // lone float: "-0.800231"
+  var PARTIAL_COORD = /^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+(\s+[+-]?\d+\.\d+)?\s*$/; // elem + 1-2 floats
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var n = norm(line).trim();
+
+    // If this line is a partial coord (elem + 1 or 2 floats, missing y or z)
+    // and the next non-break line is a bare float → merge them
+    if (PARTIAL_COORD.test(n)) {
+      // peek ahead (skip blanks and <<BREAK>>)
+      var j = i + 1;
+      while (j < lines.length && (!norm(lines[j]).trim() || lines[j].indexOf('<<BREAK') === 0)) j++;
+      if (j < lines.length && BARE_FLOAT.test(norm(lines[j]).trim())) {
+        out.push(n + ' ' + norm(lines[j]).trim());
+        i = j; // skip merged line
+        continue;
+      }
+    }
+    out.push(line);
+  }
+  return out;
+}
 function joinSplitEnergies(lines) {
   var trailingKW = /(?:eopt|e_opt|eelec|etot|erel|total\s+energy\s*=|electronic\s+energy\s+bs[12]?\s*=|=)\s*[+-]?\s*$/i;
   var bareNum    = /^[+-]?\d+\.\d+\s*$/;
@@ -980,6 +1039,7 @@ async function extractPDFLines(file) {
     allLines = allLeft.concat(allRight);
   }
 
+  allLines = repairBrokenCoordLines(allLines);
   allLines = joinSplitEnergies(allLines);
   return allLines;
 }
