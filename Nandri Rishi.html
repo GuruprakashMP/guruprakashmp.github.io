@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thank you, Rishi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300&family=Nunito+Sans:wght@300;400&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg:        #F9F6F1;
+      --bg-2:      #F0EBE2;
+      --text:      #3A3530;
+      --text-muted:#7A726A;
+      --accent:    #B5893A;
+      --accent-lt: #D4AA62;
+      --glow:      rgba(181, 137, 58, 0.18);
+      --highlight-bg: rgba(181, 137, 58, 0.07);
+      --card-bg:   rgba(255,255,255,0.55);
+      --card-border: rgba(181,137,58,0.14);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(181,137,58,0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(181,137,58,0.07) 0%, transparent 60%);
+      min-height: 100vh;
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      color: var(--text);
+      padding: 64px 24px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 64px;
+      opacity: 0;
+      animation: fadeUp 1s cubic-bezier(.22,.68,0,1.2) 0.1s forwards;
+    }
+
+    .eyebrow {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 300;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 18px;
+    }
+
+    header h1 {
+      font-size: clamp(2.2rem, 6vw, 4rem);
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--text);
+      line-height: 1.15;
+    }
+
+    header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .divider {
+      width: 48px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 28px auto 0;
+    }
+
+    /* ── Grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 14px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 18px 22px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: box-shadow 0.25s ease, transform 0.25s ease;
+      opacity: 0;
+      animation: fadeUp 0.6s cubic-bezier(.22,.68,0,1.2) forwards;
+    }
+
+    .card:hover {
+      box-shadow: 0 6px 28px rgba(181,137,58,0.12);
+      transform: translateY(-2px);
+    }
+
+    .lang {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 9.5px;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .phrase {
+      font-size: 1.05rem;
+      font-weight: 400;
+      line-height: 1.45;
+      color: var(--text);
+    }
+
+    /* ── Highlighted cards ── */
+    .card.highlight {
+      background: var(--highlight-bg);
+      border-color: rgba(181,137,58,0.32);
+      box-shadow: 0 0 0 1px rgba(181,137,58,0.10),
+                  0 4px 20px rgba(181,137,58,0.10);
+    }
+
+    .card.highlight .lang {
+      color: var(--accent-lt);
+    }
+
+    .card.highlight .phrase {
+      font-size: 1.18rem;
+      font-weight: 500;
+      color: var(--accent);
+    }
+
+    .card.highlight:hover {
+      box-shadow: 0 0 0 1px rgba(181,137,58,0.22),
+                  0 8px 36px var(--glow);
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 72px;
+      opacity: 0;
+      animation: fadeUp 0.8s ease 2s forwards;
+    }
+
+    footer .count {
+      font-family: 'Nunito Sans', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    /* ── Animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+
+    /* stagger delay via nth-child */
+    .card:nth-child(1)  { animation-delay: 0.20s }
+    .card:nth-child(2)  { animation-delay: 0.24s }
+    .card:nth-child(3)  { animation-delay: 0.28s }
+    .card:nth-child(4)  { animation-delay: 0.32s }
+    .card:nth-child(5)  { animation-delay: 0.36s }
+    .card:nth-child(6)  { animation-delay: 0.40s }
+    .card:nth-child(7)  { animation-delay: 0.44s }
+    .card:nth-child(8)  { animation-delay: 0.48s }
+    .card:nth-child(9)  { animation-delay: 0.52s }
+    .card:nth-child(10) { animation-delay: 0.56s }
+    .card:nth-child(11) { animation-delay: 0.60s }
+    .card:nth-child(12) { animation-delay: 0.64s }
+    .card:nth-child(13) { animation-delay: 0.68s }
+    .card:nth-child(14) { animation-delay: 0.72s }
+    .card:nth-child(15) { animation-delay: 0.76s }
+    .card:nth-child(16) { animation-delay: 0.80s }
+    .card:nth-child(17) { animation-delay: 0.84s }
+    .card:nth-child(18) { animation-delay: 0.88s }
+    .card:nth-child(19) { animation-delay: 0.92s }
+    .card:nth-child(20) { animation-delay: 0.96s }
+    .card:nth-child(n+21) { animation-delay: 1.00s }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      body { padding: 48px 16px 64px; }
+      .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .card { padding: 14px 16px; }
+      .phrase { font-size: 0.95rem; }
+      .card.highlight .phrase { font-size: 1.05rem; }
+    }
+
+    @media (max-width: 400px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="eyebrow">100 languages · 1 message</p>
+    <h1>Thank you, <em>Rishi</em></h1>
+    <div class="divider"></div>
+  </header>
+
+  <main>
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <footer>
+    <p class="count">100 languages &nbsp;·&nbsp; one gratitude</p>
+  </footer>
+
+  <script>
+    const phrases = [
+      { lang: "English",           text: "Thank you, Rishi",                        highlight: true  },
+      { lang: "Tamil",             text: "நன்றி, ரிஷி",                             highlight: true  },
+      { lang: "Marathi",           text: "धन्यवाद, ऋषी",                            highlight: true  },
+      { lang: "Spanish",           text: "Gracias, Rishi",                           highlight: true  },
+      { lang: "French",            text: "Merci, Rishi",                             highlight: false },
+      { lang: "German",            text: "Danke, Rishi",                             highlight: false },
+      { lang: "Italian",           text: "Grazie, Rishi",                            highlight: false },
+      { lang: "Portuguese",        text: "Obrigado, Rishi",                          highlight: false },
+      { lang: "Dutch",             text: "Dank je, Rishi",                           highlight: false },
+      { lang: "Russian",           text: "Спасибо, Риши",                            highlight: false },
+      { lang: "Japanese",          text: "ありがとう、リシ",                          highlight: false },
+      { lang: "Mandarin Chinese",  text: "谢谢你，里希",                              highlight: false },
+      { lang: "Korean",            text: "감사합니다, 리시",                          highlight: false },
+      { lang: "Arabic",            text: "شكراً، ريشي",                              highlight: false },
+      { lang: "Hindi",             text: "धन्यवाद, ऋषि",                            highlight: false },
+      { lang: "Bengali",           text: "ধন্যবাদ, ঋষি",                            highlight: false },
+      { lang: "Punjabi",           text: "ਧੰਨਵਾਦ, ਰਿਸ਼ੀ",                          highlight: false },
+      { lang: "Gujarati",          text: "આભાર, ઋષિ",                               highlight: false },
+      { lang: "Telugu",            text: "ధన్యవాదాలు, రిషి",                        highlight: false },
+      { lang: "Kannada",           text: "ಧನ್ಯವಾದ, ರಿಷಿ",                          highlight: false },
+      { lang: "Malayalam",         text: "നന്ദി, ഋഷി",                              highlight: false },
+      { lang: "Urdu",              text: "شکریہ، رشی",                               highlight: false },
+      { lang: "Swahili",           text: "Asante, Rishi",                            highlight: false },
+      { lang: "Turkish",           text: "Teşekkürler, Rishi",                       highlight: false },
+      { lang: "Polish",            text: "Dziękuję, Rishi",                          highlight: false },
+      { lang: "Swedish",           text: "Tack, Rishi",                              highlight: false },
+      { lang: "Norwegian",         text: "Takk, Rishi",                              highlight: false },
+      { lang: "Danish",            text: "Tak, Rishi",                               highlight: false },
+      { lang: "Finnish",           text: "Kiitos, Rishi",                            highlight: false },
+      { lang: "Greek",             text: "Ευχαριστώ, Ρίσι",                         highlight: false },
+      { lang: "Czech",             text: "Děkuji, Rishi",                            highlight: false },
+      { lang: "Slovak",            text: "Ďakujem, Rishi",                           highlight: false },
+      { lang: "Hungarian",         text: "Köszönöm, Rishi",                          highlight: false },
+      { lang: "Romanian",          text: "Mulțumesc, Rishi",                         highlight: false },
+      { lang: "Bulgarian",         text: "Благодаря, Риши",                          highlight: false },
+      { lang: "Croatian",          text: "Hvala, Rishi",                             highlight: false },
+      { lang: "Serbian",           text: "Хвала, Риши",                              highlight: false },
+      { lang: "Ukrainian",         text: "Дякую, Ріші",                              highlight: false },
+      { lang: "Lithuanian",        text: "Ačiū, Rishi",                              highlight: false },
+      { lang: "Latvian",           text: "Paldies, Rishi",                           highlight: false },
+      { lang: "Estonian",          text: "Tänan, Rishi",                             highlight: false },
+      { lang: "Icelandic",         text: "Takk, Rishi",                              highlight: false },
+      { lang: "Welsh",             text: "Diolch, Rishi",                            highlight: false },
+      { lang: "Irish",             text: "Go raibh maith agat, Rishi",               highlight: false },
+      { lang: "Scottish Gaelic",   text: "Tapadh leat, Rishi",                       highlight: false },
+      { lang: "Basque",            text: "Eskerrik asko, Rishi",                     highlight: false },
+      { lang: "Catalan",           text: "Gràcies, Rishi",                           highlight: false },
+      { lang: "Galician",          text: "Grazas, Rishi",                            highlight: false },
+      { lang: "Indonesian",        text: "Terima kasih, Rishi",                      highlight: false },
+      { lang: "Malay",             text: "Terima kasih, Rishi",                      highlight: false },
+      { lang: "Filipino",          text: "Salamat, Rishi",                           highlight: false },
+      { lang: "Vietnamese",        text: "Cảm ơn, Rishi",                            highlight: false },
+      { lang: "Thai",              text: "ขอบคุณ, ริชิ",                             highlight: false },
+      { lang: "Burmese",           text: "ကျေးဇူးတင်ပါတယ်, ရိဆိ",                 highlight: false },
+      { lang: "Khmer",             text: "អរគុណ, រីស៊ី",                            highlight: false },
+      { lang: "Lao",               text: "ຂອບໃຈ, ລີຊີ",                            highlight: false },
+      { lang: "Mongolian",         text: "Баярлалаа, Риши",                          highlight: false },
+      { lang: "Tibetan",           text: "ཐུགས་རྗེ་ཆེ། རིཤི",                      highlight: false },
+      { lang: "Nepali",            text: "धन्यवाद, ऋषि",                            highlight: false },
+      { lang: "Sinhala",           text: "ස්තූතියි, රිෂි",                          highlight: false },
+      { lang: "Amharic",           text: "አመሰግናለሁ፣ ሪሺ",                           highlight: false },
+      { lang: "Somali",            text: "Mahadsanid, Rishi",                        highlight: false },
+      { lang: "Hausa",             text: "Na gode, Rishi",                           highlight: false },
+      { lang: "Yoruba",            text: "E dupe, Rishi",                            highlight: false },
+      { lang: "Igbo",              text: "Daalụ, Rishi",                             highlight: false },
+      { lang: "Zulu",              text: "Ngiyabonga, Rishi",                        highlight: false },
+      { lang: "Xhosa",             text: "Enkosi, Rishi",                            highlight: false },
+      { lang: "Afrikaans",         text: "Dankie, Rishi",                            highlight: false },
+      { lang: "Malagasy",          text: "Misaotra, Rishi",                          highlight: false },
+      { lang: "Albanian",          text: "Faleminderit, Rishi",                      highlight: false },
+      { lang: "Armenian",          text: "Շնորհակալություն, Ռիշի",                  highlight: false },
+      { lang: "Azerbaijani",       text: "Təşəkkür edirəm, Rishi",                  highlight: false },
+      { lang: "Georgian",          text: "გმადლობთ, რიში",                          highlight: false },
+      { lang: "Kazakh",            text: "Рахмет, Риши",                             highlight: false },
+      { lang: "Uzbek",             text: "Rahmat, Rishi",                            highlight: false },
+      { lang: "Kyrgyz",            text: "Рахмат, Риши",                             highlight: false },
+      { lang: "Tajik",             text: "Ташаккур, Риши",                           highlight: false },
+      { lang: "Turkmen",           text: "Sag bol, Rishi",                           highlight: false },
+      { lang: "Pashto",            text: "مننه، ريشي",                               highlight: false },
+      { lang: "Persian",           text: "ممنون، ریشی",                              highlight: false },
+      { lang: "Hebrew",            text: "תודה, רישי",                               highlight: false },
+      { lang: "Kurdish",           text: "Spas, Rishi",                              highlight: false },
+      { lang: "Sindhi",            text: "شڪريو، رشي",                               highlight: false },
+      { lang: "Odia",              text: "ଧନ୍ୟବାଦ, ଋଷି",                           highlight: false },
+      { lang: "Assamese",          text: "ধন্যবাদ, ঋষি",                            highlight: false },
+      { lang: "Maithili",          text: "धन्यवाद, ऋषि",                            highlight: false },
+      { lang: "Konkani",           text: "आभार, ऋषी",                               highlight: false },
+      { lang: "Sanskrit",          text: "धन्यवादः, ऋषे",                           highlight: false },
+      { lang: "Latin",             text: "Gratias tibi ago, Rishi",                  highlight: false },
+      { lang: "Esperanto",         text: "Dankon, Rishi",                            highlight: false },
+      { lang: "Luxembourgish",     text: "Merci, Rishi",                             highlight: false },
+      { lang: "Maltese",           text: "Grazzi, Rishi",                            highlight: false },
+      { lang: "Macedonian",        text: "Благодарам, Риши",                         highlight: false },
+      { lang: "Bosnian",           text: "Hvala, Rishi",                             highlight: false },
+      { lang: "Slovenian",         text: "Hvala, Rishi",                             highlight: false },
+      { lang: "Belarusian",        text: "Дзякуй, Рышы",                             highlight: false },
+      { lang: "Cebuano",           text: "Salamat, Rishi",                           highlight: false },
+      { lang: "Javanese",          text: "Matur nuwun, Rishi",                       highlight: false },
+      { lang: "Sundanese",         text: "Hatur nuhun, Rishi",                       highlight: false },
+      { lang: "Dogri",             text: "शुक्रिया, ऋषि",                           highlight: false },
+    ];
+
+    const grid = document.getElementById('grid');
+    phrases.forEach(({ lang, text, highlight }) => {
+      const card = document.createElement('div');
+      card.className = 'card' + (highlight ? ' highlight' : '');
+      card.innerHTML = `<p class="lang">${lang}</p><p class="phrase">${text}</p>`;
+      grid.appendChild(card);
+    });
+  </script>
+
+</body>
+</html>
