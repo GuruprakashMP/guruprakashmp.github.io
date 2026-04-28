@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Thank you, Rishi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #E8E0D4;
+      --gold:    #B07D3A;
+      --gold-lt: #D4A055;
+      --text:    #2C2420;
+      --muted:   #8A7F76;
+      --white:   #FDFAF6;
+    }
+
+    body {
+      min-height: 100vh;
+      background-color: var(--bg);
+      background-image:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E"),
+        radial-gradient(ellipse 90% 50% at 50% 0%, rgba(176,125,58,0.14) 0%, transparent 65%);
+      padding: 0 0 90px;
+      font-family: 'Lora', Georgia, serif;
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 72px 24px 60px;
+      opacity: 0;
+      animation: fadeDown 0.9s cubic-bezier(.22,.68,0,1.2) 0.05s forwards;
+    }
+
+    .hero-sub {
+      font-family: 'Caveat', cursive;
+      font-size: 1.05rem;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      margin-bottom: 10px;
+    }
+
+    header h1 {
+      font-family: 'Lora', serif;
+      font-size: clamp(2.4rem, 7vw, 5rem);
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      line-height: 1.1;
+      color: var(--text);
+    }
+
+    header h1 .name { font-style: italic; color: var(--gold); }
+
+    .rule-line {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 26px;
+    }
+    .rule-line hr {
+      border: none;
+      height: 1px;
+      width: 64px;
+      background: linear-gradient(90deg, transparent, var(--gold-lt), transparent);
+    }
+    .rule-line span {
+      font-family: 'Caveat', cursive;
+      font-size: 1rem;
+      color: var(--muted);
+    }
+
+    /* ── Masonry collage ── */
+    .collage {
+      columns: 5 190px;
+      column-gap: 16px;
+      max-width: 1380px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    /* ── Polaroid card ── */
+    .card {
+      display: inline-block;
+      width: 100%;
+      break-inside: avoid;
+      margin-bottom: 16px;
+      background: var(--white);
+      border-radius: 2px;
+      padding: 16px 14px 28px;
+      box-shadow:
+        0 1px 3px rgba(0,0,0,0.10),
+        0 6px 20px rgba(0,0,0,0.12);
+      position: relative;
+      cursor: default;
+      opacity: 0;
+      animation: popIn 0.5s cubic-bezier(.34,1.45,.64,1) forwards;
+      transition: transform 0.28s cubic-bezier(.22,.68,0,1.2),
+                  box-shadow 0.28s ease;
+    }
+
+    /* randomised rotation via nth-child */
+    .card:nth-child(7n+1) { --r: -2.3deg; }
+    .card:nth-child(7n+2) { --r:  1.7deg; }
+    .card:nth-child(7n+3) { --r: -0.9deg; }
+    .card:nth-child(7n+4) { --r:  2.6deg; }
+    .card:nth-child(7n+5) { --r: -1.8deg; }
+    .card:nth-child(7n+6) { --r:  0.6deg; }
+    .card:nth-child(7n)   { --r: -3.0deg; }
+
+    .card { transform: rotate(var(--r, 0deg)); }
+
+    .card:hover {
+      transform: rotate(0deg) scale(1.06) !important;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12), 0 18px 50px rgba(0,0,0,0.20);
+      z-index: 20;
+    }
+
+    /* tape strip */
+    .card::before {
+      content: '';
+      position: absolute;
+      top: -9px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 44px;
+      height: 18px;
+      background: rgba(212,160,85,0.38);
+      border-radius: 2px;
+    }
+
+    /* subtle pastel tints */
+    .card:nth-child(5n+1) { background: #FDFAF6; }
+    .card:nth-child(5n+2) { background: #F8F4EE; }
+    .card:nth-child(5n+3) { background: #F4F8F4; }
+    .card:nth-child(5n+4) { background: #F4F3F8; }
+    .card:nth-child(5n)   { background: #F8F3F2; }
+
+    /* ── Flag emoji ── */
+    .flag {
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 9px;
+      display: block;
+    }
+
+    /* ── Language label ── */
+    .lang {
+      font-family: 'Caveat', cursive;
+      font-size: 0.78rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    /* ── Phrase ── */
+    .phrase {
+      font-family: 'Lora', serif;
+      font-size: 0.9rem;
+      font-weight: 400;
+      line-height: 1.5;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    /* ── Highlighted ── */
+    .card.hi {
+      background: linear-gradient(140deg, #FFFCF5 0%, #FFF4DC 100%) !important;
+      border: 1.5px solid rgba(176,125,58,0.30);
+      box-shadow:
+        0 0 0 1px rgba(176,125,58,0.12),
+        0 8px 28px rgba(176,125,58,0.22),
+        0 2px 6px rgba(0,0,0,0.08);
+    }
+    .card.hi::before { background: rgba(176,125,58,0.55); width: 52px; }
+    .card.hi .flag   { font-size: 2.6rem; }
+    .card.hi .lang   { color: var(--gold-lt); font-weight: 600; font-size: 0.84rem; }
+    .card.hi .phrase { font-size: 1.05rem; font-weight: 500; color: var(--gold); }
+
+    /* ── Animations ── */
+    @keyframes popIn {
+      from { opacity: 0; transform: rotate(var(--r, 0deg)) scale(0.8) translateY(16px); }
+      to   { opacity: 1; transform: rotate(var(--r, 0deg)) scale(1)   translateY(0);   }
+    }
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 64px;
+      opacity: 0;
+      animation: fadeDown 0.8s ease 2.6s forwards;
+    }
+    footer p {
+      font-family: 'Caveat', cursive;
+      font-size: 1.1rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .collage { columns: 2 150px; column-gap: 10px; padding: 0 10px; }
+      .card { padding: 12px 10px 20px; margin-bottom: 10px; }
+      .flag { font-size: 1.6rem; }
+      .phrase { font-size: 0.8rem; }
+      .card.hi .flag { font-size: 2rem; }
+      .card.hi .phrase { font-size: 0.9rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <p class="hero-sub">a message of gratitude · 100 voices</p>
+  <h1>Thank you, <span class="name">Rishi</span></h1>
+  <div class="rule-line">
+    <hr /><span>across every language on earth</span><hr />
+  </div>
+</header>
+
+<main>
+  <div class="collage" id="collage"></div>
+</main>
+
+<footer>
+  <p>✦ &nbsp;100 languages &nbsp;·&nbsp; one heart&nbsp; ✦</p>
+</footer>
+
+<script>
+const phrases = [
+  { lang:"English",        flag:"🇬🇧", text:"Thank you, Rishi",                   hi:true  },
+  { lang:"Tamil",          flag:"🇮🇳", text:"நன்றி, ரிஷி",                        hi:true  },
+  { lang:"Marathi",        flag:"🇮🇳", text:"धन्यवाद, ऋषी",                       hi:true  },
+  { lang:"Spanish",        flag:"🇪🇸", text:"Gracias, Rishi",                      hi:true  },
+  { lang:"French",         flag:"🇫🇷", text:"Merci, Rishi",                        hi:false },
+  { lang:"German",         flag:"🇩🇪", text:"Danke, Rishi",                        hi:false },
+  { lang:"Italian",        flag:"🇮🇹", text:"Grazie, Rishi",                       hi:false },
+  { lang:"Portuguese",     flag:"🇵🇹", text:"Obrigado, Rishi",                     hi:false },
+  { lang:"Dutch",          flag:"🇳🇱", text:"Dank je, Rishi",                      hi:false },
+  { lang:"Russian",        flag:"🇷🇺", text:"Спасибо, Риши",                       hi:false },
+  { lang:"Japanese",       flag:"🇯🇵", text:"ありがとう、リシ",                     hi:false },
+  { lang:"Mandarin",       flag:"🇨🇳", text:"谢谢你，里希",                         hi:false },
+  { lang:"Korean",         flag:"🇰🇷", text:"감사합니다, 리시",                     hi:false },
+  { lang:"Arabic",         flag:"🇸🇦", text:"شكراً، ريشي",                         hi:false },
+  { lang:"Hindi",          flag:"🇮🇳", text:"धन्यवाद, ऋषि",                       hi:false },
+  { lang:"Bengali",        flag:"🇧🇩", text:"ধন্যবাদ, ঋষি",                       hi:false },
+  { lang:"Punjabi",        flag:"🇮🇳", text:"ਧੰਨਵਾਦ, ਰਿਸ਼ੀ",                     hi:false },
+  { lang:"Gujarati",       flag:"🇮🇳", text:"આભાર, ઋષિ",                          hi:false },
+  { lang:"Telugu",         flag:"🇮🇳", text:"ధన్యవాదాలు, రిషి",                   hi:false },
+  { lang:"Kannada",        flag:"🇮🇳", text:"ಧನ್ಯವಾದ, ರಿಷಿ",                     hi:false },
+  { lang:"Malayalam",      flag:"🇮🇳", text:"നന്ദി, ഋഷി",                         hi:false },
+  { lang:"Urdu",           flag:"🇵🇰", text:"شکریہ، رشی",                          hi:false },
+  { lang:"Swahili",        flag:"🇰🇪", text:"Asante, Rishi",                       hi:false },
+  { lang:"Turkish",        flag:"🇹🇷", text:"Teşekkürler, Rishi",                  hi:false },
+  { lang:"Polish",         flag:"🇵🇱", text:"Dziękuję, Rishi",                     hi:false },
+  { lang:"Swedish",        flag:"🇸🇪", text:"Tack, Rishi",                         hi:false },
+  { lang:"Norwegian",      flag:"🇳🇴", text:"Takk, Rishi",                         hi:false },
+  { lang:"Danish",         flag:"🇩🇰", text:"Tak, Rishi",                          hi:false },
+  { lang:"Finnish",        flag:"🇫🇮", text:"Kiitos, Rishi",                       hi:false },
+  { lang:"Greek",          flag:"🇬🇷", text:"Ευχαριστώ, Ρίσι",                    hi:false },
+  { lang:"Czech",          flag:"🇨🇿", text:"Děkuji, Rishi",                       hi:false },
+  { lang:"Slovak",         flag:"🇸🇰", text:"Ďakujem, Rishi",                      hi:false },
+  { lang:"Hungarian",      flag:"🇭🇺", text:"Köszönöm, Rishi",                     hi:false },
+  { lang:"Romanian",       flag:"🇷🇴", text:"Mulțumesc, Rishi",                    hi:false },
+  { lang:"Bulgarian",      flag:"🇧🇬", text:"Благодаря, Риши",                     hi:false },
+  { lang:"Croatian",       flag:"🇭🇷", text:"Hvala, Rishi",                        hi:false },
+  { lang:"Serbian",        flag:"🇷🇸", text:"Хвала, Риши",                         hi:false },
+  { lang:"Ukrainian",      flag:"🇺🇦", text:"Дякую, Ріші",                         hi:false },
+  { lang:"Lithuanian",     flag:"🇱🇹", text:"Ačiū, Rishi",                         hi:false },
+  { lang:"Latvian",        flag:"🇱🇻", text:"Paldies, Rishi",                      hi:false },
+  { lang:"Estonian",       flag:"🇪🇪", text:"Tänan, Rishi",                        hi:false },
+  { lang:"Icelandic",      flag:"🇮🇸", text:"Takk, Rishi",                         hi:false },
+  { lang:"Welsh",          flag:"🏴󠁧󠁢󠁷󠁬󠁳󠁿", text:"Diolch, Rishi",             hi:false },
+  { lang:"Irish",          flag:"🇮🇪", text:"Go raibh maith agat, Rishi",          hi:false },
+  { lang:"Sc. Gaelic",     flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿", text:"Tapadh leat, Rishi",        hi:false },
+  { lang:"Basque",         flag:"🇪🇸", text:"Eskerrik asko, Rishi",                hi:false },
+  { lang:"Catalan",        flag:"🇪🇸", text:"Gràcies, Rishi",                      hi:false },
+  { lang:"Galician",       flag:"🇪🇸", text:"Grazas, Rishi",                       hi:false },
+  { lang:"Indonesian",     flag:"🇮🇩", text:"Terima kasih, Rishi",                 hi:false },
+  { lang:"Malay",          flag:"🇲🇾", text:"Terima kasih, Rishi",                 hi:false },
+  { lang:"Filipino",       flag:"🇵🇭", text:"Salamat, Rishi",                      hi:false },
+  { lang:"Vietnamese",     flag:"🇻🇳", text:"Cảm ơn, Rishi",                       hi:false },
+  { lang:"Thai",           flag:"🇹🇭", text:"ขอบคุณ, ริชิ",                        hi:false },
+  { lang:"Burmese",        flag:"🇲🇲", text:"ကျေးဇူးတင်ပါတယ်, ရိဆိ",            hi:false },
+  { lang:"Khmer",          flag:"🇰🇭", text:"អរគុណ, រីស៊ី",                       hi:false },
+  { lang:"Lao",            flag:"🇱🇦", text:"ຂອບໃຈ, ລີຊີ",                       hi:false },
+  { lang:"Mongolian",      flag:"🇲🇳", text:"Баярлалаа, Риши",                     hi:false },
+  { lang:"Tibetan",        flag:"🇨🇳", text:"ཐུགས་རྗེ་ཆེ། རིཤི",                 hi:false },
+  { lang:"Nepali",         flag:"🇳🇵", text:"धन्यवाद, ऋषि",                       hi:false },
+  { lang:"Sinhala",        flag:"🇱🇰", text:"ස්තූතියි, රිෂි",                     hi:false },
+  { lang:"Amharic",        flag:"🇪🇹", text:"አመሰግናለሁ፣ ሪሺ",                      hi:false },
+  { lang:"Somali",         flag:"🇸🇴", text:"Mahadsanid, Rishi",                   hi:false },
+  { lang:"Hausa",          flag:"🇳🇬", text:"Na gode, Rishi",                      hi:false },
+  { lang:"Yoruba",         flag:"🇳🇬", text:"E dupe, Rishi",                       hi:false },
+  { lang:"Igbo",           flag:"🇳🇬", text:"Daalụ, Rishi",                        hi:false },
+  { lang:"Zulu",           flag:"🇿🇦", text:"Ngiyabonga, Rishi",                   hi:false },
+  { lang:"Xhosa",          flag:"🇿🇦", text:"Enkosi, Rishi",                       hi:false },
+  { lang:"Afrikaans",      flag:"🇿🇦", text:"Dankie, Rishi",                       hi:false },
+  { lang:"Malagasy",       flag:"🇲🇬", text:"Misaotra, Rishi",                     hi:false },
+  { lang:"Albanian",       flag:"🇦🇱", text:"Faleminderit, Rishi",                 hi:false },
+  { lang:"Armenian",       flag:"🇦🇲", text:"Շնորհակալություն, Ռիշի",             hi:false },
+  { lang:"Azerbaijani",    flag:"🇦🇿", text:"Təşəkkür edirəm, Rishi",             hi:false },
+  { lang:"Georgian",       flag:"🇬🇪", text:"გმადლობთ, რიში",                     hi:false },
+  { lang:"Kazakh",         flag:"🇰🇿", text:"Рахмет, Риши",                        hi:false },
+  { lang:"Uzbek",          flag:"🇺🇿", text:"Rahmat, Rishi",                       hi:false },
+  { lang:"Kyrgyz",         flag:"🇰🇬", text:"Рахмат, Риши",                        hi:false },
+  { lang:"Tajik",          flag:"🇹🇯", text:"Ташаккур, Риши",                      hi:false },
+  { lang:"Turkmen",        flag:"🇹🇲", text:"Sag bol, Rishi",                      hi:false },
+  { lang:"Pashto",         flag:"🇦🇫", text:"مننه، ريشي",                          hi:false },
+  { lang:"Persian",        flag:"🇮🇷", text:"ممنون، ریشی",                         hi:false },
+  { lang:"Hebrew",         flag:"🇮🇱", text:"תודה, רישי",                          hi:false },
+  { lang:"Kurdish",        flag:"🇮🇶", text:"Spas, Rishi",                         hi:false },
+  { lang:"Sindhi",         flag:"🇵🇰", text:"شڪريو، رشي",                          hi:false },
+  { lang:"Odia",           flag:"🇮🇳", text:"ଧନ୍ୟବାଦ, ଋଷି",                      hi:false },
+  { lang:"Assamese",       flag:"🇮🇳", text:"ধন্যবাদ, ঋষি",                       hi:false },
+  { lang:"Maithili",       flag:"🇮🇳", text:"धन्यवाद, ऋषि",                       hi:false },
+  { lang:"Konkani",        flag:"🇮🇳", text:"आभार, ऋषी",                          hi:false },
+  { lang:"Sanskrit",       flag:"🇮🇳", text:"धन्यवादः, ऋषे",                      hi:false },
+  { lang:"Latin",          flag:"🇻🇦", text:"Gratias tibi ago, Rishi",             hi:false },
+  { lang:"Esperanto",      flag:"🌍",  text:"Dankon, Rishi",                       hi:false },
+  { lang:"Luxembourgish",  flag:"🇱🇺", text:"Merci, Rishi",                        hi:false },
+  { lang:"Maltese",        flag:"🇲🇹", text:"Grazzi, Rishi",                       hi:false },
+  { lang:"Macedonian",     flag:"🇲🇰", text:"Благодарам, Риши",                    hi:false },
+  { lang:"Bosnian",        flag:"🇧🇦", text:"Hvala, Rishi",                        hi:false },
+  { lang:"Slovenian",      flag:"🇸🇮", text:"Hvala lepa, Rishi",                   hi:false },
+  { lang:"Belarusian",     flag:"🇧🇾", text:"Дзякуй, Рышы",                        hi:false },
+  { lang:"Cebuano",        flag:"🇵🇭", text:"Salamat kaayo, Rishi",                hi:false },
+  { lang:"Javanese",       flag:"🇮🇩", text:"Matur nuwun, Rishi",                  hi:false },
+  { lang:"Sundanese",      flag:"🇮🇩", text:"Hatur nuhun, Rishi",                  hi:false },
+  { lang:"Dogri",          flag:"🇮🇳", text:"शुक्रिया, ऋषि",                      hi:false },
+];
+
+const container = document.getElementById('collage');
+phrases.forEach(({ lang, flag, text, hi }, i) => {
+  const card = document.createElement('div');
+  card.className = 'card' + (hi ? ' hi' : '');
+  card.style.animationDelay = (0.12 + i * 0.025) + 's';
+  card.innerHTML =
+    `<span class="flag">${flag}</span>` +
+    `<span class="lang">${lang}</span>` +
+    `<p class="phrase">${text}</p>`;
+  container.appendChild(card);
+});
+</script>
+
+</body>
+</html>
