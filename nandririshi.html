@@ -56,7 +56,6 @@
       line-height: 1.1;
       color: var(--text);
     }
-
     header h1 .name { font-style: italic; color: var(--gold); }
 
     .rule-line {
@@ -107,7 +106,7 @@
                   box-shadow 0.28s ease;
     }
 
-    /* randomised rotation via nth-child */
+    /* randomised rotations */
     .card:nth-child(7n+1) { --r: -2.3deg; }
     .card:nth-child(7n+2) { --r:  1.7deg; }
     .card:nth-child(7n+3) { --r: -0.9deg; }
@@ -115,7 +114,6 @@
     .card:nth-child(7n+5) { --r: -1.8deg; }
     .card:nth-child(7n+6) { --r:  0.6deg; }
     .card:nth-child(7n)   { --r: -3.0deg; }
-
     .card { transform: rotate(var(--r, 0deg)); }
 
     .card:hover {
@@ -144,11 +142,18 @@
     .card:nth-child(5n+4) { background: #F4F3F8; }
     .card:nth-child(5n)   { background: #F8F3F2; }
 
-    /* ── Flag emoji ── */
-    .flag {
-      font-size: 2rem;
+    /* ── Flag image ── */
+    .flag-wrap {
+      margin-bottom: 10px;
       line-height: 1;
-      margin-bottom: 9px;
+    }
+
+    .flag-img {
+      width: 40px;
+      height: 27px;
+      object-fit: cover;
+      border-radius: 3px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.22);
       display: block;
     }
 
@@ -182,7 +187,10 @@
         0 2px 6px rgba(0,0,0,0.08);
     }
     .card.hi::before { background: rgba(176,125,58,0.55); width: 52px; }
-    .card.hi .flag   { font-size: 2.6rem; }
+    .card.hi .flag-img {
+      width: 48px;
+      height: 32px;
+    }
     .card.hi .lang   { color: var(--gold-lt); font-weight: 600; font-size: 0.84rem; }
     .card.hi .phrase { font-size: 1.05rem; font-weight: 500; color: var(--gold); }
 
@@ -201,7 +209,7 @@
       text-align: center;
       margin-top: 64px;
       opacity: 0;
-      animation: fadeDown 0.8s ease 2.6s forwards;
+      animation: fadeDown 0.8s ease 2.8s forwards;
     }
     footer p {
       font-family: 'Caveat', cursive;
@@ -214,9 +222,9 @@
     @media (max-width: 640px) {
       .collage { columns: 2 150px; column-gap: 10px; padding: 0 10px; }
       .card { padding: 12px 10px 20px; margin-bottom: 10px; }
-      .flag { font-size: 1.6rem; }
+      .flag-img { width: 32px; height: 21px; }
       .phrase { font-size: 0.8rem; }
-      .card.hi .flag { font-size: 2rem; }
+      .card.hi .flag-img { width: 38px; height: 25px; }
       .card.hi .phrase { font-size: 0.9rem; }
     }
   </style>
@@ -224,7 +232,7 @@
 <body>
 
 <header>
-  <p class="hero-sub">a message of gratitude · 100 voices</p>
+  <p class="hero-sub">a message of gratitude &nbsp;&middot;&nbsp; 100 voices</p>
   <h1>Thank you, <span class="name">Rishi</span></h1>
   <div class="rule-line">
     <hr /><span>across every language on earth</span><hr />
@@ -236,124 +244,134 @@
 </main>
 
 <footer>
-  <p>✦ &nbsp;100 languages &nbsp;·&nbsp; one heart&nbsp; ✦</p>
+  <p>&#10022; &nbsp;100 languages &nbsp;&middot;&nbsp; one heart&nbsp; &#10022;</p>
 </footer>
 
 <script>
-const phrases = [
-  { lang:"English",        flag:"🇬🇧", text:"Thank you, Rishi",                   hi:true  },
-  { lang:"Tamil",          flag:"🇮🇳", text:"நன்றி, ரிஷி",                        hi:true  },
-  { lang:"Marathi",        flag:"🇮🇳", text:"धन्यवाद, ऋषी",                       hi:true  },
-  { lang:"Spanish",        flag:"🇪🇸", text:"Gracias, Rishi",                      hi:true  },
-  { lang:"French",         flag:"🇫🇷", text:"Merci, Rishi",                        hi:false },
-  { lang:"German",         flag:"🇩🇪", text:"Danke, Rishi",                        hi:false },
-  { lang:"Italian",        flag:"🇮🇹", text:"Grazie, Rishi",                       hi:false },
-  { lang:"Portuguese",     flag:"🇵🇹", text:"Obrigado, Rishi",                     hi:false },
-  { lang:"Dutch",          flag:"🇳🇱", text:"Dank je, Rishi",                      hi:false },
-  { lang:"Russian",        flag:"🇷🇺", text:"Спасибо, Риши",                       hi:false },
-  { lang:"Japanese",       flag:"🇯🇵", text:"ありがとう、リシ",                     hi:false },
-  { lang:"Mandarin",       flag:"🇨🇳", text:"谢谢你，里希",                         hi:false },
-  { lang:"Korean",         flag:"🇰🇷", text:"감사합니다, 리시",                     hi:false },
-  { lang:"Arabic",         flag:"🇸🇦", text:"شكراً، ريشي",                         hi:false },
-  { lang:"Hindi",          flag:"🇮🇳", text:"धन्यवाद, ऋषि",                       hi:false },
-  { lang:"Bengali",        flag:"🇧🇩", text:"ধন্যবাদ, ঋষি",                       hi:false },
-  { lang:"Punjabi",        flag:"🇮🇳", text:"ਧੰਨਵਾਦ, ਰਿਸ਼ੀ",                     hi:false },
-  { lang:"Gujarati",       flag:"🇮🇳", text:"આભાર, ઋષિ",                          hi:false },
-  { lang:"Telugu",         flag:"🇮🇳", text:"ధన్యవాదాలు, రిషి",                   hi:false },
-  { lang:"Kannada",        flag:"🇮🇳", text:"ಧನ್ಯವಾದ, ರಿಷಿ",                     hi:false },
-  { lang:"Malayalam",      flag:"🇮🇳", text:"നന്ദി, ഋഷി",                         hi:false },
-  { lang:"Urdu",           flag:"🇵🇰", text:"شکریہ، رشی",                          hi:false },
-  { lang:"Swahili",        flag:"🇰🇪", text:"Asante, Rishi",                       hi:false },
-  { lang:"Turkish",        flag:"🇹🇷", text:"Teşekkürler, Rishi",                  hi:false },
-  { lang:"Polish",         flag:"🇵🇱", text:"Dziękuję, Rishi",                     hi:false },
-  { lang:"Swedish",        flag:"🇸🇪", text:"Tack, Rishi",                         hi:false },
-  { lang:"Norwegian",      flag:"🇳🇴", text:"Takk, Rishi",                         hi:false },
-  { lang:"Danish",         flag:"🇩🇰", text:"Tak, Rishi",                          hi:false },
-  { lang:"Finnish",        flag:"🇫🇮", text:"Kiitos, Rishi",                       hi:false },
-  { lang:"Greek",          flag:"🇬🇷", text:"Ευχαριστώ, Ρίσι",                    hi:false },
-  { lang:"Czech",          flag:"🇨🇿", text:"Děkuji, Rishi",                       hi:false },
-  { lang:"Slovak",         flag:"🇸🇰", text:"Ďakujem, Rishi",                      hi:false },
-  { lang:"Hungarian",      flag:"🇭🇺", text:"Köszönöm, Rishi",                     hi:false },
-  { lang:"Romanian",       flag:"🇷🇴", text:"Mulțumesc, Rishi",                    hi:false },
-  { lang:"Bulgarian",      flag:"🇧🇬", text:"Благодаря, Риши",                     hi:false },
-  { lang:"Croatian",       flag:"🇭🇷", text:"Hvala, Rishi",                        hi:false },
-  { lang:"Serbian",        flag:"🇷🇸", text:"Хвала, Риши",                         hi:false },
-  { lang:"Ukrainian",      flag:"🇺🇦", text:"Дякую, Ріші",                         hi:false },
-  { lang:"Lithuanian",     flag:"🇱🇹", text:"Ačiū, Rishi",                         hi:false },
-  { lang:"Latvian",        flag:"🇱🇻", text:"Paldies, Rishi",                      hi:false },
-  { lang:"Estonian",       flag:"🇪🇪", text:"Tänan, Rishi",                        hi:false },
-  { lang:"Icelandic",      flag:"🇮🇸", text:"Takk, Rishi",                         hi:false },
-  { lang:"Welsh",          flag:"🏴󠁧󠁢󠁷󠁬󠁳󠁿", text:"Diolch, Rishi",             hi:false },
-  { lang:"Irish",          flag:"🇮🇪", text:"Go raibh maith agat, Rishi",          hi:false },
-  { lang:"Sc. Gaelic",     flag:"🏴󠁧󠁢󠁳󠁣󠁴󠁿", text:"Tapadh leat, Rishi",        hi:false },
-  { lang:"Basque",         flag:"🇪🇸", text:"Eskerrik asko, Rishi",                hi:false },
-  { lang:"Catalan",        flag:"🇪🇸", text:"Gràcies, Rishi",                      hi:false },
-  { lang:"Galician",       flag:"🇪🇸", text:"Grazas, Rishi",                       hi:false },
-  { lang:"Indonesian",     flag:"🇮🇩", text:"Terima kasih, Rishi",                 hi:false },
-  { lang:"Malay",          flag:"🇲🇾", text:"Terima kasih, Rishi",                 hi:false },
-  { lang:"Filipino",       flag:"🇵🇭", text:"Salamat, Rishi",                      hi:false },
-  { lang:"Vietnamese",     flag:"🇻🇳", text:"Cảm ơn, Rishi",                       hi:false },
-  { lang:"Thai",           flag:"🇹🇭", text:"ขอบคุณ, ริชิ",                        hi:false },
-  { lang:"Burmese",        flag:"🇲🇲", text:"ကျေးဇူးတင်ပါတယ်, ရိဆိ",            hi:false },
-  { lang:"Khmer",          flag:"🇰🇭", text:"អរគុណ, រីស៊ី",                       hi:false },
-  { lang:"Lao",            flag:"🇱🇦", text:"ຂອບໃຈ, ລີຊີ",                       hi:false },
-  { lang:"Mongolian",      flag:"🇲🇳", text:"Баярлалаа, Риши",                     hi:false },
-  { lang:"Tibetan",        flag:"🇨🇳", text:"ཐུགས་རྗེ་ཆེ། རིཤི",                 hi:false },
-  { lang:"Nepali",         flag:"🇳🇵", text:"धन्यवाद, ऋषि",                       hi:false },
-  { lang:"Sinhala",        flag:"🇱🇰", text:"ස්තූතියි, රිෂි",                     hi:false },
-  { lang:"Amharic",        flag:"🇪🇹", text:"አመሰግናለሁ፣ ሪሺ",                      hi:false },
-  { lang:"Somali",         flag:"🇸🇴", text:"Mahadsanid, Rishi",                   hi:false },
-  { lang:"Hausa",          flag:"🇳🇬", text:"Na gode, Rishi",                      hi:false },
-  { lang:"Yoruba",         flag:"🇳🇬", text:"E dupe, Rishi",                       hi:false },
-  { lang:"Igbo",           flag:"🇳🇬", text:"Daalụ, Rishi",                        hi:false },
-  { lang:"Zulu",           flag:"🇿🇦", text:"Ngiyabonga, Rishi",                   hi:false },
-  { lang:"Xhosa",          flag:"🇿🇦", text:"Enkosi, Rishi",                       hi:false },
-  { lang:"Afrikaans",      flag:"🇿🇦", text:"Dankie, Rishi",                       hi:false },
-  { lang:"Malagasy",       flag:"🇲🇬", text:"Misaotra, Rishi",                     hi:false },
-  { lang:"Albanian",       flag:"🇦🇱", text:"Faleminderit, Rishi",                 hi:false },
-  { lang:"Armenian",       flag:"🇦🇲", text:"Շնորհակալություն, Ռիշի",             hi:false },
-  { lang:"Azerbaijani",    flag:"🇦🇿", text:"Təşəkkür edirəm, Rishi",             hi:false },
-  { lang:"Georgian",       flag:"🇬🇪", text:"გმადლობთ, რიში",                     hi:false },
-  { lang:"Kazakh",         flag:"🇰🇿", text:"Рахмет, Риши",                        hi:false },
-  { lang:"Uzbek",          flag:"🇺🇿", text:"Rahmat, Rishi",                       hi:false },
-  { lang:"Kyrgyz",         flag:"🇰🇬", text:"Рахмат, Риши",                        hi:false },
-  { lang:"Tajik",          flag:"🇹🇯", text:"Ташаккур, Риши",                      hi:false },
-  { lang:"Turkmen",        flag:"🇹🇲", text:"Sag bol, Rishi",                      hi:false },
-  { lang:"Pashto",         flag:"🇦🇫", text:"مننه، ريشي",                          hi:false },
-  { lang:"Persian",        flag:"🇮🇷", text:"ممنون، ریشی",                         hi:false },
-  { lang:"Hebrew",         flag:"🇮🇱", text:"תודה, רישי",                          hi:false },
-  { lang:"Kurdish",        flag:"🇮🇶", text:"Spas, Rishi",                         hi:false },
-  { lang:"Sindhi",         flag:"🇵🇰", text:"شڪريو، رشي",                          hi:false },
-  { lang:"Odia",           flag:"🇮🇳", text:"ଧନ୍ୟବାଦ, ଋଷି",                      hi:false },
-  { lang:"Assamese",       flag:"🇮🇳", text:"ধন্যবাদ, ঋষি",                       hi:false },
-  { lang:"Maithili",       flag:"🇮🇳", text:"धन्यवाद, ऋषि",                       hi:false },
-  { lang:"Konkani",        flag:"🇮🇳", text:"आभार, ऋषी",                          hi:false },
-  { lang:"Sanskrit",       flag:"🇮🇳", text:"धन्यवादः, ऋषे",                      hi:false },
-  { lang:"Latin",          flag:"🇻🇦", text:"Gratias tibi ago, Rishi",             hi:false },
-  { lang:"Esperanto",      flag:"🌍",  text:"Dankon, Rishi",                       hi:false },
-  { lang:"Luxembourgish",  flag:"🇱🇺", text:"Merci, Rishi",                        hi:false },
-  { lang:"Maltese",        flag:"🇲🇹", text:"Grazzi, Rishi",                       hi:false },
-  { lang:"Macedonian",     flag:"🇲🇰", text:"Благодарам, Риши",                    hi:false },
-  { lang:"Bosnian",        flag:"🇧🇦", text:"Hvala, Rishi",                        hi:false },
-  { lang:"Slovenian",      flag:"🇸🇮", text:"Hvala lepa, Rishi",                   hi:false },
-  { lang:"Belarusian",     flag:"🇧🇾", text:"Дзякуй, Рышы",                        hi:false },
-  { lang:"Cebuano",        flag:"🇵🇭", text:"Salamat kaayo, Rishi",                hi:false },
-  { lang:"Javanese",       flag:"🇮🇩", text:"Matur nuwun, Rishi",                  hi:false },
-  { lang:"Sundanese",      flag:"🇮🇩", text:"Hatur nuhun, Rishi",                  hi:false },
-  { lang:"Dogri",          flag:"🇮🇳", text:"शुक्रिया, ऋषि",                      hi:false },
-];
+  // flagcdn.com country codes — free, no API key, works on GitHub Pages
+  const CDN = "https://flagcdn.com/w80/";
 
-const container = document.getElementById('collage');
-phrases.forEach(({ lang, flag, text, hi }, i) => {
-  const card = document.createElement('div');
-  card.className = 'card' + (hi ? ' hi' : '');
-  card.style.animationDelay = (0.12 + i * 0.025) + 's';
-  card.innerHTML =
-    `<span class="flag">${flag}</span>` +
-    `<span class="lang">${lang}</span>` +
-    `<p class="phrase">${text}</p>`;
-  container.appendChild(card);
-});
+  const phrases = [
+    { lang:"English",        code:"gb",     text:"Thank you, Rishi",                   hi:true  },
+    { lang:"Tamil",          code:"in",     text:"நன்றி, ரிஷி",                        hi:true  },
+    { lang:"Marathi",        code:"in",     text:"धन्यवाद, ऋषी",                       hi:true  },
+    { lang:"Spanish",        code:"es",     text:"Gracias, Rishi",                      hi:true  },
+    { lang:"French",         code:"fr",     text:"Merci, Rishi",                        hi:false },
+    { lang:"German",         code:"de",     text:"Danke, Rishi",                        hi:false },
+    { lang:"Italian",        code:"it",     text:"Grazie, Rishi",                       hi:false },
+    { lang:"Portuguese",     code:"pt",     text:"Obrigado, Rishi",                     hi:false },
+    { lang:"Dutch",          code:"nl",     text:"Dank je, Rishi",                      hi:false },
+    { lang:"Russian",        code:"ru",     text:"Спасибо, Риши",                       hi:false },
+    { lang:"Japanese",       code:"jp",     text:"ありがとう、リシ",                     hi:false },
+    { lang:"Mandarin",       code:"cn",     text:"谢谢你，里希",                         hi:false },
+    { lang:"Korean",         code:"kr",     text:"감사합니다, 리시",                     hi:false },
+    { lang:"Arabic",         code:"sa",     text:"شكراً، ريشي",                         hi:false },
+    { lang:"Hindi",          code:"in",     text:"धन्यवाद, ऋषि",                       hi:false },
+    { lang:"Bengali",        code:"bd",     text:"ধন্যবাদ, ঋষি",                       hi:false },
+    { lang:"Punjabi",        code:"in",     text:"ਧੰਨਵਾਦ, ਰਿਸ਼ੀ",                     hi:false },
+    { lang:"Gujarati",       code:"in",     text:"આભાર, ઋષિ",                          hi:false },
+    { lang:"Telugu",         code:"in",     text:"ధన్యవాదాలు, రిషి",                   hi:false },
+    { lang:"Kannada",        code:"in",     text:"ಧನ್ಯವಾದ, ರಿಷಿ",                     hi:false },
+    { lang:"Malayalam",      code:"in",     text:"നന്ദി, ഋഷി",                         hi:false },
+    { lang:"Urdu",           code:"pk",     text:"شکریہ، رشی",                          hi:false },
+    { lang:"Swahili",        code:"ke",     text:"Asante, Rishi",                       hi:false },
+    { lang:"Turkish",        code:"tr",     text:"Tesekkurler, Rishi",                  hi:false },
+    { lang:"Polish",         code:"pl",     text:"Dziekuje, Rishi",                     hi:false },
+    { lang:"Swedish",        code:"se",     text:"Tack, Rishi",                         hi:false },
+    { lang:"Norwegian",      code:"no",     text:"Takk, Rishi",                         hi:false },
+    { lang:"Danish",         code:"dk",     text:"Tak, Rishi",                          hi:false },
+    { lang:"Finnish",        code:"fi",     text:"Kiitos, Rishi",                       hi:false },
+    { lang:"Greek",          code:"gr",     text:"Efcharisto, Risi",                    hi:false },
+    { lang:"Czech",          code:"cz",     text:"Dekuji, Rishi",                       hi:false },
+    { lang:"Slovak",         code:"sk",     text:"Dakujem, Rishi",                      hi:false },
+    { lang:"Hungarian",      code:"hu",     text:"Köszönöm, Rishi",                     hi:false },
+    { lang:"Romanian",       code:"ro",     text:"Multumesc, Rishi",                    hi:false },
+    { lang:"Bulgarian",      code:"bg",     text:"Blagodarya, Rishi",                   hi:false },
+    { lang:"Croatian",       code:"hr",     text:"Hvala, Rishi",                        hi:false },
+    { lang:"Serbian",        code:"rs",     text:"Hvala, Rishi",                        hi:false },
+    { lang:"Ukrainian",      code:"ua",     text:"Dyakuyu, Rishi",                      hi:false },
+    { lang:"Lithuanian",     code:"lt",     text:"Aciu, Rishi",                         hi:false },
+    { lang:"Latvian",        code:"lv",     text:"Paldies, Rishi",                      hi:false },
+    { lang:"Estonian",       code:"ee",     text:"Tänan, Rishi",                        hi:false },
+    { lang:"Icelandic",      code:"is",     text:"Takk, Rishi",                         hi:false },
+    { lang:"Welsh",          code:"gb-wls", text:"Diolch, Rishi",                       hi:false },
+    { lang:"Irish",          code:"ie",     text:"Go raibh maith agat, Rishi",          hi:false },
+    { lang:"Sc. Gaelic",     code:"gb-sct", text:"Tapadh leat, Rishi",                  hi:false },
+    { lang:"Basque",         code:"es",     text:"Eskerrik asko, Rishi",                hi:false },
+    { lang:"Catalan",        code:"es-ct",  text:"Gracies, Rishi",                      hi:false },
+    { lang:"Galician",       code:"es-ga",  text:"Grazas, Rishi",                       hi:false },
+    { lang:"Indonesian",     code:"id",     text:"Terima kasih, Rishi",                 hi:false },
+    { lang:"Malay",          code:"my",     text:"Terima kasih, Rishi",                 hi:false },
+    { lang:"Filipino",       code:"ph",     text:"Salamat, Rishi",                      hi:false },
+    { lang:"Vietnamese",     code:"vn",     text:"Cam on, Rishi",                       hi:false },
+    { lang:"Thai",           code:"th",     text:"ขอบคุณ, ริชิ",                        hi:false },
+    { lang:"Burmese",        code:"mm",     text:"Kyay zu tin ba de, Rishi",            hi:false },
+    { lang:"Khmer",          code:"kh",     text:"Orkun, Rishi",                        hi:false },
+    { lang:"Lao",            code:"la",     text:"Khop chai, Rishi",                    hi:false },
+    { lang:"Mongolian",      code:"mn",     text:"Bayarlalaa, Rishi",                   hi:false },
+    { lang:"Tibetan",        code:"cn",     text:"Thugs rje che, Rishi",                hi:false },
+    { lang:"Nepali",         code:"np",     text:"Dhanyabad, Rishi",                    hi:false },
+    { lang:"Sinhala",        code:"lk",     text:"Sthuthiyi, Rishi",                    hi:false },
+    { lang:"Amharic",        code:"et",     text:"Amesegnalehu, Rishi",                 hi:false },
+    { lang:"Somali",         code:"so",     text:"Mahadsanid, Rishi",                   hi:false },
+    { lang:"Hausa",          code:"ng",     text:"Na gode, Rishi",                      hi:false },
+    { lang:"Yoruba",         code:"ng",     text:"E dupe, Rishi",                       hi:false },
+    { lang:"Igbo",           code:"ng",     text:"Daalu, Rishi",                        hi:false },
+    { lang:"Zulu",           code:"za",     text:"Ngiyabonga, Rishi",                   hi:false },
+    { lang:"Xhosa",          code:"za",     text:"Enkosi, Rishi",                       hi:false },
+    { lang:"Afrikaans",      code:"za",     text:"Dankie, Rishi",                       hi:false },
+    { lang:"Malagasy",       code:"mg",     text:"Misaotra, Rishi",                     hi:false },
+    { lang:"Albanian",       code:"al",     text:"Faleminderit, Rishi",                 hi:false },
+    { lang:"Armenian",       code:"am",     text:"Shnorhakalutyun, Rishi",              hi:false },
+    { lang:"Azerbaijani",    code:"az",     text:"Teshekkur edirem, Rishi",             hi:false },
+    { lang:"Georgian",       code:"ge",     text:"Gmadlobt, Rishi",                     hi:false },
+    { lang:"Kazakh",         code:"kz",     text:"Rakhmet, Rishi",                      hi:false },
+    { lang:"Uzbek",          code:"uz",     text:"Rahmat, Rishi",                       hi:false },
+    { lang:"Kyrgyz",         code:"kg",     text:"Rakhmat, Rishi",                      hi:false },
+    { lang:"Tajik",          code:"tj",     text:"Tashakkur, Rishi",                    hi:false },
+    { lang:"Turkmen",        code:"tm",     text:"Sag bol, Rishi",                      hi:false },
+    { lang:"Pashto",         code:"af",     text:"Manana, Rishi",                       hi:false },
+    { lang:"Persian",        code:"ir",     text:"Mamnoon, Rishi",                      hi:false },
+    { lang:"Hebrew",         code:"il",     text:"Toda, Rishi",                         hi:false },
+    { lang:"Kurdish",        code:"iq",     text:"Spas, Rishi",                         hi:false },
+    { lang:"Sindhi",         code:"pk",     text:"Shukriya, Rishi",                     hi:false },
+    { lang:"Odia",           code:"in",     text:"Dhanyabada, Rishi",                   hi:false },
+    { lang:"Assamese",       code:"in",     text:"Dhanyabad, Rishi",                    hi:false },
+    { lang:"Maithili",       code:"in",     text:"Dhanyawad, Rishi",                    hi:false },
+    { lang:"Konkani",        code:"in",     text:"Aabhar, Rishi",                       hi:false },
+    { lang:"Sanskrit",       code:"in",     text:"Dhanyavadah, Rishe",                  hi:false },
+    { lang:"Latin",          code:"va",     text:"Gratias tibi ago, Rishi",             hi:false },
+    { lang:"Esperanto",      code:"un",     text:"Dankon, Rishi",                       hi:false },
+    { lang:"Luxembourgish",  code:"lu",     text:"Merci, Rishi",                        hi:false },
+    { lang:"Maltese",        code:"mt",     text:"Grazzi, Rishi",                       hi:false },
+    { lang:"Macedonian",     code:"mk",     text:"Blagodaram, Rishi",                   hi:false },
+    { lang:"Bosnian",        code:"ba",     text:"Hvala, Rishi",                        hi:false },
+    { lang:"Slovenian",      code:"si",     text:"Hvala lepa, Rishi",                   hi:false },
+    { lang:"Belarusian",     code:"by",     text:"Dziakuy, Rishi",                      hi:false },
+    { lang:"Cebuano",        code:"ph",     text:"Salamat kaayo, Rishi",                hi:false },
+    { lang:"Javanese",       code:"id",     text:"Matur nuwun, Rishi",                  hi:false },
+    { lang:"Sundanese",      code:"id",     text:"Hatur nuhun, Rishi",                  hi:false },
+    { lang:"Dogri",          code:"in",     text:"Shukriya, Rishi",                     hi:false },
+  ];
+
+  const container = document.getElementById('collage');
+
+  phrases.forEach(({ lang, code, text, hi }, i) => {
+    const card = document.createElement('div');
+    card.className = 'card' + (hi ? ' hi' : '');
+    card.style.animationDelay = (0.12 + i * 0.025) + 's';
+
+    const flagSrc = CDN + code + '.png';
+
+    card.innerHTML =
+      `<div class="flag-wrap">
+         <img class="flag-img" src="${flagSrc}" alt="${lang} flag" loading="lazy" />
+       </div>` +
+      `<span class="lang">${lang}</span>` +
+      `<p class="phrase">${text}</p>`;
+
+    container.appendChild(card);
+  });
 </script>
 
 </body>
