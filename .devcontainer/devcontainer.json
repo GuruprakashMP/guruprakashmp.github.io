@@ -1,6 +1,6 @@
 {
     "name": "ACADEMIC PAGES",
-    "dockerComposeFile": "../docker-compose.yaml",
+    "dockerComposeFile": "../docker-compose.yaml",       
     "service": "jekyll-site",
     "remoteEnv": {
         "VSCODE_SERVER_DIR": "/home/vscode/.vscode-server"
