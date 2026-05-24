@@ -1,7 +1,7 @@
 name: Scrape Talk Locations
 
 on:
-  push:
+  push:      
     paths:
       - 'talks/**'
       - '_talks/**'
