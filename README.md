@@ -4,7 +4,7 @@ This is the source code for my personal academic website hosted at **[guruprakas
 
 ---    
 
-## About Meee
+## About Me
 
 I am a **Marie Curie PhD Fellow** in the [CATALOOP Doctoral Network](https://www.tu-chemnitz.de/cataloop/) at [CiQUS, University of Santiago de Compostela](https://www.usc.es/ciqus/en), Spain, under the supervision of [Prof. Martín Fañanás-Mastral](https://fananasmastralgroup.com/).
 
