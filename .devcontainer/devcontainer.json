@@ -1,4 +1,4 @@
-{     
+{          
     "name": "ACADEMIC PAGES",      
     "dockerComposeFile": "../docker-compose.yaml",       
     "service": "jekyll-site",
