@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MolVis — Unified Structure Viewer</title>
+<title>MolVis Pro</title>
 <script src="https://3dmol.org/build/3Dmol-min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -22,215 +22,74 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:var(--ui);color:var(--text);display:flex;flex-direction:column}
-
-/* ══ TOP PANEL ══ */
-#top{
-  display:grid;grid-template-columns:1fr 1fr;gap:10px;
-  padding:10px 12px 0;flex-shrink:0;
-}
-
-/* paste side */
-.panel-box{
-  background:var(--bg1);border:1px solid var(--border);border-radius:10px;
-  padding:10px;display:flex;flex-direction:column;gap:6px;
-  min-height:0;
-}
-.panel-label{
-  font-family:var(--mono);font-size:0.58rem;font-weight:600;
-  letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);
-  display:flex;align-items:center;gap:6px;
-}
+#top{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 12px 0;flex-shrink:0}
+.panel-box{background:var(--bg1);border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:6px}
+.panel-label{font-family:var(--mono);font-size:0.58rem;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:var(--text3);display:flex;align-items:center;gap:6px}
 .panel-label::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--accent);flex-shrink:0}
 .panel-label.gold::before{background:var(--gold)}
-
-textarea#paste-box{
-  flex:1;resize:none;background:var(--bg2);
-  border:1px solid var(--border);border-radius:7px;
-  color:var(--text);font-family:var(--mono);font-size:0.7rem;
-  padding:8px;outline:none;line-height:1.6;min-height:88px;max-height:140px;
-  transition:border-color 0.15s;
-}
+textarea#paste-box{flex:1;resize:none;background:var(--bg2);border:1px solid var(--border);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:0.7rem;padding:8px;outline:none;line-height:1.6;min-height:88px;max-height:140px;transition:border-color 0.15s}
 textarea#paste-box:focus{border-color:var(--accent)}
 textarea#paste-box::placeholder{color:var(--text3)}
-
-/* upload side */
-#upload-zone{
-  flex:1;border:1.5px dashed var(--border2);border-radius:8px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:pointer;transition:all 0.2s;padding:10px;text-align:center;
-  background:var(--bg2);position:relative;overflow:hidden;min-height:88px;
-}
-#upload-zone::after{
-  content:'';position:absolute;inset:0;
-  background:radial-gradient(circle at 50% 50%,rgba(58,240,200,0.03) 0%,transparent 70%);
-  pointer-events:none;
-}
-#upload-zone:hover,#upload-zone.over{
-  border-color:var(--accent);background:rgba(58,240,200,0.03);
-}
-#upload-zone.gold-over{border-color:var(--gold);background:rgba(245,200,66,0.03);}
+#upload-zone{flex:1;border:1.5px dashed var(--border2);border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all 0.2s;padding:10px;text-align:center;background:var(--bg2);position:relative;overflow:hidden;min-height:88px}
+#upload-zone:hover,#upload-zone.over{border-color:var(--accent);background:rgba(58,240,200,0.03)}
 .uz-icon{font-size:1.6rem;margin-bottom:3px;line-height:1}
 .uz-text{font-family:var(--mono);font-size:0.68rem;color:var(--text2)}
 .uz-text strong{color:var(--accent);cursor:pointer}
-.uz-formats{
-  display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin-top:5px;
-}
-.uz-tag{
-  font-family:var(--mono);font-size:0.56rem;padding:1px 6px;border-radius:3px;
-  border:1px solid var(--border2);color:var(--text3);
-}
+.uz-formats{display:flex;gap:3px;flex-wrap:wrap;justify-content:center;margin-top:5px}
+.uz-tag{font-family:var(--mono);font-size:0.56rem;padding:1px 6px;border-radius:3px;border:1px solid var(--border2);color:var(--text3)}
 .uz-tag.hi{border-color:rgba(58,240,200,0.25);color:var(--accent2)}
 .uz-tag.gold{border-color:rgba(245,200,66,0.25);color:var(--gold2)}
-
-/* active file badge inside upload zone */
-#file-badge{
-  display:none;flex-direction:column;align-items:center;gap:4px;
-  width:100%;
-}
-.fb-name{
-  font-family:var(--mono);font-size:0.7rem;color:var(--accent);
-  font-weight:600;text-align:center;max-width:100%;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
+#file-badge{display:none;flex-direction:column;align-items:center;gap:3px;width:100%}
+.fb-name{font-family:var(--mono);font-size:0.7rem;color:var(--accent);font-weight:600;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fb-meta{font-family:var(--mono);font-size:0.6rem;color:var(--text2)}
-.fb-clear{
-  font-family:var(--mono);font-size:0.58rem;color:var(--text3);
-  cursor:pointer;transition:color 0.15s;padding:2px 8px;
-  border:1px solid var(--border2);border-radius:4px;margin-top:2px;
-}
+.fb-clear{font-family:var(--mono);font-size:0.58rem;color:var(--text3);cursor:pointer;padding:2px 8px;border:1px solid var(--border2);border-radius:4px;margin-top:2px;transition:color 0.15s}
 .fb-clear:hover{color:var(--red);border-color:var(--red)}
-.fb-progress{
-  width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px;
-}
+.fb-progress{width:100%;height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:4px}
 .fb-prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));width:0%;transition:width 0.1s}
 .fb-prog-msg{font-family:var(--mono);font-size:0.58rem;color:var(--gold);margin-top:2px}
-
 input[type=file]{display:none}
-
-/* ══ TOOLBAR ══ */
-#toolbar{
-  display:flex;align-items:center;gap:6px;padding:6px 12px;
-  background:var(--bg1);border-top:1px solid var(--border);
-  border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;
-  margin-top:10px;
-}
+#toolbar{display:flex;align-items:center;gap:5px;padding:5px 12px;background:var(--bg1);border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;margin-top:10px}
 .tb-sep{width:1px;height:18px;background:var(--border2);flex-shrink:0;margin:0 2px}
 .tb-label{font-family:var(--mono);font-size:0.56rem;color:var(--text3);letter-spacing:0.1em;white-space:nowrap}
-select.tb-sel{
-  background:var(--bg2);border:1px solid var(--border);border-radius:5px;
-  color:var(--text);font-family:var(--mono);font-size:0.67rem;
-  padding:4px 7px;outline:none;cursor:pointer;
-}
+select.tb-sel{background:var(--bg2);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:var(--mono);font-size:0.67rem;padding:4px 6px;outline:none;cursor:pointer}
 select.tb-sel:focus{border-color:var(--accent)}
-.tbtog{
-  padding:4px 10px;border-radius:5px;border:1px solid var(--border2);
-  background:var(--bg2);color:var(--text2);font-family:var(--mono);
-  font-size:0.65rem;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;
-}
+.tbtog{padding:4px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:var(--mono);font-size:0.65rem;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap}
 .tbtog:hover{border-color:var(--accent);color:var(--accent)}
 .tbtog.on{border-color:var(--accent);color:var(--accent);background:rgba(58,240,200,0.08)}
-.tbbtn{
-  padding:4px 10px;border-radius:5px;border:1px solid var(--border2);
-  background:var(--bg2);color:var(--text2);font-family:var(--mono);
-  font-size:0.65rem;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap;
-}
+.tbbtn{padding:4px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:var(--mono);font-size:0.65rem;font-weight:500;cursor:pointer;transition:all 0.15s;white-space:nowrap}
 .tbbtn:hover{border-color:var(--accent);color:var(--accent)}
 .tbbtn.red:hover{border-color:var(--red);color:var(--red)}
-/* status pill in toolbar */
-#tb-status{
-  font-family:var(--mono);font-size:0.62rem;padding:3px 10px;
-  border-radius:4px;display:none;max-width:260px;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-}
+.tbbtn.gold:hover{border-color:var(--gold);color:var(--gold)}
+#tb-status{font-family:var(--mono);font-size:0.62rem;padding:3px 10px;border-radius:4px;display:none;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #tb-status.ok{display:block;background:rgba(58,240,200,0.08);border:1px solid var(--accent2);color:var(--accent)}
 #tb-status.err{display:block;background:rgba(255,74,107,0.08);border:1px solid var(--red);color:var(--red)}
 #tb-status.inf{display:block;background:rgba(74,158,255,0.08);border:1px solid var(--blue);color:var(--blue)}
-/* spacer */
 .tb-spacer{flex:1}
-
-/* ══ VIEWER WRAP ══ */
 #viewer-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
 #viewer{width:100%;height:100%;background:#010409}
-/* placeholder */
-#ph{
-  position:absolute;inset:0;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  pointer-events:none;gap:10px;
-}
+#ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:10px}
 .ph-mol{font-size:5rem;opacity:0.07;animation:bob 5s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-12px) rotate(3deg)}}
 .ph-text{font-family:var(--mono);font-size:0.75rem;color:var(--border2)}
 .ph-sub{font-family:var(--mono);font-size:0.58rem;color:var(--text3);margin-top:-4px}
-
-/* ══ VIEWER OVERLAY — structure info (bottom-left) ══ */
-#overlay{
-  position:absolute;bottom:14px;left:14px;z-index:50;
-  background:rgba(7,9,15,0.82);backdrop-filter:blur(8px);
-  border:1px solid var(--border2);border-radius:8px;
-  padding:8px 12px;display:none;max-width:340px;
-}
-.ov-name{
-  font-family:var(--mono);font-size:0.72rem;font-weight:600;
-  color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  max-width:300px;
-}
-.ov-meta{
-  font-family:var(--mono);font-size:0.62rem;color:var(--text2);margin-top:3px;
-  display:flex;gap:10px;flex-wrap:wrap;
-}
+#overlay{position:absolute;bottom:14px;left:14px;z-index:50;background:rgba(7,9,15,0.85);backdrop-filter:blur(8px);border:1px solid var(--border2);border-radius:8px;padding:8px 12px;display:none;max-width:380px}
+.ov-name{font-family:var(--mono);font-size:0.72rem;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px}
+.ov-meta{font-family:var(--mono);font-size:0.62rem;color:var(--text2);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
 .ov-meta span{color:var(--accent)}
-.ov-energy{color:var(--gold) !important}
-
-/* ══ VIEWER OVERLAY — nav (right side) ══ */
-#nav-panel{
-  position:absolute;right:14px;top:50%;transform:translateY(-50%);
-  z-index:50;display:none;flex-direction:column;gap:6px;
-}
-.nav-btn{
-  width:36px;height:36px;border-radius:8px;
-  border:1px solid rgba(58,240,200,0.2);
-  background:rgba(7,9,15,0.82);backdrop-filter:blur(6px);
-  color:var(--accent);font-size:1rem;cursor:pointer;
-  transition:all 0.15s;display:flex;align-items:center;justify-content:center;
-}
+.ov-meta .ov-e{color:var(--gold)}
+.ov-meta .ov-s{color:var(--text2)}
+#nav-panel{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:50;display:none;flex-direction:column;gap:6px}
+.nav-btn{width:36px;height:36px;border-radius:8px;border:1px solid rgba(58,240,200,0.2);background:rgba(7,9,15,0.85);backdrop-filter:blur(6px);color:var(--accent);font-size:1rem;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center}
 .nav-btn:hover:not(:disabled){background:rgba(58,240,200,0.15);border-color:var(--accent)}
 .nav-btn:disabled{opacity:0.15;cursor:not-allowed}
-
-/* ══ VIEWER OVERLAY — counter (top-center) ══ */
-#counter-bar{
-  position:absolute;top:12px;left:50%;transform:translateX(-50%);
-  z-index:50;display:none;
-  background:rgba(7,9,15,0.82);backdrop-filter:blur(8px);
-  border:1px solid var(--border2);border-radius:20px;
-  padding:5px 16px;
-  font-family:var(--mono);font-size:0.72rem;color:var(--text2);
-  display:none;align-items:center;gap:10px;white-space:nowrap;
-}
+#counter-bar{position:absolute;top:12px;left:50%;transform:translateX(-50%);z-index:50;background:rgba(7,9,15,0.85);backdrop-filter:blur(8px);border:1px solid var(--border2);border-radius:20px;padding:5px 16px;font-family:var(--mono);font-size:0.72rem;color:var(--text2);display:none;align-items:center;gap:8px;white-space:nowrap}
 #counter-bar span.cur{color:var(--accent);font-weight:700;font-size:0.85rem}
-#counter-bar span.tot{color:var(--text)}
-.jump-mini{
-  display:flex;gap:4px;align-items:center;margin-left:4px;
-}
-input#jump-inp{
-  width:44px;background:var(--bg2);border:1px solid var(--border2);
-  border-radius:4px;color:var(--text);font-family:var(--mono);
-  font-size:0.68rem;padding:2px 4px;outline:none;text-align:center;
-}
+.jump-mini{display:flex;gap:4px;align-items:center;margin-left:4px}
+input#jump-inp{width:44px;background:var(--bg2);border:1px solid var(--border2);border-radius:4px;color:var(--text);font-family:var(--mono);font-size:0.68rem;padding:2px 4px;outline:none;text-align:center}
 input#jump-inp:focus{border-color:var(--accent)}
-button#jump-go{
-  padding:2px 8px;border-radius:4px;border:none;
-  background:var(--accent);color:#07090f;font-family:var(--mono);
-  font-size:0.62rem;font-weight:700;cursor:pointer;
-}
-
-/* ══ PROGRESS BAR (bottom of viewer) ══ */
-#prog-wrap{
-  position:absolute;bottom:0;left:0;right:0;height:3px;
-  display:none;z-index:40;
-}
+button#jump-go{padding:2px 8px;border-radius:4px;border:none;background:var(--accent);color:#07090f;font-family:var(--mono);font-size:0.62rem;font-weight:700;cursor:pointer}
+#prog-wrap{position:absolute;bottom:0;left:0;right:0;height:3px;display:none;z-index:40}
 #prog-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width 0.12s}
-
-/* scrollbar */
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
@@ -239,15 +98,11 @@ select option{background:var(--bg2)}
 </head>
 <body>
 
-<!-- ══ TOP PANEL ══ -->
 <div id="top">
-  <!-- LEFT: Paste -->
   <div class="panel-box">
     <div class="panel-label">Paste Coordinates</div>
-    <textarea id="paste-box"
-      placeholder="Paste anything — XYZ (single or multi), PDB, MOL, SDF, MOL2, Gaussian LOG, SMILES, or even raw SI coordinate text.&#10;Auto-detects format and visualises instantly."></textarea>
+    <textarea id="paste-box" placeholder="Paste anything — XYZ, PDB, MOL, SDF, MOL2, Gaussian GJF/LOG, ORCA, CP2K, NWChem, VASP POSCAR, SMILES, or raw SI coordinate text. Auto-detects and visualises."></textarea>
   </div>
-  <!-- RIGHT: Upload -->
   <div class="panel-box">
     <div class="panel-label gold">Upload File</div>
     <div id="upload-zone">
@@ -255,16 +110,12 @@ select option{background:var(--bg2)}
         <div class="uz-icon">⬆</div>
         <div class="uz-text">Drop any file or <strong id="uz-click">click to browse</strong></div>
         <div class="uz-formats">
-          <span class="uz-tag hi">.xyz</span>
-          <span class="uz-tag hi">.pdb</span>
-          <span class="uz-tag hi">.sdf</span>
-          <span class="uz-tag hi">.mol</span>
-          <span class="uz-tag hi">.mol2</span>
-          <span class="uz-tag hi">.log</span>
-          <span class="uz-tag hi">.gjf</span>
-          <span class="uz-tag gold">.pdf</span>
-          <span class="uz-tag gold">.docx</span>
-          <span class="uz-tag">.txt</span>
+          <span class="uz-tag hi">.xyz</span><span class="uz-tag hi">.pdb</span>
+          <span class="uz-tag hi">.sdf</span><span class="uz-tag hi">.mol</span>
+          <span class="uz-tag hi">.mol2</span><span class="uz-tag hi">.log</span>
+          <span class="uz-tag hi">.gjf/.com</span><span class="uz-tag hi">.orca</span>
+          <span class="uz-tag hi">POSCAR</span><span class="uz-tag gold">.pdf</span>
+          <span class="uz-tag gold">.docx</span><span class="uz-tag">.txt</span>
         </div>
       </div>
       <div id="file-badge">
@@ -275,11 +126,10 @@ select option{background:var(--bg2)}
         <div class="fb-clear" onclick="clearUpload()">✕ clear</div>
       </div>
     </div>
-    <input type="file" id="file-input" accept=".xyz,.pdb,.mol,.mol2,.sdf,.log,.gjf,.com,.txt,.pdf,.docx">
+    <input type="file" id="file-input" accept=".xyz,.pdb,.mol,.mol2,.sdf,.log,.gjf,.com,.orca,.out,.txt,.pdf,.docx,POSCAR,CONTCAR">
   </div>
 </div>
 
-<!-- ══ TOOLBAR ══ -->
 <div id="toolbar">
   <span class="tb-label">STYLE</span>
   <select class="tb-sel" id="sty">
@@ -292,66 +142,67 @@ select option{background:var(--bg2)}
   <div class="tb-sep"></div>
   <span class="tb-label">COLOUR</span>
   <select class="tb-sel" id="col">
-    <option value="Jmol" selected>CPK / Element</option>
-    <option value="chain">By Chain</option>
-    <option value="residue">By Residue</option>
+    <option value="Jmol" selected>CPK</option>
+    <option value="chain">Chain</option>
+    <option value="residue">Residue</option>
     <option value="spectrum">Rainbow</option>
   </select>
   <div class="tb-sep"></div>
   <span class="tb-label">SURFACE</span>
   <select class="tb-sel" id="sur">
     <option value="none">None</option>
-    <option value="VDW">Van der Waals</option>
-    <option value="SAS">Solvent Access.</option>
-    <option value="SES">Solvent Excl.</option>
+    <option value="VDW">VdW</option>
+    <option value="SAS">SAS</option>
+    <option value="SES">SES</option>
   </select>
   <div class="tb-sep"></div>
   <button class="tbtog" id="btn-lbl" onclick="toggleLabels()">🏷 Labels</button>
   <button class="tbtog" id="btn-spn" onclick="toggleSpin()">🔄 Spin</button>
   <button class="tbtog" id="btn-bg"  onclick="toggleBg()">☀ Light</button>
   <div class="tb-sep"></div>
-  <button class="tbbtn" onclick="doSave()">💾 PNG</button>
+  <button class="tbbtn" onclick="doSavePNG()">💾 PNG</button>
+  <div class="tb-sep"></div>
+  <span class="tb-label">EXPORT</span>
+  <select class="tb-sel" id="dl-fmt" style="width:56px">
+    <option value="xyz">XYZ</option>
+    <option value="gjf">GJF</option>
+    <option value="pdb">PDB</option>
+  </select>
+  <button class="tbbtn gold" onclick="downloadCurrent()" title="Download current structure">⬇ This</button>
+  <button class="tbbtn gold" onclick="downloadAll()" title="Download all as XYZ">⬇ All</button>
+  <div class="tb-sep"></div>
   <button class="tbbtn red" onclick="doReset()">✕ Reset</button>
   <div class="tb-spacer"></div>
   <div id="tb-status"></div>
 </div>
 
-<!-- ══ VIEWER ══ -->
 <div id="viewer-wrap">
   <div id="viewer">
     <div id="ph">
       <div class="ph-mol">⚛️</div>
       <div class="ph-text">Paste coordinates or upload a file to begin</div>
-      <div class="ph-sub">XYZ · PDB · MOL · SDF · MOL2 · Gaussian LOG · SMILES · SI PDF · DOCX · TXT</div>
+      <div class="ph-sub">XYZ · PDB · SDF · MOL2 · GJF · Gaussian LOG · ORCA · CP2K · NWChem · VASP · SMILES · SI PDF/DOCX</div>
     </div>
   </div>
-
-  <!-- Structure info overlay -->
   <div id="overlay">
     <div class="ov-name" id="ov-name">—</div>
     <div class="ov-meta" id="ov-meta"></div>
   </div>
-
-  <!-- Navigation arrows -->
   <div id="nav-panel">
     <button class="nav-btn" id="nav-first" onclick="goTo(0)" title="First">⏮</button>
-    <button class="nav-btn" id="nav-prev"  onclick="goTo(curIdx-1)" title="Previous">◀</button>
+    <button class="nav-btn" id="nav-prev"  onclick="goTo(curIdx-1)" title="Prev">◀</button>
     <button class="nav-btn" id="nav-next"  onclick="goTo(curIdx+1)" title="Next">▶</button>
     <button class="nav-btn" id="nav-last"  onclick="goTo(totalStr()-1)" title="Last">⏭</button>
   </div>
-
-  <!-- Counter bar -->
   <div id="counter-bar">
     <span class="cur" id="cb-cur">1</span>
     <span style="color:var(--text3)">/</span>
-    <span class="tot" id="cb-tot">?</span>
+    <span id="cb-tot">?</span>
     <div class="jump-mini">
       <input type="number" id="jump-inp" min="1" value="1" onkeydown="if(event.key==='Enter')doJump()">
       <button id="jump-go" onclick="doJump()">▶</button>
     </div>
   </div>
-
-  <!-- Progress bar -->
   <div id="prog-wrap"><div id="prog-fill"></div></div>
 </div>
 
@@ -360,19 +211,18 @@ select option{background:var(--bg2)}
 // ═══════════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════════
-var gv = null, gLabels = false, gSpin = false, gBg = false;
-var curIdx = 0;
-var mode = '';          // 'lazy' | 'multi'
-var lazyLines = [];     // raw lines for lazy XYZ
-var lazyOffsets = [];   // [{lineStart,n,comment}]
-var multiMols = [];     // [{name,xyzString,energy,natoms}]
-var pasteDebounce = null;
+var gv=null, gLabels=false, gSpin=false, gBg=false, curIdx=0;
+var mode='';           // 'lazy' | 'multi'
+var lazyLines=[], lazyOffsets=[];
+var multiMols=[];      // [{name,xyzString,energy,natoms,charge,mult}]
+var pasteDebounce=null;
 
 function totalStr(){ return mode==='lazy'?lazyOffsets.length:mode==='multi'?multiMols.length:0; }
 
 // ═══════════════════════════════════════════════════════════════
-// ELEMENT TABLES
+// CONSTANTS
 // ═══════════════════════════════════════════════════════════════
+var BOHR=0.52917721067;
 var ANUM={},_SYM=['','H','He','Li','Be','B','C','N','O','F','Ne',
   'Na','Mg','Al','Si','P','S','Cl','Ar','K','Ca','Sc','Ti','V','Cr','Mn','Fe','Co','Ni','Cu','Zn',
   'Ga','Ge','As','Se','Br','Kr','Rb','Sr','Y','Zr','Nb','Mo','Tc','Ru','Rh','Pd','Ag','Cd','In','Sn',
@@ -382,16 +232,13 @@ for(var _i=1;_i<_SYM.length;_i++) ANUM[_i]=_SYM[_i];
 var ELEMS={};
 for(var _i=1;_i<_SYM.length;_i++) ELEMS[_SYM[_i].toLowerCase()]=_SYM[_i];
 
-// ═══════════════════════════════════════════════════════════════
-// UNICODE / NORMALISE
-// ═══════════════════════════════════════════════════════════════
 function norm(s){
   if(!s) return '';
   return s.replace(/[\u2010-\u2015\u2212\uff0d]/g,'-').replace(/[\u00a0\u202f\u2009]/g,' ');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// COORDINATE LINE PARSER  (7 formats)
+// UNIVERSAL COORDINATE LINE PARSER
 // ═══════════════════════════════════════════════════════════════
 function parseCoordLine(raw){
   var line=norm(raw), t=line.trim().split(/\s+/);
@@ -399,75 +246,478 @@ function parseCoordLine(raw){
   function flt(s){ var v=parseFloat(s); return isNaN(v)?null:v; }
   function dot(s){ return s.indexOf('.')!==-1; }
   function isAN(s){ var n=parseInt(s,10); return !isNaN(n)&&n>=1&&n<=118&&!!ANUM[n]; }
-  function isEl(s){ return !!(s&&ELEMS[s.toLowerCase()]); }
-  var x,y,z;
+  function rawElem(s){ return s.replace(/\(.*$/,'').replace(/[^A-Za-z]/g,''); }
+  function isEl(s){ var e=rawElem(s); return !!(e&&ELEMS[e.toLowerCase()]); }
+  function toEl(s){ var e=rawElem(s); return ELEMS[e.toLowerCase()]; }
+  var x,y,z,el;
   // Format 1: AtomNum x y z
   if(isAN(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[0],10)],x,y,z]; }
-  // Format 2: Elem x y z
-  if(isEl(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z]; }
+  // Format 2: Elem x y z  (also handles Elem(Fragment=n) x y z)
+  if(isEl(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
   if(t.length>=5){
     // Format 3: Idx Elem x y z
-    if(isEl(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [ELEMS[t[1].toLowerCase()],x,y,z]; }
+    if(isEl(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
     // Format 4: Idx AtomNum x y z
     if(isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
-    // Format 5: Elem AtomNum x y z
-    if(isEl(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z]; }
+    // Format 5: Elem AtomNum x y z  (e.g. ORCA, NWChem)
+    if(isEl(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
+    // Format 5b: Elem freeze x y z  (GJF freeze flag: 0 or -1)
+    if(isEl(t[0])&&/^-?[01]$/.test(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
   }
   if(t.length>=6){
-    // Format 6: Gaussian orient table: idx atomnum atomtype x y z
+    // Format 6: Idx AtomNum AtomType x y z  (Gaussian Standard Orientation)
     if(isAN(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
-    // Format 7: Elem x y z charge/spin ... (extra cols ignored)
-    if(isEl(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [ELEMS[t[0].toLowerCase()],x,y,z]; }
+    // Format 7: No Tag Charge x y z  (NWChem output)
+    if(!isNaN(parseInt(t[0],10))&&isEl(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
   }
   return null;
 }
 
+// ═══════════════════════════════════════════════════════════════
+// FORMAT SNIFFER  (comprehensive)
+// ═══════════════════════════════════════════════════════════════
+function sniffFormat(text){
+  var t=text.trim();
+  if(!t) return null;
+  // Hard format signatures
+  if(/^(ATOM  |HETATM|REMARK|HEADER|CRYST1)/m.test(t)) return 'pdb';
+  if(/@<TRIPOS>MOLECULE/i.test(t)) return 'mol2';
+  if(/\$\$\$\$/.test(t)) return 'sdf';
+  if(/(V2000|V3000|M  END)/i.test(t)) return 'mol';
+  // Gaussian LOG output — has "Entering Gaussian" or "Standard orientation:"
+  if(/Entering Gaussian|Standard orientation:|Input orientation:|SCF Done|Normal termination of Gaussian/i.test(t)) return 'gaussian-log';
+  // Gaussian GJF/COM input — has route card and charge/mult
+  if(/^%[Cc]hk|^%[Mm]em|^%[Nn][Pp][Rr][Oo][Cc]/m.test(t)) return 'gaussian-gjf';
+  if(/^#[pPnN]?\s/m.test(t)&&/^\s*[+-]?\d+\s+[1-9]\d*\s*$/m.test(t)) return 'gaussian-gjf';
+  // ORCA input — has "!" keyword line or "* xyz" block
+  if(/^\s*!\s+\S/m.test(t)||/^\s*\*\s*(xyz|int)\s+[+-]?\d/im.test(t)||/^%pal\b/im.test(t)) return 'orca-input';
+  // ORCA output
+  if(/O   R   C   A|Program ORCA|CARTESIAN COORDINATES \(ANGSTROEM\)/i.test(t)) return 'orca-output';
+  // CP2K input
+  if(/&COORD\b|&FORCE_EVAL\b|&GLOBAL\b/i.test(t)) return 'cp2k-input';
+  // CP2K output
+  if(/CP2K\s*\|/i.test(t)||/MODULE QUICKSTEP|Atom\s+Kind\s+Element/i.test(t)) return 'cp2k-output';
+  // NWChem input
+  if(/^geometry(\s|$)/im.test(t)&&/^end\s*$/im.test(t)) return 'nwchem-input';
+  // NWChem output
+  if(/Northwest Computational Chemistry|Geometry "geometry"/i.test(t)) return 'nwchem-output';
+  // VASP POSCAR: lines 3-5 are lattice vectors (3 floats), line 7+ has Direct/Cartesian/Selective
+  var vlines=t.split(/\r?\n/);
+  if(vlines.length>=7){
+    var lv1=(vlines[2]||'').trim().split(/\s+/);
+    var lv2=(vlines[3]||'').trim().split(/\s+/);
+    var lv3=(vlines[4]||'').trim().split(/\s+/);
+    if([lv1,lv2,lv3].every(function(v){return v.length===3&&v.every(function(x){return !isNaN(parseFloat(x));});})){
+      for(var vi=5;vi<Math.min(10,vlines.length);vi++){
+        if(/^(direct|cartesian|selective)/i.test((vlines[vi]||'').trim())){return 'vasp';}
+      }
+      // Also try with element names line (VASP5)
+      if(vlines.length>=8){
+        for(var vi2=6;vi2<Math.min(11,vlines.length);vi2++){
+          if(/^(direct|cartesian|selective)/i.test((vlines[vi2]||'').trim())){return 'vasp';}
+        }
+      }
+    }
+  }
+  // Standard XYZ: first non-blank line is a pure integer
+  var slines=t.split(/\r?\n/);
+  for(var i=0;i<Math.min(5,slines.length);i++){
+    var sl=slines[i].trim(); if(!sl) continue;
+    if(/^\d+$/.test(sl)){ var n=parseInt(sl); if(n>0&&n<100000) return 'xyz'; }
+    break;
+  }
+  // Count coord lines — if dense, treat as SI text / bare coordinates
+  var coordCount=0;
+  for(var i=0;i<Math.min(60,slines.length);i++){
+    if(parseCoordLine(norm(slines[i]))) coordCount++;
+  }
+  if(coordCount>=3) return 'si-text';
+  // SMILES: single short line without spaces
+  var firstLine=slines.filter(function(l){return l.trim();})[0]||'';
+  if(!/\s/.test(firstLine.trim())&&firstLine.trim().length>2&&firstLine.trim().length<300) return 'smiles';
+  return 'unknown';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// FORMAT-SPECIFIC EXTRACTORS
+// Each returns [{name, atoms:[[el,x,y,z]...], energy, charge, mult}]
+// ═══════════════════════════════════════════════════════════════
+
+// ── Gaussian GJF/COM input ───────────────────────────────────
+function extractGaussianGJF(text){
+  var structs=[], jobs=text.split(/^--[Ll]ink1--\s*$/m);
+  jobs.forEach(function(job,ji){
+    var lines=job.split(/\r?\n/); var i=0;
+    // Skip link0 (% lines)
+    while(i<lines.length&&/^\s*%/.test(lines[i])) i++;
+    // Skip route section (# lines)
+    var routeLines=[];
+    while(i<lines.length&&/^\s*#/.test(lines[i])){ routeLines.push(lines[i]); i++; }
+    // Continuation lines of route (non-blank after route)
+    while(i<lines.length&&lines[i].trim()&&!/^\s*[+-]?\d+\s+[1-9]\d*\s*$/.test(lines[i])) i++;
+    // Skip blanks after route
+    while(i<lines.length&&!lines[i].trim()) i++;
+    // Title (non-blank lines until blank)
+    var title='';
+    while(i<lines.length&&lines[i].trim()){ title=lines[i].trim(); i++; }
+    while(i<lines.length&&!lines[i].trim()) i++;
+    // Charge/mult
+    var cmLine=lines[i]?lines[i].trim():'';
+    var cmMatch=/^\s*([+-]?\d+)\s+([1-9]\d*)\s*$/.exec(cmLine);
+    var charge=0, mult=1;
+    if(cmMatch){ charge=parseInt(cmMatch[1]); mult=parseInt(cmMatch[2]); i++; }
+    else i++;
+    // Coordinates until blank line or end
+    var atoms=[];
+    while(i<lines.length){
+      var raw=lines[i]; i++;
+      if(!raw.trim()) break;
+      var coord=parseCoordLine(norm(raw));
+      if(coord) atoms.push(coord);
+      // Z-matrix detection: if line has dihedral-like pattern, skip
+    }
+    if(atoms.length>0){
+      structs.push({name:safeName(title||('GJF_job_'+(ji+1))),atoms:atoms,energy:null,charge:charge,mult:mult});
+    }
+  });
+  return structs;
+}
+
+// ── Gaussian LOG output ──────────────────────────────────────
+function extractGaussianLog(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  var energyMap={};
+  // Collect SCF energies by line number
+  for(var i=0;i<lines.length;i++){
+    var m=/SCF Done.*?=\s*([+-]?\d+\.\d+)/i.exec(lines[i]);
+    if(m) energyMap[i]=m[1];
+  }
+  var lastEnergy=null;
+  for(var i=0;i<lines.length;i++){
+    if(lines[i].indexOf('Standard orientation:')!==-1||lines[i].indexOf('Input orientation:')!==-1){
+      // Collect energy up to this block
+      for(var ei=i-1;ei>=Math.max(0,i-30);ei--){
+        var em=/SCF Done.*?=\s*([+-]?\d+\.\d+)/i.exec(lines[ei]);
+        if(em){lastEnergy=em[1];break;}
+      }
+      i+=5; var atoms=[];
+      while(i<lines.length&&lines[i].indexOf('---')===-1){
+        var coord=parseCoordLine(norm(lines[i]));
+        if(coord) atoms.push(coord);
+        i++;
+      }
+      // Also check lines after for energy
+      for(var ei2=i;ei2<Math.min(i+30,lines.length);ei2++){
+        var em2=/SCF Done.*?=\s*([+-]?\d+\.\d+)/i.exec(lines[ei2]);
+        if(em2){lastEnergy=em2[1];break;}
+      }
+      if(atoms.length>0){
+        structs.push({name:'Frame_'+(structs.length+1),atoms:atoms,energy:lastEnergy,charge:0,mult:1});
+      }
+    }
+  }
+  // Try to get title from file
+  for(var i=0;i<Math.min(50,lines.length);i++){
+    if(/Symbolic Z-matrix:|Input card:/i.test(lines[i])) break;
+    if(lines[i].trim()&&!/^[# %\-]/.test(lines[i].trim())&&structs.length>0){
+      // Could use this as name prefix
+    }
+  }
+  return structs;
+}
+
+// ── ORCA input ──────────────────────────────────────────────
+function extractORCAInput(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    // Find "* xyz charge mult" or "* int charge mult"
+    var m=/^\s*\*\s*(xyz|int)\s+([+-]?\d+)\s+([1-9]\d*)/i.exec(lines[i]);
+    if(!m) continue;
+    var isMat=(m[1].toLowerCase()==='int');
+    var charge=parseInt(m[2]), mult=parseInt(m[3]);
+    i++;
+    var atoms=[];
+    while(i<lines.length){
+      var raw=lines[i]; i++;
+      if(/^\s*\*\s*$/.test(raw)) break;  // closing *
+      if(!raw.trim()) continue;
+      if(!isMat){
+        var coord=parseCoordLine(norm(raw));
+        if(coord) atoms.push(coord);
+      }
+    }
+    if(atoms.length>0){
+      structs.push({name:'ORCA_struct_'+(structs.length+1),atoms:atoms,energy:null,charge:charge,mult:mult});
+    }
+  }
+  return structs;
+}
+
+// ── ORCA output ─────────────────────────────────────────────
+function extractORCAOutput(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  var lastEnergy=null;
+  for(var i=0;i<lines.length;i++){
+    // Collect total energy
+    var em=/FINAL SINGLE POINT ENERGY\s+([+-]?\d+\.\d+)/i.exec(lines[i]);
+    if(em) lastEnergy=em[1];
+    if(lines[i].indexOf('CARTESIAN COORDINATES (ANGSTROEM)')!==-1){
+      i+=2; // skip dashes line
+      var atoms=[];
+      while(i<lines.length&&lines[i].trim()){
+        var coord=parseCoordLine(norm(lines[i]));
+        if(coord) atoms.push(coord);
+        i++;
+      }
+      if(atoms.length>0){
+        structs.push({name:'ORCA_frame_'+(structs.length+1),atoms:atoms,energy:lastEnergy,charge:0,mult:1});
+      }
+    }
+  }
+  return structs;
+}
+
+// ── CP2K input ──────────────────────────────────────────────
+function extractCP2KInput(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    if(/^\s*&COORD\b/i.test(lines[i])){
+      i++;
+      var atoms=[], unitBohr=false;
+      while(i<lines.length&&!/^\s*&END\s*COORD/i.test(lines[i])){
+        if(/^\s*UNIT\s+bohr/i.test(lines[i])) unitBohr=true;
+        var coord=parseCoordLine(norm(lines[i]));
+        if(coord){
+          if(unitBohr){ coord[1]*=BOHR; coord[2]*=BOHR; coord[3]*=BOHR; }
+          atoms.push(coord);
+        }
+        i++;
+      }
+      if(atoms.length>0) structs.push({name:'CP2K_struct_'+(structs.length+1),atoms:atoms,energy:null,charge:0,mult:1});
+    }
+  }
+  return structs;
+}
+
+// ── CP2K output ─────────────────────────────────────────────
+function extractCP2KOutput(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    if(/Atom\s+Kind\s+Element\s+X\s+Y\s+Z/i.test(lines[i])||/ATOMIC COORDINATES IN angstrom/i.test(lines[i])){
+      // Skip header/separator lines
+      while(i<lines.length&&(lines[i].indexOf('Atom')===-1||!lines[i].trim()||/^[-=*\s]+$/.test(lines[i].trim()))) i++;
+      i++; // skip header line
+      var atoms=[];
+      while(i<lines.length&&lines[i].trim()&&!/^[-=*\s]+$/.test(lines[i].trim())){
+        // Format: idx kind elem x y z ...
+        var p=lines[i].trim().split(/\s+/);
+        if(p.length>=6&&ELEMS[p[2].toLowerCase()]){
+          var x=parseFloat(p[3]),y=parseFloat(p[4]),z=parseFloat(p[5]);
+          if(!isNaN(x)&&!isNaN(y)&&!isNaN(z)) atoms.push([ELEMS[p[2].toLowerCase()],x,y,z]);
+        }
+        i++;
+      }
+      if(atoms.length>0) structs.push({name:'CP2K_frame_'+(structs.length+1),atoms:atoms,energy:null,charge:0,mult:1});
+    }
+  }
+  return structs;
+}
+
+// ── NWChem input ─────────────────────────────────────────────
+function extractNWChemInput(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    if(/^\s*geometry(\s|$)/i.test(lines[i])){
+      // Check units
+      var unitBohr=/units\s+(au|bohr|a\.u\.)/i.test(lines[i]);
+      i++;
+      var atoms=[];
+      while(i<lines.length&&!/^\s*end\s*$/i.test(lines[i])){
+        var raw=lines[i]; i++;
+        if(/^\s*symmetry/i.test(raw)||!raw.trim()) continue;
+        var coord=parseCoordLine(norm(raw));
+        if(coord){
+          if(unitBohr){ coord[1]*=BOHR; coord[2]*=BOHR; coord[3]*=BOHR; }
+          atoms.push(coord);
+        }
+      }
+      if(atoms.length>0) structs.push({name:'NWChem_struct_'+(structs.length+1),atoms:atoms,energy:null,charge:0,mult:1});
+    }
+  }
+  return structs;
+}
+
+// ── NWChem output ────────────────────────────────────────────
+function extractNWChemOutput(text){
+  var structs=[], lines=text.split(/\r?\n/);
+  for(var i=0;i<lines.length;i++){
+    if(/Output coordinates in angstroms/i.test(lines[i])||/Geometry "geometry"/i.test(lines[i])){
+      // Skip until we see "No. Tag" header
+      while(i<lines.length&&!/No\.\s+Tag/i.test(lines[i])) i++;
+      i+=2; // skip header + dashes
+      var atoms=[];
+      while(i<lines.length&&lines[i].trim()&&!/^-+/.test(lines[i].trim())){
+        var coord=parseCoordLine(norm(lines[i]));
+        if(coord) atoms.push(coord);
+        i++;
+      }
+      if(atoms.length>0) structs.push({name:'NWChem_frame_'+(structs.length+1),atoms:atoms,energy:null,charge:0,mult:1});
+    }
+  }
+  return structs;
+}
+
+// ── VASP POSCAR / CONTCAR ────────────────────────────────────
+function extractVASP(text){
+  var lines=text.split(/\r?\n/);
+  if(lines.length<8) return [];
+  var comment=lines[0].trim()||'VASP';
+  var scale=parseFloat(lines[1])||1.0;
+  // Lattice vectors
+  function parseVec(l){ var p=(l||'').trim().split(/\s+/); return [parseFloat(p[0]),parseFloat(p[1]),parseFloat(p[2])]; }
+  var a1=parseVec(lines[2]),a2=parseVec(lines[3]),a3=parseVec(lines[4]);
+  if([a1,a2,a3].some(function(v){return v.some(isNaN);})) return [];
+  // Scale < 0 means volume — use |scale| for lengths (approximation)
+  var sc=Math.abs(scale);
+  if(scale<0) sc=1.0; // volume scaling — skip for simplicity
+  a1=a1.map(function(v){return v*sc;}); a2=a2.map(function(v){return v*sc;}); a3=a3.map(function(v){return v*sc;});
+  // Determine if line 5 is element names (VASP5) or counts
+  var lineIdx=5;
+  var elemLine=lines[lineIdx].trim().split(/\s+/);
+  var elemNames=null, countLine;
+  if(elemLine.every(function(e){return ELEMS[e.toLowerCase()]||/^[A-Za-z]/.test(e);})){
+    // VASP5: element names on line 5
+    elemNames=elemLine.map(function(e){return ELEMS[e.toLowerCase()]||e;});
+    lineIdx=6;
+  }
+  countLine=lines[lineIdx].trim().split(/\s+/).map(Number);
+  if(countLine.some(isNaN)) return [];
+  lineIdx++;
+  // Optional selective dynamics
+  if(/^[Ss]/.test((lines[lineIdx]||'').trim())) lineIdx++;
+  // Coordinate mode
+  var coordLine=(lines[lineIdx]||'').trim();
+  var isDirect=/^[Dd]/i.test(coordLine); // Direct (fractional) vs Cartesian
+  lineIdx++;
+  // Build element list
+  var elemList=[];
+  if(elemNames){
+    countLine.forEach(function(cnt,ci){ for(var k=0;k<cnt;k++) elemList.push(elemNames[ci]); });
+  } else {
+    // VASP4: no element names — use placeholder
+    countLine.forEach(function(cnt,ci){ for(var k=0;k<cnt;k++) elemList.push('X'); });
+  }
+  // Read coordinates
+  var atoms=[];
+  for(var i=lineIdx;i<lines.length&&atoms.length<elemList.length;i++){
+    var p=(lines[i]||'').trim().split(/\s+/);
+    if(p.length<3) continue;
+    var f1=parseFloat(p[0]),f2=parseFloat(p[1]),f3=parseFloat(p[2]);
+    if(isNaN(f1)||isNaN(f2)||isNaN(f3)) continue;
+    var x,y,z;
+    if(isDirect){
+      // Fractional → Cartesian
+      x=f1*a1[0]+f2*a2[0]+f3*a3[0];
+      y=f1*a1[1]+f2*a2[1]+f3*a3[1];
+      z=f1*a1[2]+f2*a2[2]+f3*a3[2];
+    } else {
+      // Cartesian (already in Angstrom after scale)
+      x=f1; y=f2; z=f3;
+    }
+    atoms.push([elemList[atoms.length]||'X',x,y,z]);
+  }
+  if(atoms.length===0) return [];
+  return [{name:safeName(comment),atoms:atoms,energy:null,charge:0,mult:1}];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MASTER TEXT DISPATCHER
+// ═══════════════════════════════════════════════════════════════
+function structsToMultiMols(structs,sourceName){
+  return structs.map(function(s){
+    return {
+      name:s.name||sourceName,
+      xyzString:molToXYZ(s),
+      energy:s.energy,
+      natoms:s.atoms.length,
+      charge:s.charge||0,
+      mult:s.mult||1
+    };
+  });
+}
+
 function molToXYZ(mol){
-  var comment=mol.name+(mol.energy?'  E='+mol.energy:'');
+  var comment=(mol.name||'molecule')+(mol.energy?'  E='+mol.energy:'');
   var out=[mol.atoms.length+'',comment];
   mol.atoms.forEach(function(a){ out.push(a[0]+'  '+a[1].toFixed(8)+'  '+a[2].toFixed(8)+'  '+a[3].toFixed(8)); });
   return out.join('\n');
 }
 
-// ═══════════════════════════════════════════════════════════════
-// FORMAT SNIFFER
-// ═══════════════════════════════════════════════════════════════
-function sniffFormat(text){
-  var t=text.trim();
-  if(!t) return null;
-  if(/^(ATOM  |HETATM|REMARK|HEADER)/m.test(t)) return 'pdb';
-  if(/@<TRIPOS>MOLECULE/.test(t)) return 'mol2';
-  if(/\$\$\$\$/.test(t)) return 'sdf';
-  if(/(V2000|V3000|M  END)/.test(t)) return 'mol';
-  if(/Standard orientation:|Input orientation:/.test(t)) return 'gaussian';
-  // XYZ: first non-blank line is a pure integer
-  var lines=t.split(/\r?\n/);
-  for(var i=0;i<Math.min(5,lines.length);i++){
-    var l=lines[i].trim();
-    if(!l) continue;
-    if(/^\d+$/.test(l)) return 'xyz';
-    break;
+function dispatchStructs(structs,sourceName,fmtLabel){
+  if(!structs||!structs.length){
+    setStatus('No structures found in '+sourceName,'err'); return;
   }
-  // bare XYZ / SI text — check if coord lines appear
-  var coordCount=0;
-  for(var i=0;i<Math.min(40,lines.length);i++){
-    if(parseCoordLine(norm(lines[i]))) coordCount++;
+  multiMols=structsToMultiMols(structs,sourceName);
+  mode='multi'; lazyOffsets=[]; lazyLines=[]; curIdx=0;
+  showMulti(0);
+  setStatus('✓ '+structs.length+' structure'+(structs.length>1?'s':'')+' from '+sourceName+(fmtLabel?' ['+fmtLabel+']':''),'ok');
+}
+
+function processPastedOrText(text, filename){
+  var fmt=sniffFormat(text);
+  if(!fmt||fmt==='unknown'){
+    setStatus('Format not recognised — try uploading as a file instead','err');
+    return;
   }
-  if(coordCount>=3) return 'si-text';
-  // single-word or short string → SMILES
-  if(!/\s/.test(t.split('\n')[0].trim())&&t.split('\n')[0].length<200) return 'smiles';
-  return 'unknown';
+  var src=filename||'paste';
+  try{
+    if(fmt==='pdb')    { renderNative(text,'pdb',src); return; }
+    if(fmt==='mol2')   { renderNative(text,'mol2',src); return; }
+    if(fmt==='sdf')    { renderNative(text,'sdf',src); return; }
+    if(fmt==='mol')    { renderNative(text,'mol',src); return; }
+    if(fmt==='xyz')    { processMultiXYZ(text,src); return; }
+    if(fmt==='gaussian-log')  { dispatchStructs(extractGaussianLog(text),src,'Gaussian LOG'); return; }
+    if(fmt==='gaussian-gjf')  { dispatchStructs(extractGaussianGJF(text),src,'GJF'); return; }
+    if(fmt==='orca-input')    { dispatchStructs(extractORCAInput(text),src,'ORCA input'); return; }
+    if(fmt==='orca-output')   { dispatchStructs(extractORCAOutput(text),src,'ORCA output'); return; }
+    if(fmt==='cp2k-input')    { dispatchStructs(extractCP2KInput(text),src,'CP2K input'); return; }
+    if(fmt==='cp2k-output')   { dispatchStructs(extractCP2KOutput(text),src,'CP2K output'); return; }
+    if(fmt==='nwchem-input')  { dispatchStructs(extractNWChemInput(text),src,'NWChem input'); return; }
+    if(fmt==='nwchem-output') { dispatchStructs(extractNWChemOutput(text),src,'NWChem output'); return; }
+    if(fmt==='vasp')          { dispatchStructs(extractVASP(text),src,'VASP POSCAR'); return; }
+    if(fmt==='si-text'){
+      var ls=text.split(/\r?\n/);
+      ls=repairBrokenCoordLines(ls);
+      ls=joinSplitEnergies(ls);
+      var mols=parseSI(ls,0,1,3,false);
+      if(mols.length){ dispatchStructs(mols,src,'SI text'); return; }
+      setStatus('Could not parse coordinates from text','err'); return;
+    }
+    if(fmt==='smiles'){
+      setStatus('Fetching 3D from NIH CACTUS…','inf');
+      fetch('https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(text.trim().split('\n')[0])+'/file?format=sdf&get3d=true')
+        .then(function(r){return r.text();})
+        .then(function(sdf){
+          if(sdf.toLowerCase().indexOf('not found')>-1||sdf.length<20){ setStatus('SMILES not resolved to 3D structure','err'); return; }
+          renderNative(sdf,'sdf',text.trim().substring(0,30));
+        }).catch(function(e){setStatus('Network error: '+e.message,'err');});
+      return;
+    }
+  }catch(e){
+    setStatus('Parse error: '+e.message,'err');
+    console.error(e);
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// VIEWER HELPERS
+// VIEWER CORE  (fixed — no ph element access after innerHTML clear)
 // ═══════════════════════════════════════════════════════════════
 function makeViewer(){
   var cont=document.getElementById('viewer');
-  cont.innerHTML='';
-  document.getElementById('ph').style.display='none';
+  cont.innerHTML=''; // clears everything including #ph — intentional
   gv=$3Dmol.createViewer(cont,{backgroundColor:gBg?'#f5f7fa':'#010409',antialias:true});
 }
+
 function applyStyle(){
   if(!gv) return;
   try{gv.removeAllSurfaces();}catch(e){}
@@ -477,7 +727,7 @@ function applyStyle(){
   var u=document.getElementById('sur').value;
   var co={colorscheme:c};
   gv.setStyle({});
-  if(s==='bs')      gv.setStyle({},{stick:Object.assign({radius:0.15},co),sphere:Object.assign({radius:0.35},co)});
+  if(s==='bs')     gv.setStyle({},{stick:Object.assign({radius:0.15},co),sphere:Object.assign({radius:0.35},co)});
   else if(s==='stick')  gv.setStyle({},{stick:Object.assign({radius:0.2},co)});
   else if(s==='sphere') gv.setStyle({},{sphere:Object.assign({scale:1},co)});
   else if(s==='line')   gv.setStyle({},{line:co});
@@ -488,15 +738,25 @@ function applyStyle(){
   gv.render();
 }
 
+function renderNative(data,fmt,name){
+  makeViewer();
+  try{
+    gv.addModel(data,fmt);
+    applyStyle(); gv.zoomTo(); gv.render();
+    var atoms=gv.getModel().selectedAtoms({}).length;
+    mode=''; multiMols=[]; lazyOffsets=[];
+    showOverlay(name||fmt,atoms,fmt.toUpperCase(),null,1,0);
+    setStatus('✓ '+atoms+' atoms · '+fmt.toUpperCase(),'ok');
+  }catch(e){ setStatus('Render error: '+e.message,'err'); console.error(e); }
+}
+
 function showOverlay(name,atoms,fmt,energy,cur,tot){
-  var ov=document.getElementById('overlay');
   document.getElementById('ov-name').textContent=name||'—';
-  var meta='<span>'+atoms+'</span> atoms';
-  if(fmt) meta+=' &nbsp;·&nbsp; '+fmt;
-  if(energy) meta+=' &nbsp;·&nbsp; <span class="ov-energy">E = '+energy+'</span>';
-  document.getElementById('ov-meta').innerHTML=meta;
-  ov.style.display='block';
-  // counter bar
+  var html='<span>'+atoms+'</span> atoms';
+  if(fmt) html+=' <span class="ov-s">·</span> '+fmt;
+  if(energy) html+=' <span class="ov-s">·</span> <span class="ov-e">E='+energy+'</span>';
+  document.getElementById('ov-meta').innerHTML=html;
+  document.getElementById('overlay').style.display='block';
   if(tot&&tot>1){
     var cb=document.getElementById('counter-bar');
     cb.style.display='flex';
@@ -504,13 +764,11 @@ function showOverlay(name,atoms,fmt,energy,cur,tot){
     document.getElementById('cb-tot').textContent=tot;
     document.getElementById('jump-inp').value=cur;
     document.getElementById('jump-inp').max=tot;
-    // nav arrows
     document.getElementById('nav-panel').style.display='flex';
     document.getElementById('nav-first').disabled=(cur-1===0);
     document.getElementById('nav-prev').disabled=(cur-1===0);
     document.getElementById('nav-next').disabled=(cur-1===tot-1);
     document.getElementById('nav-last').disabled=(cur-1===tot-1);
-    // progress
     var pct=(tot>1)?(curIdx/(tot-1))*100:100;
     document.getElementById('prog-fill').style.width=pct.toFixed(1)+'%';
     document.getElementById('prog-wrap').style.display='block';
@@ -524,7 +782,7 @@ function showOverlay(name,atoms,fmt,energy,cur,tot){
 function setStatus(msg,cls){
   var el=document.getElementById('tb-status');
   el.textContent=msg; el.className=cls;
-  if(cls!=='inf') setTimeout(function(){el.style.display='none';},8000);
+  if(cls!=='inf') setTimeout(function(){el.style.display='none';},9000);
 }
 function setUploadProgress(msg,pct){
   document.getElementById('fb-prog-msg').textContent=msg||'';
@@ -532,44 +790,29 @@ function setUploadProgress(msg,pct){
 }
 
 // ═══════════════════════════════════════════════════════════════
-// RENDER SINGLE MOLECULE
+// MULTI-MOL DISPLAY
 // ═══════════════════════════════════════════════════════════════
-function renderSingle(data,fmt,name,energy){
+function showMulti(idx){
+  if(!multiMols.length) return;
+  idx=Math.max(0,Math.min(idx,multiMols.length-1));
+  curIdx=idx;
+  var mol=multiMols[idx];
   makeViewer();
-  gv.addModel(data,fmt);
-  applyStyle(); gv.zoomTo(); gv.render();
-  var atoms=gv.getModel().selectedAtoms({}).length;
-  mode=''; multiMols=[]; lazyOffsets=[];
-  showOverlay(name||fmt,atoms,fmt.toUpperCase(),energy||null,1,0);
-  setStatus('✓ '+atoms+' atoms · '+fmt.toUpperCase(),'ok');
+  try{
+    gv.addModel(mol.xyzString,'xyz');
+    applyStyle(); gv.zoomTo(); gv.render();
+    var atoms=gv.getModel().selectedAtoms({}).length;
+    showOverlay(mol.name,atoms,'XYZ',mol.energy,idx+1,multiMols.length);
+  }catch(e){ setStatus('Render error: '+e.message,'err'); console.error(e); }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// GAUSSIAN LOG EXTRACTOR
-// ═══════════════════════════════════════════════════════════════
-function gaussianToXYZ(text){
-  var ls=text.split(/\r?\n/), last=[];
-  for(var i=0;i<ls.length;i++){
-    if(ls[i].indexOf('Standard orientation:')!==-1||ls[i].indexOf('Input orientation:')!==-1){
-      i+=5; var cur=[];
-      while(i<ls.length&&ls[i].indexOf('---')===-1){
-        var p=ls[i].trim().split(/\s+/);
-        if(p.length>=6){ var el=ANUM[parseInt(p[1])]; if(el) cur.push(el+' '+parseFloat(p[3]).toFixed(6)+' '+parseFloat(p[4]).toFixed(6)+' '+parseFloat(p[5]).toFixed(6)); }
-        i++;
-      }
-      if(cur.length) last=cur;
-    }
-  }
-  return last.length?last.length+'\nGaussian\n'+last.join('\n'):null;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// LAZY MULTI-XYZ
+// LAZY MULTI-XYZ  (large files, no memory blow-up)
 // ═══════════════════════════════════════════════════════════════
 function looksXYZCoord(line){
   if(!line||!line.trim()) return false;
   var p=line.trim().split(/\s+/);
-  if(p.length>=4){ var x=parseFloat(p[1]),y=parseFloat(p[2]),z=parseFloat(p[3]); if(!isNaN(x)&&!isNaN(y)&&!isNaN(z)) return true; }
+  if(p.length>=4){ var x=parseFloat(p[1]),y=parseFloat(p[2]),z=parseFloat(p[3]); return !isNaN(x)&&!isNaN(y)&&!isNaN(z); }
   return false;
 }
 function buildLazyIndex(rawLines,onDone){
@@ -580,7 +823,7 @@ function buildLazyIndex(rawLines,onDone){
       var t=rawLines[i].trim();
       if(/^\d+$/.test(t)){
         var n=parseInt(t,10);
-        if(n>0&&(i+n+2)<=total&&looksXYZCoord(rawLines[i+2])){ result.push({lineStart:i,n:n,comment:rawLines[i+1]?rawLines[i+1].trim():''}); i+=n+2; continue; }
+        if(n>0&&n<500000&&(i+n+2)<=total&&looksXYZCoord(rawLines[i+2])){ result.push({lineStart:i,n:n,comment:rawLines[i+1]?rawLines[i+1].trim():''}); i+=n+2; continue; }
       }
       i++;
     }
@@ -591,47 +834,40 @@ function buildLazyIndex(rawLines,onDone){
 }
 function extractLazy(idx){
   var o=lazyOffsets[idx];
-  var comment=o.comment||('Structure '+(idx+1));
-  return o.n+'\n'+comment+'\n'+lazyLines.slice(o.lineStart+2,o.lineStart+2+o.n).join('\n');
+  return o.n+'\n'+(o.comment||('Structure '+(idx+1)))+'\n'+lazyLines.slice(o.lineStart+2,o.lineStart+2+o.n).join('\n');
 }
 function showLazy(idx){
   if(!lazyOffsets.length) return;
   idx=Math.max(0,Math.min(idx,lazyOffsets.length-1));
   curIdx=idx;
   makeViewer();
-  gv.addModel(extractLazy(idx),'xyz');
-  applyStyle(); gv.zoomTo(); gv.render();
-  var atoms=gv.getModel().selectedAtoms({}).length;
-  var comment=lazyOffsets[idx].comment||('Structure '+(idx+1));
-  showOverlay(comment,atoms,'XYZ',null,idx+1,lazyOffsets.length);
+  try{
+    gv.addModel(extractLazy(idx),'xyz');
+    applyStyle(); gv.zoomTo(); gv.render();
+    var atoms=gv.getModel().selectedAtoms({}).length;
+    var comment=lazyOffsets[idx].comment||('Structure '+(idx+1));
+    showOverlay(comment,atoms,'XYZ',null,idx+1,lazyOffsets.length);
+  }catch(e){ setStatus('Render error: '+e.message,'err'); }
 }
-
-function processMultiXYZ(text){
+function processMultiXYZ(text,src){
   setStatus('Indexing structures…','inf');
   setTimeout(function(){
     lazyLines=text.split(/\r?\n/);
     buildLazyIndex(lazyLines,function(result){
-      if(!result.length){ processSingleText(text); return; }
-      lazyOffsets=result; mode='lazy'; multiMols=[];
+      if(!result.length){
+        // Fallback: try as si-text
+        var ls=text.split(/\r?\n/);
+        ls=repairBrokenCoordLines(ls); ls=joinSplitEnergies(ls);
+        var mols=parseSI(ls,0,1,3,false);
+        if(mols.length){ dispatchStructs(mols,src||'text','bare XYZ'); return; }
+        setStatus('No XYZ blocks found','err'); return;
+      }
+      lazyOffsets=result; mode='lazy'; multiMols=[]; lazyLines=lazyLines;
+      if(result.length===1){ mode='lazy'; showLazy(0); setStatus('✓ 1 structure loaded','ok'); return; }
       showLazy(0);
-      setStatus('✓ '+result.length+' structures loaded','ok');
+      setStatus('✓ '+result.length+' structures loaded — use ← → to navigate','ok');
     });
   },20);
-}
-
-// ═══════════════════════════════════════════════════════════════
-// MULTI-MOL NAVIGATOR (SI-extracted)
-// ═══════════════════════════════════════════════════════════════
-function showMulti(idx){
-  if(!multiMols.length) return;
-  idx=Math.max(0,Math.min(idx,multiMols.length-1));
-  curIdx=idx;
-  var mol=multiMols[idx];
-  makeViewer();
-  gv.addModel(mol.xyzString,'xyz');
-  applyStyle(); gv.zoomTo(); gv.render();
-  var atoms=gv.getModel().selectedAtoms({}).length;
-  showOverlay(mol.name,atoms,'SI-XYZ',mol.energy,idx+1,multiMols.length);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -642,69 +878,76 @@ function goTo(idx){
   else if(mode==='multi') showMulti(idx);
 }
 function doJump(){ var v=parseInt(document.getElementById('jump-inp').value); if(!isNaN(v)) goTo(v-1); }
-
 document.addEventListener('keydown',function(e){
   var tot=totalStr(); if(!tot||tot<2) return;
   if(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT') return;
   if(e.key==='ArrowRight'||e.key==='ArrowDown'){ e.preventDefault(); goTo(curIdx+1); }
-  if(e.key==='ArrowLeft' ||e.key==='ArrowUp')  { e.preventDefault(); goTo(curIdx-1); }
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')  { e.preventDefault(); goTo(curIdx-1); }
   if(e.key==='Home'){ e.preventDefault(); goTo(0); }
   if(e.key==='End') { e.preventDefault(); goTo(totalStr()-1); }
 });
 
 // ═══════════════════════════════════════════════════════════════
-// SINGLE TEXT PROCESSOR  (paste or text file)
+// DOWNLOAD
 // ═══════════════════════════════════════════════════════════════
-function processSingleText(text){
-  var fmt=sniffFormat(text);
-  if(!fmt||fmt==='unknown'){ setStatus('Could not detect format','err'); return; }
-  if(fmt==='xyz'){ processMultiXYZ(text); return; }
-  if(fmt==='smiles'){
-    setStatus('Fetching 3D structure from NIH CACTUS…','inf');
-    fetch('https://cactus.nci.nih.gov/chemical/structure/'+encodeURIComponent(text.trim())+'/file?format=sdf&get3d=true')
-      .then(function(r){return r.text();})
-      .then(function(sdf){
-        if(sdf.toLowerCase().indexOf('not found')>-1||sdf.length<20){ setStatus('SMILES could not be resolved to 3D structure','err'); return; }
-        renderSingle(sdf,'sdf',text.trim().substring(0,30),null);
-      }).catch(function(){setStatus('Network error fetching SMILES','err');});
-    return;
+function xyzToAtomList(xyzStr){
+  var lines=xyzStr.split('\n'), n=parseInt(lines[0]), atoms=[];
+  for(var i=2;i<2+n&&i<lines.length;i++){
+    var p=lines[i].trim().split(/\s+/);
+    if(p.length>=4) atoms.push([p[0],parseFloat(p[1]),parseFloat(p[2]),parseFloat(p[3])]);
   }
-  if(fmt==='gaussian'){
-    var xyz=gaussianToXYZ(text);
-    if(xyz) renderSingle(xyz,'xyz','Gaussian LOG',null);
-    else setStatus('Could not extract coordinates from Gaussian LOG','err');
-    return;
+  return atoms;
+}
+function atomsToGJF(atoms,name,charge,mult){
+  var lines=['%chk='+name+'.chk','%mem=4GB','%nproc=4','# HF/6-31G* SP','',''+name,'',''+charge+' '+mult];
+  atoms.forEach(function(a){ lines.push(a[0]+'   '+a[1].toFixed(8)+'   '+a[2].toFixed(8)+'   '+a[3].toFixed(8)); });
+  lines.push('',''); return lines.join('\n');
+}
+function atomsToPDB(atoms,name){
+  var lines=['REMARK '+name,'REMARK Generated by MolVis Pro'];
+  atoms.forEach(function(a,i){
+    var nm=a[0].padEnd(4,' ');
+    var x=a[1].toFixed(3).padStart(8,' '), y=a[2].toFixed(3).padStart(8,' '), z=a[3].toFixed(3).padStart(8,' ');
+    var el=a[0].toUpperCase().substring(0,2).padStart(2,' ');
+    lines.push('HETATM'+String(i+1).padStart(5,' ')+'  '+nm+'UNL A'+String(i+1).padStart(4,' ')+'    '+x+y+z+'  1.00  0.00          '+el);
+  });
+  lines.push('END'); return lines.join('\n');
+}
+function triggerDownload(content,filename,mime){
+  var blob=new Blob([content],{type:mime||'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+}
+function getCurrentMolData(){
+  if(mode==='multi'&&multiMols.length>curIdx) return multiMols[curIdx];
+  if(mode==='lazy'&&lazyOffsets.length>curIdx){
+    return {name:'Structure_'+(curIdx+1),xyzString:extractLazy(curIdx),charge:0,mult:1,energy:null};
   }
-  if(fmt==='si-text'){
-    var ls=text.split(/\r?\n/);
-    ls=repairBrokenCoordLines(ls);
-    ls=joinSplitEnergies(ls);
-    var mols=parseSI(ls,0,1,3,false);
-    if(mols.length){
-      multiMols=mols.map(function(m){ return{name:m.name,xyzString:molToXYZ(m),energy:m.energy,natoms:m.atoms.length}; });
-      mode='multi'; lazyOffsets=[];
-      showMulti(0);
-      setStatus('✓ Found '+mols.length+' structures in pasted text','ok');
-    } else {
-      setStatus('No recognisable coordinate blocks found','err');
-    }
-    return;
-  }
-  renderSingle(text,fmt,fmt.toUpperCase()+' structure',null);
+  return null;
+}
+function downloadCurrent(){
+  var mol=getCurrentMolData();
+  if(!mol){ setStatus('No structure loaded','inf'); return; }
+  var fmt=document.getElementById('dl-fmt').value;
+  var name=mol.name.replace(/\s+/g,'_').replace(/[^A-Za-z0-9_\-]/g,'').substring(0,40)||'structure';
+  if(fmt==='xyz'){ triggerDownload(mol.xyzString,name+'.xyz','chemical/x-xyz'); return; }
+  var atoms=xyzToAtomList(mol.xyzString);
+  if(fmt==='gjf'){ triggerDownload(atomsToGJF(atoms,name,mol.charge||0,mol.mult||1),name+'.gjf','text/plain'); return; }
+  if(fmt==='pdb'){ triggerDownload(atomsToPDB(atoms,name),name+'.pdb','chemical/x-pdb'); return; }
+}
+function downloadAll(){
+  var tot=totalStr(); if(!tot){ setStatus('No structures loaded','inf'); return; }
+  var parts=[];
+  if(mode==='multi') multiMols.forEach(function(m){ parts.push(m.xyzString); });
+  else if(mode==='lazy') lazyOffsets.forEach(function(_,i){ parts.push(extractLazy(i)); });
+  triggerDownload(parts.join('\n\n'),'all_structures.xyz','chemical/x-xyz');
+  setStatus('✓ Downloaded '+tot+' structures as XYZ','ok');
 }
 
 // ═══════════════════════════════════════════════════════════════
-// PASTE AUTO-DETECT
-// ═══════════════════════════════════════════════════════════════
-document.getElementById('paste-box').addEventListener('input',function(){
-  clearTimeout(pasteDebounce);
-  var val=this.value.trim();
-  if(!val) return;
-  pasteDebounce=setTimeout(function(){ processSingleText(val); },700);
-});
-
-// ═══════════════════════════════════════════════════════════════
-// TOGGLES / SAVE / RESET
+// TOGGLES / PNG / RESET
 // ═══════════════════════════════════════════════════════════════
 function toggleLabels(){ gLabels=!gLabels; document.getElementById('btn-lbl').classList.toggle('on',gLabels); if(gv) applyStyle(); }
 function toggleSpin()  { gSpin=!gSpin;    document.getElementById('btn-spn').classList.toggle('on',gSpin);   if(gv){gv.spin(gSpin);gv.render();} }
@@ -713,27 +956,17 @@ function toggleBg(){
   if(gv){ if(mode==='lazy') showLazy(curIdx); else if(mode==='multi') showMulti(curIdx); }
 }
 ['sty','col','sur'].forEach(function(id){ document.getElementById(id).addEventListener('change',function(){ if(gv) applyStyle(); }); });
-
-function doSave(){
+function doSavePNG(){
   if(!gv){ setStatus('No molecule loaded','inf'); return; }
   try{
     var canvas=document.querySelector('#viewer canvas');
-    if(canvas){
-      canvas.toBlob(function(blob){
-        var url=URL.createObjectURL(blob);
-        var a=document.createElement('a');
-        var tot=totalStr(); var name=tot>1?'struct_'+(curIdx+1)+'_of_'+tot:'molecule';
-        a.href=url; a.download=name+'_molvis.png';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(function(){URL.revokeObjectURL(url);},1000);
-      },'image/png'); return;
-    }
-  }catch(e){ setStatus('Save error: '+e.message,'err'); }
+    if(canvas){ canvas.toBlob(function(blob){ var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download=(getCurrentMolData()||{name:'molecule'}).name+'_molvis.png'; document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000); },'image/png'); return; }
+    var uri=gv.pngURI(); var a=document.createElement('a'); a.href=uri; a.download='molecule_molvis.png'; document.body.appendChild(a);a.click();document.body.removeChild(a);
+  }catch(e){setStatus('Save error: '+e.message,'err');}
 }
 function doReset(){
   if(gv){try{gv.clear();gv.render();}catch(e){}}
-  gv=null; mode=''; lazyOffsets=[]; lazyLines=[]; multiMols=[]; curIdx=0;
-  gLabels=false; gSpin=false;
+  gv=null; mode=''; lazyOffsets=[]; lazyLines=[]; multiMols=[]; curIdx=0; gLabels=false; gSpin=false;
   document.getElementById('paste-box').value='';
   clearUpload();
   document.getElementById('overlay').style.display='none';
@@ -743,68 +976,63 @@ function doReset(){
   document.getElementById('tb-status').style.display='none';
   document.getElementById('btn-lbl').classList.remove('on');
   document.getElementById('btn-spn').classList.remove('on');
-  document.getElementById('viewer').innerHTML='';
-  var ph=document.createElement('div'); ph.id='ph';
-  ph.innerHTML='<div class="ph-mol">⚛️</div><div class="ph-text">Paste coordinates or upload a file to begin</div><div class="ph-sub">XYZ · PDB · MOL · SDF · MOL2 · Gaussian LOG · SMILES · SI PDF · DOCX · TXT</div>';
-  document.getElementById('viewer').appendChild(ph);
+  // Restore placeholder
+  var v=document.getElementById('viewer');
+  v.innerHTML='<div id="ph"><div class="ph-mol">⚛️</div><div class="ph-text">Paste coordinates or upload a file to begin</div><div class="ph-sub">XYZ · PDB · SDF · MOL2 · GJF · Gaussian LOG · ORCA · CP2K · NWChem · VASP · SMILES · SI PDF/DOCX</div></div>';
 }
 
 // ═══════════════════════════════════════════════════════════════
-// FILE UPLOAD HANDLER  — smart dispatch
+// FILE UPLOAD  — smart dispatch
 // ═══════════════════════════════════════════════════════════════
 function clearUpload(){
   document.getElementById('file-badge').style.display='none';
-  document.getElementById('uz-default').style.display='block';
+  document.getElementById('uz-default').style.display='';
   document.getElementById('file-input').value='';
   setUploadProgress('',0);
 }
-
+function setBadge(filename,size){
+  document.getElementById('uz-default').style.display='none';
+  document.getElementById('file-badge').style.display='flex';
+  document.getElementById('fb-name').textContent=filename;
+  document.getElementById('fb-meta').textContent=Math.round(size/1024)+' KB';
+}
 function handleFile(file){
   if(!file) return;
   var ext=file.name.split('.').pop().toLowerCase();
-  // Show badge
-  document.getElementById('uz-default').style.display='none';
-  document.getElementById('file-badge').style.display='flex';
-  document.getElementById('fb-name').textContent=file.name;
-  document.getElementById('fb-meta').textContent=Math.round(file.size/1024)+' KB · .'+ext;
+  // POSCAR/CONTCAR have no extension
+  var baseName=file.name.split('.')[0].toUpperCase();
+  setBadge(file.name,file.size);
   setUploadProgress('Reading…',5);
-
-  if(ext==='pdf'){
-    processPDF(file); return;
-  }
-  if(ext==='docx'){
-    processDOCX(file); return;
-  }
-  // All text-based formats
+  if(ext==='pdf'){ processPDF(file); return; }
+  if(ext==='docx'){ processDOCX(file); return; }
   var reader=new FileReader();
   reader.onload=function(ev){
     var text=ev.target.result;
     setUploadProgress('Analysing…',60);
     setTimeout(function(){
-      dispatchTextFile(text,ext,file.name);
       setUploadProgress('Done',100);
+      // Try explicit extension first, then smart sniff
+      if(ext==='log'||ext==='out'){
+        // Could be Gaussian, ORCA, CP2K, NWChem output — sniff content
+        var fmt=sniffFormat(text);
+        if(fmt&&fmt!=='unknown'&&fmt!=='si-text'&&fmt!=='smiles'&&fmt!=='xyz'){ processPastedOrText(text,file.name); return; }
+      }
+      if(ext==='gjf'||ext==='com'){ processPastedOrText(text,file.name); return; }
+      if(ext==='pdb'){ renderNative(text,'pdb',file.name); return; }
+      if(ext==='mol2'){ renderNative(text,'mol2',file.name); return; }
+      if(ext==='sdf'){ renderNative(text,'sdf',file.name); return; }
+      if(ext==='mol'){ renderNative(text,'mol',file.name); return; }
+      if(ext==='xyz'){ processMultiXYZ(text,file.name); return; }
+      // POSCAR/CONTCAR (no ext or unknown)
+      if(baseName==='POSCAR'||baseName==='CONTCAR'||ext==='poscar'||ext==='contcar'||file.name.toUpperCase()==='POSCAR'||file.name.toUpperCase()==='CONTCAR'){
+        dispatchStructs(extractVASP(text),file.name,'VASP'); return;
+      }
+      // .txt, .orca, or anything else: full smart sniff
+      processPastedOrText(text,file.name);
     },30);
   };
   reader.onerror=function(){ setStatus('Could not read file','err'); setUploadProgress('Error',0); };
   reader.readAsText(file);
-}
-
-function dispatchTextFile(text,ext,filename){
-  // Extension-priority dispatch, then content sniff
-  if(ext==='log'||ext==='gjf'||ext==='com'){
-    var xyz=gaussianToXYZ(text);
-    if(xyz){ renderSingle(xyz,'xyz',filename,null); return; }
-    // fallback: try as XYZ
-  }
-  if(ext==='pdb'){ renderSingle(text,'pdb',filename,null); return; }
-  if(ext==='mol2'){ renderSingle(text,'mol2',filename,null); return; }
-  if(ext==='sdf'){ renderSingle(text,'sdf',filename,null); return; }
-  if(ext==='mol'){ renderSingle(text,'mol',filename,null); return; }
-  if(ext==='xyz'){
-    processMultiXYZ(text); return;
-  }
-  // .txt or unknown extension: smart sniff
-  processSingleText(text);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -813,47 +1041,42 @@ function dispatchTextFile(text,ext,filename){
 pdfjsLib.GlobalWorkerOptions.workerSrc=
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 
-function findColSplit(items,pageWidth){
+function findColSplit(items,pw){
   var n=items.length; if(n<6) return null;
-  var midLo=pageWidth*0.22,midHi=pageWidth*0.78;
+  var midLo=pw*0.22,midHi=pw*0.78;
   var segs=items.map(function(it){return[it.x0,it.x1];}).sort(function(a,b){return a[0]-b[0];});
   var merged=[],cL=segs[0][0],cR=segs[0][1];
   for(var si=1;si<segs.length;si++){
-    if(segs[si][0]<=cR+4){cR=Math.max(cR,segs[si][1]);}
+    if(segs[si][0]<=cR+4) cR=Math.max(cR,segs[si][1]);
     else{merged.push([cL,cR]);cL=segs[si][0];cR=segs[si][1];}
   }
   merged.push([cL,cR]);
-  var minGap=pageWidth*0.025,minSide=0.07,best=null,bestGap=0;
+  var best=null,bestGap=0;
   for(var mi=0;mi<merged.length-1;mi++){
     var gL=merged[mi][1],gR=merged[mi+1][0],gap=gR-gL;
-    if(gap<minGap) continue;
-    var mid=(gL+gR)/2;
-    if(mid<midLo||mid>midHi) continue;
-    var lN=items.filter(function(it){return it.x1<=mid;}).length;
-    var rN=items.filter(function(it){return it.x0>=mid;}).length;
-    if(lN/n>=minSide&&rN/n>=minSide&&gap>bestGap){bestGap=gap;best=mid;}
+    if(gap<pw*0.025) continue;
+    var mid=(gL+gR)/2; if(mid<midLo||mid>midHi) continue;
+    var ln=items.filter(function(it){return it.x1<=mid;}).length;
+    var rn=items.filter(function(it){return it.x0>=mid;}).length;
+    if(ln/n>=0.07&&rn/n>=0.07&&gap>bestGap){bestGap=gap;best=mid;}
   }
-  if(best!==null) return best;
-  // histogram valley
-  var bins=40,bw=pageWidth/bins,hist=new Array(bins).fill(0);
+  if(best) return best;
+  var bins=40,bw=pw/bins,hist=new Array(bins).fill(0);
   items.forEach(function(it){var cx=(it.x0+it.x1)/2;hist[Math.min(Math.floor(cx/bw),bins-1)]++;});
-  var peak=Math.max.apply(null,hist)||1;
-  var loBin=Math.floor(bins*0.28),hiBin=Math.floor(bins*0.72),valleys=[];
-  for(var bi=loBin;bi<hiBin;bi++){ if(hist[bi]<=peak*0.18) valleys.push(bi); }
+  var peak=Math.max.apply(null,hist)||1,valleys=[];
+  for(var bi=Math.floor(bins*0.28);bi<Math.floor(bins*0.72);bi++) if(hist[bi]<=peak*0.18) valleys.push(bi);
   if(valleys.length){
-    var centre=bins/2;
-    valleys.sort(function(a,b){return Math.abs(a-centre)-Math.abs(b-centre);});
+    valleys.sort(function(a,b){return Math.abs(a-bins/2)-Math.abs(b-bins/2);});
     var sx=(valleys[0]+0.5)*bw;
-    var ln=items.filter(function(it){return it.x1<=sx;}).length;
-    var rn=items.filter(function(it){return it.x0>=sx;}).length;
-    if(ln/n>=minSide&&rn/n>=minSide) return sx;
+    var ln2=items.filter(function(it){return it.x1<=sx;}).length;
+    var rn2=items.filter(function(it){return it.x0>=sx;}).length;
+    if(ln2/n>=0.07&&rn2/n>=0.07) return sx;
   }
   return null;
 }
-
 function clusterToLines(items){
   if(!items.length) return [];
-  items=items.filter(function(it){return (it.str||'').trim();});
+  items=items.filter(function(it){return(it.str||'').trim();});
   items.sort(function(a,b){return b.y-a.y;});
   var Y=9,groups=[];
   items.forEach(function(it){
@@ -863,20 +1086,18 @@ function clusterToLines(items){
   return groups.map(function(g){
     g.items.sort(function(a,b){return a.x-b.x;});
     var raw=g.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
-    // fix minus extracted as separate token: "- 4.2" → "-4.2"
     raw=raw.replace(/(^|\s)-\s+(\d)/g,'$1-$2');
-    // fix split decimal: "4 .19" → "4.19"
     raw=raw.replace(/(\d)\s+\.(\d)/g,'$1.$2');
     raw=raw.replace(/([+-]?\d+)\s+\.\s*(\d+)/g,'$1.$2');
     return raw;
   }).filter(Boolean);
 }
-
 function splitCoordLine(raw){
   var t=norm(raw).trim().split(/\s+/);
-  if(t.length===8){ var L=parseCoordLine(t.slice(0,4).join(' ')),R=parseCoordLine(t.slice(4,8).join(' ')); if(L&&R) return[t.slice(0,4).join(' '),t.slice(4,8).join(' ')]; }
-  if(t.length===10){ var L=parseCoordLine(t.slice(0,5).join(' ')),R=parseCoordLine(t.slice(5,10).join(' ')); if(L&&R) return[t.slice(0,5).join(' '),t.slice(5,10).join(' ')]; }
-  if(t.length===6){ var L=parseCoordLine(t.slice(0,3).join(' ')),R=parseCoordLine(t.slice(3,6).join(' ')); if(L&&R) return[t.slice(0,3).join(' '),t.slice(3,6).join(' ')]; }
+  function tryPair(a,b){ var L=parseCoordLine(a.join(' ')),R=parseCoordLine(b.join(' ')); return(L&&R)?[a.join(' '),b.join(' ')]:null; }
+  if(t.length===8) return tryPair(t.slice(0,4),t.slice(4,8));
+  if(t.length===10) return tryPair(t.slice(0,5),t.slice(5,10));
+  if(t.length===6) return tryPair(t.slice(0,3),t.slice(3,6));
   return null;
 }
 function splitHeaderLine(raw){
@@ -886,71 +1107,52 @@ function splitHeaderLine(raw){
   var firstEnd=matches[0].index+matches[0][0].length;
   var fm=/\s*[+-]?\d+\.\d+\S*/.exec(n.slice(firstEnd));
   if(!fm) return null;
-  var splitAt=firstEnd+fm.index+fm[0].length;
-  var left=raw.slice(0,splitAt).trim(),right=raw.slice(splitAt).trim();
-  if(!left||!right) return null;
-  return[left,right];
-}
-function splitCountLine(raw){
-  var t=raw.trim().split(/\s+/);
-  if(t.length===2&&/^\d+$/.test(t[0])&&/^\d+$/.test(t[1])) return[t[0],t[1]];
-  return null;
-}
-function splitNamePair(raw){
-  var n=norm(raw).trim(); if(HEADER_RE.test(n)) return null;
-  var t=n.split(/\s+/); if(t.length!==2) return null;
-  function looksLabel(s){return /^[A-Za-z(]/.test(s)&&/\d/.test(s);}
-  if(!looksLabel(t[0])||!looksLabel(t[1])) return null;
-  var esc=t[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  var m2=new RegExp(esc+'(\\s{2,})').exec(raw);
-  if(!m2) return null;
-  return[raw.slice(0,m2.index+t[0].length).trim(),raw.slice(m2.index+t[0].length+m2[1].length).trim()];
+  var sp=firstEnd+fm.index+fm[0].length;
+  var left=raw.slice(0,sp).trim(),right=raw.slice(sp).trim();
+  return(left&&right)?[left,right]:null;
 }
 function decolumnSplit(lines){
-  var doubleCoord=0,totalCoord=0;
-  lines.forEach(function(l){var n=norm(l);if(parseCoordLine(n))totalCoord++;if(splitCoordLine(n))doubleCoord++;});
-  if(totalCoord===0||doubleCoord/Math.max(totalCoord,1)<0.25) return{pre:lines,left:[],right:[],post:[]};
-  var processed=[],firstDoubled=-1,lastDoubled=-1;
+  var dbl=0,tot=0;
+  lines.forEach(function(l){var n=norm(l);if(parseCoordLine(n))tot++;if(splitCoordLine(n))dbl++;});
+  if(!tot||dbl/Math.max(tot,1)<0.25) return{pre:lines,left:[],right:[],post:[]};
+  var proc=[],fD=-1,lD=-1;
   lines.forEach(function(raw,idx){
     var n=norm(raw).trim();
-    if(raw.indexOf('<<BREAK')===0||!n){processed.push({left:raw,right:raw,doubled:false});return;}
-    var pair;
-    pair=splitCoordLine(n); if(pair){processed.push({left:pair[0],right:pair[1],doubled:true});if(firstDoubled===-1)firstDoubled=idx;lastDoubled=idx;return;}
-    pair=splitHeaderLine(raw); if(pair){processed.push({left:pair[0],right:pair[1],doubled:true});if(firstDoubled===-1)firstDoubled=idx;lastDoubled=idx;return;}
-    pair=splitCountLine(n); if(pair){processed.push({left:pair[0],right:pair[1],doubled:true});if(firstDoubled===-1)firstDoubled=idx;lastDoubled=idx;return;}
-    pair=splitNamePair(raw); if(pair){processed.push({left:pair[0],right:pair[1],doubled:true});if(firstDoubled===-1)firstDoubled=idx;lastDoubled=idx;return;}
-    processed.push({left:raw,right:raw,doubled:false});
+    if(raw.indexOf('<<BREAK')===0||!n){proc.push({left:raw,right:raw,d:false});return;}
+    var pair=splitCoordLine(n)||(HEADER_RE.test(n)?null:null)||splitHeaderLine(raw)||null;
+    if(!pair&&/^\d+\s+\d+$/.test(n)){var t=n.split(/\s+/);if(/^\d+$/.test(t[0])&&/^\d+$/.test(t[1]))pair=[t[0],t[1]];}
+    if(pair){proc.push({left:pair[0],right:pair[1],d:true});if(fD===-1)fD=idx;lD=idx;}
+    else proc.push({left:raw,right:raw,d:false});
   });
-  if(firstDoubled===-1) return{pre:lines,left:[],right:[],post:[]};
+  if(fD===-1) return{pre:lines,left:[],right:[],post:[]};
   var pre=[],left=[],right=[],post=[];
-  processed.forEach(function(p,idx){
-    if(idx<firstDoubled) pre.push(p.left);
-    else if(idx>lastDoubled) post.push(p.left);
+  proc.forEach(function(p,idx){
+    if(idx<fD) pre.push(p.left);
+    else if(idx>lD) post.push(p.left);
     else{left.push(p.left);right.push(p.right);}
   });
   return{pre:pre,left:left,right:right,post:post};
 }
-function detectPerPage(pageData){
-  var total=0,coordStart=0,firstTwo=true;
-  pageData.forEach(function(pg){
+function detectPerPage(pd){
+  var tot=0,cs=0,ft=true;
+  pd.forEach(function(pg){
     if(pg.type!=='two') return;
-    var combined=pg.left.concat(pg.right);
-    if(!combined.some(function(l){return parseCoordLine(norm(l));})) return;
-    if(firstTwo){firstTwo=false;return;}
-    if(total>=10) return;
-    total++;
-    var stripped=pg.left.filter(function(l){return l.trim();});
-    if(stripped.length&&parseCoordLine(norm(stripped[0]))) coordStart++;
+    var c=pg.left.concat(pg.right);
+    if(!c.some(function(l){return parseCoordLine(norm(l));})) return;
+    if(ft){ft=false;return;}
+    if(tot>=10) return;
+    tot++;
+    var s=pg.left.filter(function(l){return l.trim();});
+    if(s.length&&parseCoordLine(norm(s[0]))) cs++;
   });
-  if(!total) return false;
-  return(coordStart/total)>0.5;
+  return tot>0&&(cs/tot)>0.5;
 }
 
 async function processPDF(file){
   try{
-    var arrayBuf=await file.arrayBuffer();
-    var pdf=await pdfjsLib.getDocument({data:arrayBuf}).promise;
-    var pageData=[];
+    var buf=await file.arrayBuffer();
+    var pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    var pd=[];
     for(var p=1;p<=pdf.numPages;p++){
       var page=await pdf.getPage(p);
       var content=await page.getTextContent();
@@ -964,44 +1166,33 @@ async function processPDF(file){
       var splitX=findColSplit(allItems,pw);
       var pgEntry;
       if(splitX){
-        var leftItems=allItems.filter(function(it){return it.x1<=splitX+2;});
-        var rightItems=allItems.filter(function(it){return it.x0>=splitX-2;});
-        pgEntry={type:'two',n:p,left:clusterToLines(leftItems),right:clusterToLines(rightItems)};
+        pgEntry={type:'two',n:p,left:clusterToLines(allItems.filter(function(it){return it.x1<=splitX+2;})),right:clusterToLines(allItems.filter(function(it){return it.x0>=splitX-2;}))};
       } else {
-        var rawLines=clusterToLines(allItems);
-        var dc=decolumnSplit(rawLines);
-        if(dc.left.length>0){
-          pgEntry={type:'two',n:p,left:dc.pre.concat(dc.left,dc.post),right:dc.right};
-        } else {
-          pgEntry={type:'one',n:p,lines:rawLines};
-        }
+        var rawL=clusterToLines(allItems);
+        var dc=decolumnSplit(rawL);
+        pgEntry=dc.left.length>0?{type:'two',n:p,left:dc.pre.concat(dc.left,dc.post),right:dc.right}:{type:'one',n:p,lines:rawL};
       }
-      pageData.push(pgEntry);
-      setUploadProgress('Extracting '+p+'/'+pdf.numPages+' pages…',Math.round((p/pdf.numPages)*80)+5);
+      pd.push(pgEntry);
+      setUploadProgress('Extracting p.'+p+'/'+pdf.numPages+'…',Math.round((p/pdf.numPages)*80)+5);
     }
-    var usePerPage=detectPerPage(pageData);
+    var usePerPage=detectPerPage(pd);
     var allLines=[];
     if(usePerPage){
-      pageData.forEach(function(pg){
-        if(pg.type==='two'){allLines=allLines.concat(pg.left,pg.right);}
-        else{allLines=allLines.concat(pg.lines);}
-        allLines.push('<<BREAK:'+pg.n+'>>');
-      });
+      pd.forEach(function(pg){allLines=allLines.concat(pg.type==='two'?pg.left.concat(pg.right):pg.lines);allLines.push('<<BREAK:'+pg.n+'>>');});
     } else {
-      var allLeft=[],allRight=[];
-      pageData.forEach(function(pg){
-        if(pg.type==='two'){allLeft=allLeft.concat(pg.left);allRight=allRight.concat(pg.right);}
-        else{allLeft=allLeft.concat(pg.lines);}
-        allLeft.push('<<BREAK:'+pg.n+'>>');
-        allRight.push('<<BREAK:'+pg.n+'>>');
+      var aL=[],aR=[];
+      pd.forEach(function(pg){
+        if(pg.type==='two'){aL=aL.concat(pg.left);aR=aR.concat(pg.right);}
+        else aL=aL.concat(pg.lines);
+        aL.push('<<BREAK:'+pg.n+'>>'); aR.push('<<BREAK:'+pg.n+'>>');
       });
-      allLines=allLeft.concat(allRight);
+      allLines=aL.concat(aR);
     }
-    setUploadProgress('Repairing fragments…',90);
+    setUploadProgress('Repairing…',90);
     await new Promise(function(r){setTimeout(r,0);});
     allLines=repairBrokenCoordLines(allLines);
     allLines=joinSplitEnergies(allLines);
-    setUploadProgress('Parsing structures…',95);
+    setUploadProgress('Parsing…',95);
     await new Promise(function(r){setTimeout(r,0);});
     finishSIExtraction(allLines,file.name,false);
   }catch(e){
@@ -1025,39 +1216,30 @@ async function processDOCX(file){
     var parser=new DOMParser();
     var doc=parser.parseFromString(xmlText,'application/xml');
     var W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';
-    function paraText(el){
-      var tNodes=el.getElementsByTagNameNS(W,'t'),parts=[];
-      for(var j=0;j<tNodes.length;j++){if(tNodes[j].textContent)parts.push(tNodes[j].textContent);}
-      return parts.join('');
-    }
+    function pText(el){ var tn=el.getElementsByTagNameNS(W,'t'),p=[]; for(var j=0;j<tn.length;j++) if(tn[j].textContent) p.push(tn[j].textContent); return p.join(''); }
     var lines=[];
-    function addText(text){
-      var t=(text||'').trim();
-      if(t){t.split(/\n/).forEach(function(sub){var s=sub.trim();if(s)lines.push(s);});}
-      else{lines.push('');}
-    }
-    var bodyEls=doc.getElementsByTagNameNS(W,'body');
-    if(!bodyEls.length) throw new Error('No body in DOCX');
-    var body=bodyEls[0];
+    function addText(text){ var t=(text||'').trim(); if(t) t.split(/\n/).forEach(function(s){var x=s.trim();if(x)lines.push(x);}); else lines.push(''); }
+    var body=doc.getElementsByTagNameNS(W,'body')[0];
+    if(!body) throw new Error('No body in DOCX');
     for(var ci=0;ci<body.childNodes.length;ci++){
       var child=body.childNodes[ci];
-      var localName=child.localName||child.nodeName.replace(/^.*:/,'');
-      if(localName==='p'){addText(paraText(child));}
-      else if(localName==='tbl'){
+      var ln=child.localName||child.nodeName.replace(/^.*:/,'');
+      if(ln==='p'){ addText(pText(child)); }
+      else if(ln==='tbl'){
         var trNodes=child.getElementsByTagNameNS(W,'tr');
         for(var ri=0;ri<trNodes.length;ri++){
           var tcNodes=trNodes[ri].getElementsByTagNameNS(W,'tc');
           var rowParts=[];
           for(var tci=0;tci<tcNodes.length;tci++){
             var pNodes=tcNodes[tci].getElementsByTagNameNS(W,'p');
-            var cellParts=[];
-            for(var pi2=0;pi2<pNodes.length;pi2++){var pt=paraText(pNodes[pi2]).trim();if(pt)cellParts.push(pt);}
-            var cellText=cellParts.join(' ');
-            if(cellText){addText(cellText);rowParts.push(cellText);}
+            var cParts=[];
+            for(var pi2=0;pi2<pNodes.length;pi2++){var pt=pText(pNodes[pi2]).trim();if(pt)cParts.push(pt);}
+            var ct=cParts.join(' ');
+            if(ct){addText(ct);rowParts.push(ct);}
           }
-          if(rowParts.length>1){var joined=rowParts.join('   ');if(lines.indexOf(joined)===-1)lines.push(joined);}
+          if(rowParts.length>1){var j=rowParts.join('   ');if(lines.indexOf(j)===-1)lines.push(j);}
         }
-      } else if(localName==='sectPr'){lines.push('<<BREAK:section>>');}
+      } else if(ln==='sectPr') lines.push('<<BREAK:section>>');
     }
     setUploadProgress('Repairing…',80);
     lines=repairBrokenCoordLines(lines);
@@ -1072,11 +1254,28 @@ async function processDOCX(file){
   }
 }
 
+function finishSIExtraction(lines,filename,isDocx){
+  var mols=parseSI(lines,0,1,3,isDocx);
+  setUploadProgress('Done',100);
+  if(!mols.length){
+    // Fallback: try reading lines as plain text and sniff
+    var combined=lines.filter(function(l){return l.indexOf('<<BREAK')===-1;}).join('\n');
+    var fmt=sniffFormat(combined);
+    if(fmt&&fmt!=='unknown'){
+      processPastedOrText(combined,filename);
+      return;
+    }
+    setStatus('No coordinate blocks found in '+filename+'. Try Debug mode or ensure file is text-based (not scanned).','err');
+    return;
+  }
+  dispatchStructs(mols,filename,'SI');
+}
+
 // ═══════════════════════════════════════════════════════════════
-// SI PARSER — comprehensive
+// SI PARSER
 // ═══════════════════════════════════════════════════════════════
-var HEADER_RE=/total\s+energy\s*=|gibbs(?:\s+energy)?\s*=|zero[- ]?point\s+(?:energy|correction)|scf\s+done|number\s+of\s+(?:imaginary\s+)?(?:negative\s+)?freq|thermal\s+correction|imaginary\s+frequencies|\bE_?opt\s+[+-]?\d|\bEelec\s+[+-]?\d|\bEtot\s+[+-]?\d|\bE_?rel\s+[+-]?\d|electronic\s+energy|\bimaginary\s+freq\b|\bG\s*=\s*[+-]?\d+\.\d|\bH\s*=\s*[+-]?\d+\.\d|\bE\s*=\s*[+-]?\d+\.\d|\bU\s*=\s*[+-]?\d+\.\d/i;
-var ENERGY_RE=/(?:total\s+energy|gibbs(?:\s+energy)?|scf\s+done|electronic\s+energy(?:\s+bs[12]?)?|E_?opt|Eelec|Etot|E_?rel|E_?\w*|G|H|U)\s*[=:]\s*([+-]?\d+\.\d+)/i;
+var HEADER_RE=/total\s+energy\s*=|gibbs(?:\s+energy)?\s*=|zero[- ]?point\s+(?:energy|correction)|scf\s+done|number\s+of\s+(?:imaginary\s+)?(?:negative\s+)?freq|thermal\s+correction|imaginary\s+frequencies|\bE_?opt\s+[+-]?\d|\bEelec\s+[+-]?\d|\bEtot\s+[+-]?\d|\bE_?rel\s+[+-]?\d|electronic\s+energy|\bimaginary\s+freq\b|\bG\s*=\s*[+-]?\d+\.\d|\bH\s*=\s*[+-]?\d+\.\d|\bE\s*=\s*[+-]?\d+\.\d/i;
+var ENERGY_RE=/(?:total\s+energy|gibbs(?:\s+energy)?|scf\s+done|electronic\s+energy(?:\s+bs[12]?)?|E_?opt|Eelec|Etot|E_?rel|E_?\w*|G|H)\s*[=:]\s*([+-]?\d+\.\d+)/i;
 var CHGMULT_RE=/(?:charge\s*[=:]\s*)?([+-]?\d)\s*[,\s]+(?:mult(?:iplicity)?\s*[=:]\s*)?(\d)\b/i;
 var CHGMULT_LINE_RE=/charge\s*=\s*[+-]?\d|multiplicity\s*=\s*\d/i;
 var NAME_STOP_RE=/total\s+energy|gibbs|zero.?point|scf\s+done|number\s+of|thermal|enthalpy|entropy|imaginary|electronic\s+energy|\bE_?opt\s|\bEelec\s|\bEtot\s|\bE_?rel\s|\bE\s*=\s*[+-]?\d/i;
@@ -1085,107 +1284,43 @@ var META_LINE_RE=/(?:number\s+of|imaginary|thermal|zero.?point|scf\s+done|electr
 var SEC_KW_RE=/\b(?:cartesian|coordinates?|optimized|geometr|states?|intermediates?|structures?|molecules?|compounds?|species|supporting|section|table|figure|transition|appendix)\b/i;
 var SEC_SPLIT_RE=/(?:[Ss]\.?\d+\s+)?(?:cartesian\s+)?coordinates?\s+of\s+|(?:intermediates?\s+and\s+)?transition\s+states?\s+|optimized\s+(?:cartesian\s+)?(?:coordinates?|structures?)\s+|\bstates?\s+|\bstructures?\s+|\bspecies\s+|\bmolecules?\s+/i;
 var BRKSEN='\x00';
-
-function safeName(name){
-  if(!name) return 'Structure';
-  name=name.replace(/[\x00-\x1f\x7f]/g,'');
-  name=name.replace(/-\s+/g,'-').replace(/\s+-/g,'-');
-  name=name.replace(/[<>:"/\\|?*]+/g,'_');
-  name=name.replace(/\s+/g,'_').replace(/^[_.]+|[_.]+$/g,'');
-  return name.substring(0,80)||'Structure';
-}
-
-function extractName(headerLine, contextLines){
-  if(headerLine){
-    var h=norm(headerLine),m=NAME_STOP_RE.exec(h);
-    if(m){
-      var before=h.substring(0,m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
-      if(before&&/[A-Za-z0-9]/.test(before)&&!/^[\d\s.+\-]+$/.test(before)){
-        if(!SEC_KW_RE.test(before)&&before.split(/\s+/).length<=6) return before;
-        var parts=before.split(SEC_SPLIT_RE);
-        if(parts.length>1){var tail=parts[parts.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(tail&&tail.split(/\s+/).length<=4&&/[A-Za-z0-9]/.test(tail))return tail;}
-        var words=before.split(/\s+/);var last=words[words.length-1].replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');
-        if(last&&/^[A-Za-z0-9]/.test(last)&&last.length<=20)return last;
-        return before;
-      }
-    }
-  }
-  var window=[];
-  for(var i=Math.max(0,contextLines.length-30);i<contextLines.length;i++){
-    var l=norm(contextLines[i]).trim();
-    if(!l) continue;
-    if(l.indexOf('<<')===0){window.push(BRKSEN);continue;}
-    var printable=l.replace(/[^\x20-\x7e]/g,'');
-    if(printable.length<l.length*0.5) continue;
-    window.push(l);
-  }
-  for(var wi=window.length-1;wi>=0;wi--){
-    var line=window[wi],fwdIdx=wi;
-    if(line===BRKSEN) continue;
-    if(HEADER_RE.test(line)) continue;
-    if(/\bchemical\s+symbol\b/i.test(line)) continue;
-    if(CHGMULT_LINE_RE.test(line)) continue;
-    if(NOT_NAME_RE.test(line)) continue;
-    if(/^[\d\s.+\-]+$/.test(line)){
-      if(/^\d{1,6}\s*$/.test(line)){
-        var nxt=fwdIdx+1;
-        while(nxt<window.length&&window[nxt]===BRKSEN) nxt++;
-        if(nxt<window.length&&/electronic\s+energy|zero.?point|thermal_correction|\bimaginary\s+freq\b/i.test(window[nxt])){
-          var gap=window.slice(fwdIdx+1,nxt);
-          if(!gap.some(function(g){return g===BRKSEN;})) return line.trim();
-        }
-      }
-      continue;
-    }
-    if(line.split(/\s+/).length>10) continue;
-    if(line.length>100) continue;
-    if(META_LINE_RE.test(line)) continue;
+function safeName(name){ if(!name)return'Structure'; name=name.replace(/[\x00-\x1f\x7f]/g,''); name=name.replace(/-\s+/g,'-').replace(/\s+-/g,'-'); name=name.replace(/[<>:"/\\|?*]+/g,'_'); name=name.replace(/\s+/g,'_').replace(/^[_.]+|[_.]+$/g,''); return name.substring(0,80)||'Structure'; }
+function extractName(headerLine,contextLines){
+  if(headerLine){ var h=norm(headerLine),m=NAME_STOP_RE.exec(h); if(m){ var before=h.substring(0,m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,''); if(before&&/[A-Za-z0-9]/.test(before)&&!/^[\d\s.+\-]+$/.test(before)){ if(!SEC_KW_RE.test(before)&&before.split(/\s+/).length<=6)return before; var parts=before.split(SEC_SPLIT_RE); if(parts.length>1){var tail=parts[parts.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(tail&&tail.split(/\s+/).length<=4&&/[A-Za-z0-9]/.test(tail))return tail;} var words=before.split(/\s+/);var last=words[words.length-1].replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(last&&/^[A-Za-z0-9]/.test(last)&&last.length<=20)return last;return before;}}}
+  var win=[];
+  for(var i=Math.max(0,contextLines.length-30);i<contextLines.length;i++){ var l=norm(contextLines[i]).trim(); if(!l)continue; if(l.indexOf('<<')===0){win.push(BRKSEN);continue;} var pr=l.replace(/[^\x20-\x7e]/g,''); if(pr.length<l.length*0.5)continue; win.push(l); }
+  for(var wi=win.length-1;wi>=0;wi--){
+    var line=win[wi];
+    if(line===BRKSEN||HEADER_RE.test(line)||/\bchemical\s+symbol\b/i.test(line)||CHGMULT_LINE_RE.test(line)||NOT_NAME_RE.test(line))continue;
+    if(/^[\d\s.+\-]+$/.test(line))continue;
+    if(line.split(/\s+/).length>10||line.length>100||META_LINE_RE.test(line))continue;
     var cand=null;
     var cm=/\bcoordinates?\s+of\s+([A-Za-z0-9(][\w\s()\-+.,]{0,60}?)(?:\s*$|\s*[.,])/.exec(line);
-    if(cm) cand=cm[1].trim().replace(/[.,\s]+$/,'');
+    if(cm)cand=cm[1].trim().replace(/[.,\s]+$/,'');
     if(!cand){cm=/^cartesian\s+coordinates?\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
-    if(!cand){cm=/^(?:reactant|product|encounter|ion[\s-]?pair)(?:\s+complex)?\s+(\S.{0,40})$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
-    if(!cand){cm=/^(?:compound|structure|molecule|intermediate|transition[\s-]+state|substrate|catalyst|adduct)\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
-    if(!cand&&/[A-Za-z]/.test(line)&&line.split(/\s+/).length<=8) cand=line;
-    if(cand){
-      if(fwdIdx>0&&cand.split(/\s+/).length>=2){
-        var prev=window[fwdIdx-1];
-        if(prev!==BRKSEN){
-          if(/^\d+\s*$/.test(prev)||(prev.split(/\s+/).length<=2&&/^[A-Za-z0-9]/.test(prev)&&!HEADER_RE.test(prev)&&!CHGMULT_LINE_RE.test(prev)&&!NOT_NAME_RE.test(prev))){
-            cand=prev.trim()+' '+cand;
-          }
-        }
-      }
-      return cand;
-    }
+    if(!cand){cm=/^(?:compound|structure|molecule|intermediate|transition[\s-]+state|reactant|product|catalyst|adduct)\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
+    if(!cand&&/[A-Za-z]/.test(line)&&line.split(/\s+/).length<=8)cand=line;
+    if(cand){ if(wi>0&&win[wi-1]!==BRKSEN&&/^\d+\s*$/.test(win[wi-1])) cand=win[wi-1].trim()+' '+cand; return cand; }
   }
   return null;
 }
-
-function isNameSeparator(stripped,nstr){
-  if(!stripped) return false;
-  if(!/^[A-Za-z(]/.test(stripped)) return false;
-  if(HEADER_RE.test(nstr)) return false;
-  if(CHGMULT_LINE_RE.test(nstr)) return false;
-  if(META_LINE_RE.test(nstr)) return false;
-  if(NOT_NAME_RE.test(stripped)) return false;
-  if(stripped.length>150||stripped.split(/\s+/).length>12) return false;
-  if(/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+/.test(stripped)) return false;
-  if(/^[+-]?\d+\.\d+/.test(stripped)) return false;
-  if(/^[A-Za-z]{1,2}(\s+\d+){2,}$/.test(stripped)) return false;
+function isNameSep(stripped,nstr){
+  if(!stripped||!/^[A-Za-z(]/.test(stripped))return false;
+  if(HEADER_RE.test(nstr)||CHGMULT_LINE_RE.test(nstr)||META_LINE_RE.test(nstr)||NOT_NAME_RE.test(stripped))return false;
+  if(stripped.length>150||stripped.split(/\s+/).length>12)return false;
+  if(/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+/.test(stripped)||/^[+-]?\d+\.\d+/.test(stripped)||/^[A-Za-z]{1,2}(\s+\d+){2,}$/.test(stripped))return false;
   return true;
 }
-
-function parseSI(textLines, defaultCharge, defaultMult, minAtoms, isDocx){
+function parseSI(textLines,defCharge,defMult,minAtoms,isDocx){
   var structs=[],ctx=[],atoms=[],blkCtx=[],blkPreLen=0,hdrLine=null,inBlock=false,counter=0;
   function flush(){
     if(atoms.length<minAtoms){inBlock=false;atoms=[];blkCtx=[];blkPreLen=0;hdrLine=null;return;}
     counter++;
     var name=extractName(hdrLine,blkCtx.slice(0,blkPreLen));
-    if(!name) name='Structure_'+counter;
+    if(!name)name='Structure_'+counter;
     var energy=null;
     for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-20);li--){var em=ENERGY_RE.exec(norm(blkCtx[li]));if(em){energy=em[1];break;}}
-    var charge=defaultCharge,mult=defaultMult;
+    var charge=defCharge,mult=defMult;
     for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-15);li--){var cm=CHGMULT_RE.exec(norm(blkCtx[li]));if(cm){try{charge=parseInt(cm[1],10);mult=parseInt(cm[2],10);}catch(e){}break;}}
     structs.push({name:safeName(name),atoms:atoms.slice(),charge:charge,mult:mult,energy:energy});
     inBlock=false;atoms=[];blkCtx=[];blkPreLen=0;hdrLine=null;
@@ -1193,150 +1328,84 @@ function parseSI(textLines, defaultCharge, defaultMult, minAtoms, isDocx){
   for(var i=0;i<textLines.length;i++){
     var raw=textLines[i],n=norm(raw),stripped=n.trim();
     if(typeof raw==='string'&&raw.indexOf('<<BREAK')===0){ctx.push(raw);continue;}
-    if(!stripped){
-      ctx.push(raw);
-      if(isDocx&&inBlock&&atoms.length>=minAtoms) flush();
-      continue;
-    }
-    if(HEADER_RE.test(n)){
-      if(inBlock) flush();
-      ctx.push(raw);hdrLine=raw;continue;
-    }
+    if(!stripped){ctx.push(raw);if(isDocx&&inBlock&&atoms.length>=minAtoms)flush();continue;}
+    if(HEADER_RE.test(n)){if(inBlock)flush();ctx.push(raw);hdrLine=raw;continue;}
     var coord=parseCoordLine(n);
     if(coord){
       if(!inBlock){inBlock=true;blkCtx=ctx.slice();blkPreLen=blkCtx.length;atoms=[];}
       atoms.push(coord);
     } else {
-      if(inBlock&&atoms.length>=minAtoms&&isNameSeparator(stripped,n)){
-        var lookahead=false;
-        for(var j=i+1;j<Math.min(i+6,textLines.length);j++){
-          var nxt=norm(textLines[j]).trim();
-          if(!nxt||nxt.indexOf('<<')===0) continue;
-          if(parseCoordLine(nxt)) lookahead=true;
-          break;
-        }
-        if(lookahead){flush();ctx.push(raw);hdrLine=raw;continue;}
+      if(inBlock&&atoms.length>=minAtoms&&isNameSep(stripped,n)){
+        var la=false;
+        for(var j=i+1;j<Math.min(i+6,textLines.length);j++){var nxt=norm(textLines[j]).trim();if(!nxt||nxt.indexOf('<<')===0)continue;if(parseCoordLine(nxt))la=true;break;}
+        if(la){flush();ctx.push(raw);hdrLine=raw;continue;}
       }
       ctx.push(raw);
-      if(inBlock) blkCtx.push(raw);
+      if(inBlock)blkCtx.push(raw);
     }
   }
-  if(inBlock&&atoms.length>=minAtoms) flush();
+  if(inBlock&&atoms.length>=minAtoms)flush();
   var seen={};
   structs.forEach(function(mol){var b=mol.name;seen[b]=(seen[b]||0)+1;if(seen[b]>1)mol.name=b+'_'+seen[b];});
   var seen2={};
   structs.forEach(function(mol){var b=mol.name;if(seen2[b]){seen2[b]++;mol.name=b+'_'+seen2[b];}else seen2[b]=1;});
   return structs;
 }
-
 function repairBrokenCoordLines(lines){
   var out=[];
-  var ELEM_ONLY=/^[A-Za-z]{1,2}\s*$/;
-  var ATNUM_ONLY=/^\d{1,2}\s*$/;
-  var ELEM_1F=/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+\s*$/;
-  var ELEM_2F=/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+\s+[+-]?\d+\.\d+\s*$/;
-  var ATNUM_1F=/^\d{1,2}\s+[+-]?\d+\.\d+\s*$/;
-  var BARE_FLOATS_2=/^[+-]?\d+\.?\d*\s+[+-]?\d+\.?\d*\s*$/;
-  var BARE_FLOATS_3=/^[+-]?\d+\.?\d*(\s+[+-]?\d+\.?\d*){2}\s*$/;
-  var BARE_FLOAT_1=/^[+-]?\d+\.\d+\s*$/;
-  var IDX_ATNUM=/^\d+\s+\d{1,2}\s*$/;
-  function peekNext(start){
-    var j=start;
-    while(j<lines.length){var s=norm(lines[j]).trim();if(s&&s.indexOf('<<BREAK')!==0)return{idx:j,str:s};j++;}
-    return null;
-  }
+  function peekNext(start){var j=start;while(j<lines.length){var s=norm(lines[j]).trim();if(s&&s.indexOf('<<BREAK')!==0)return{idx:j,str:s};j++;}return null;}
   var i=0;
   while(i<lines.length){
     var line=lines[i],n=norm(line).trim();
     if(!n||n.indexOf('<<BREAK')===0){out.push(line);i++;continue;}
     if(parseCoordLine(n)){out.push(line);i++;continue;}
     var merged=null;
-    if(ELEM_ONLY.test(n)||ATNUM_ONLY.test(n)){
-      var acc=n,floatCount=0,j=i+1;
-      while(floatCount<3&&j<lines.length){
-        var pk=peekNext(j);if(!pk)break;var pn=pk.str;
-        if(/^([+-]?\d+\.\d+(\s+|$)){1,3}/.test(pn)){
-          var tokens=pn.split(/\s+/).filter(Boolean),take=Math.min(tokens.length,3-floatCount),taken=tokens.slice(0,take);
-          if(taken.every(function(t){return /^[+-]?\d+\.\d+$/.test(t);})){acc+=' '+taken.join(' ');floatCount+=take;j=pk.idx+1;continue;}
-        }
-        break;
-      }
-      if(floatCount===3&&parseCoordLine(acc)) merged={line:acc,nextI:j};
+    var EOONLY=/^[A-Za-z]{1,2}\s*$/,AN2=/^\d{1,2}\s*$/,E1F=/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+\s*$/,E2F=/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+\s+[+-]?\d+\.\d+\s*$/,A1F=/^\d{1,2}\s+[+-]?\d+\.\d+\s*$/,B2=/^[+-]?\d+\.?\d*\s+[+-]?\d+\.?\d*\s*$/,B3=/^[+-]?\d+\.?\d*(\s+[+-]?\d+\.?\d*){2}\s*$/,B1=/^[+-]?\d+\.\d+\s*$/,IXAN=/^\d+\s+\d{1,2}\s*$/;
+    if(EOONLY.test(n)||AN2.test(n)){
+      var acc=n,fc=0,j=i+1;
+      while(fc<3&&j<lines.length){var pk=peekNext(j);if(!pk)break;if(/^([+-]?\d+\.\d+(\s+|$)){1,3}/.test(pk.str)){var toks=pk.str.split(/\s+/).filter(Boolean),take=Math.min(toks.length,3-fc),taken=toks.slice(0,take);if(taken.every(function(t){return /^[+-]?\d+\.\d+$/.test(t);})){acc+=' '+taken.join(' ');fc+=take;j=pk.idx+1;continue;}}break;}
+      if(fc===3&&parseCoordLine(acc))merged={line:acc,nextI:j};
     }
-    if(!merged&&(ELEM_1F.test(n)||ATNUM_1F.test(n))){
-      var pk=peekNext(i+1);
-      if(pk&&BARE_FLOATS_2.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}
-      if(!merged&&pk&&BARE_FLOAT_1.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}
-    }
-    if(!merged&&ELEM_2F.test(n)){
-      var pk=peekNext(i+1);
-      if(pk&&BARE_FLOAT_1.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}
-    }
-    if(!merged&&IDX_ATNUM.test(n)){
-      var pk=peekNext(i+1);
-      if(pk&&BARE_FLOATS_3.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}
-    }
-    if(merged){out.push(merged.line);i=merged.nextI;}
-    else{out.push(line);i++;}
+    if(!merged&&(E1F.test(n)||A1F.test(n))){var pk=peekNext(i+1);if(pk&&B2.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}if(!merged&&pk&&B1.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}}
+    if(!merged&&E2F.test(n)){var pk=peekNext(i+1);if(pk&&B1.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}}
+    if(!merged&&IXAN.test(n)){var pk=peekNext(i+1);if(pk&&B3.test(pk.str)){var c2=n+' '+pk.str.trim();if(parseCoordLine(c2))merged={line:c2.trim(),nextI:pk.idx+1};}}
+    if(merged){out.push(merged.line);i=merged.nextI;}else{out.push(line);i++;}
   }
   return out;
 }
-
 function joinSplitEnergies(lines){
-  var tKW=/(?:eopt|e_opt|eelec|etot|erel|total\s+energy\s*=|electronic\s+energy\s+bs[12]?\s*=|=)\s*[+-]?\s*$/i;
-  var bareNum=/^[+-]?\d+\.\d+\s*$/;
+  var tKW=/(?:eopt|e_opt|eelec|etot|erel|total\s+energy\s*=|electronic\s+energy\s+bs[12]?\s*=|=)\s*[+-]?\s*$/i,bareNum=/^[+-]?\d+\.\d+\s*$/;
   var out=[],i=0;
   while(i<lines.length){
     var line=lines[i];
-    if(tKW.test(norm(line).trim())){
-      var j=i+1;
-      while(j<lines.length&&lines[j].indexOf('<<BREAK')===0) j++;
-      if(j<lines.length&&bareNum.test(norm(lines[j]).trim())){
-        out.push(line.trimEnd()+lines[j].trim());
-        for(var k=i+1;k<j;k++) out.push(lines[k]);
-        i=j+1;continue;
-      }
-    }
+    if(tKW.test(norm(line).trim())){var j=i+1;while(j<lines.length&&lines[j].indexOf('<<BREAK')===0)j++;if(j<lines.length&&bareNum.test(norm(lines[j]).trim())){out.push(line.trimEnd()+lines[j].trim());for(var k=i+1;k<j;k++)out.push(lines[k]);i=j+1;continue;}}
     out.push(line);i++;
   }
   return out;
 }
 
-function finishSIExtraction(lines,filename,isDocx){
-  var mols=parseSI(lines,0,1,3,isDocx);
-  setUploadProgress('Done',100);
-  if(!mols.length){
-    // If no SI structures, try plain XYZ interpretation
-    var combined=lines.join('\n');
-    var fmt=sniffFormat(combined);
-    if(fmt&&fmt!=='si-text'&&fmt!=='unknown'){
-      dispatchTextFile(combined,filename.split('.').pop().toLowerCase(),filename);
-      return;
-    }
-    setStatus('No coordinate blocks found in '+filename,'err');
-    return;
-  }
-  multiMols=mols.map(function(m){return{name:m.name,xyzString:molToXYZ(m),energy:m.energy,natoms:m.atoms.length};});
-  mode='multi'; lazyOffsets=[]; curIdx=0;
-  showMulti(0);
-  setStatus('✓ '+mols.length+' structures extracted from '+filename,'ok');
-}
+// ═══════════════════════════════════════════════════════════════
+// PASTE AUTO-DETECT  (700ms debounce)
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('paste-box').addEventListener('input',function(){
+  clearTimeout(pasteDebounce);
+  var val=this.value.trim();
+  if(!val||val.length<3) return;
+  pasteDebounce=setTimeout(function(){
+    processPastedOrText(val,'paste');
+  },700);
+});
 
 // ═══════════════════════════════════════════════════════════════
-// FILE INPUT WIRING
+// UPLOAD WIRING
 // ═══════════════════════════════════════════════════════════════
 var uz=document.getElementById('upload-zone');
 uz.addEventListener('click',function(){document.getElementById('file-input').click();});
 uz.addEventListener('dragover',function(e){e.preventDefault();uz.classList.add('over');});
 uz.addEventListener('dragleave',function(){uz.classList.remove('over');});
-uz.addEventListener('drop',function(e){
-  e.preventDefault();uz.classList.remove('over');
-  handleFile(e.dataTransfer.files[0]);
-});
+uz.addEventListener('drop',function(e){e.preventDefault();uz.classList.remove('over');handleFile(e.dataTransfer.files[0]);});
 document.getElementById('uz-click').addEventListener('click',function(e){e.stopPropagation();document.getElementById('file-input').click();});
 document.getElementById('file-input').addEventListener('change',function(e){handleFile(e.target.files[0]);e.target.value='';});
 </script>
 </body>
 </html>
-
-
