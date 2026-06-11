@@ -1,4 +1,4 @@
-name: Scrape Talk Locations
+name: Scrape Talk Locations             
 
 on:   
   push:      
