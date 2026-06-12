@@ -1083,14 +1083,23 @@ function clusterToLines(items){
     if(!groups.length||Math.abs(groups[groups.length-1].refY-it.y)>Y) groups.push({refY:it.y,items:[it]});
     else groups[groups.length-1].items.push(it);
   });
-  return groups.map(function(g){
-    g.items.sort(function(a,b){return a.x-b.x;});
-    var raw=g.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
+  // Detect large Y-gaps between line groups — indicates a blank line or structure separator
+  var spacings=[];
+  for(var gi=1;gi<groups.length;gi++) spacings.push(Math.abs(groups[gi-1].refY-groups[gi].refY));
+  spacings.sort(function(a,b){return a-b;});
+  var medSpacing=spacings.length>2?spacings[Math.floor(spacings.length/2)]:12;
+  var gapThresh=Math.max(medSpacing*1.8,18); // gap > 1.8× normal = blank line equivalent
+  var result=[];
+  for(var gi=0;gi<groups.length;gi++){
+    if(gi>0&&Math.abs(groups[gi-1].refY-groups[gi].refY)>gapThresh) result.push(''); // inject blank separator
+    groups[gi].items.sort(function(a,b){return a.x-b.x;});
+    var raw=groups[gi].items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
     raw=raw.replace(/(^|\s)-\s+(\d)/g,'$1-$2');
     raw=raw.replace(/(\d)\s+\.(\d)/g,'$1.$2');
     raw=raw.replace(/([+-]?\d+)\s+\.\s*(\d+)/g,'$1.$2');
-    return raw;
-  }).filter(Boolean);
+    if(raw) result.push(raw);
+  }
+  return result;
 }
 function splitCoordLine(raw){
   var t=norm(raw).trim().split(/\s+/);
@@ -1163,7 +1172,11 @@ async function processPDF(file){
         var x0=item.transform[4],w=item.width||0;
         allItems.push({str:s,x:x0,x0:x0,x1:x0+Math.max(w,4),y:item.transform[5]});
       });
-      var splitX=findColSplit(allItems,pw);
+      // Use coordinate-only items for column split detection — headers spanning full width
+      // would otherwise corrupt the x-distribution and cause findColSplit to return null
+      var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
+      var splitX=(coordOnlyItems.length>=6)?findColSplit(coordOnlyItems,pw):null;
+      if(!splitX) splitX=findColSplit(allItems,pw);
       var pgEntry;
       if(splitX){
         pgEntry={type:'two',n:p,left:clusterToLines(allItems.filter(function(it){return it.x1<=splitX+2;})),right:clusterToLines(allItems.filter(function(it){return it.x0>=splitX-2;}))};
@@ -1178,7 +1191,16 @@ async function processPDF(file){
     var usePerPage=detectPerPage(pd);
     var allLines=[];
     if(usePerPage){
-      pd.forEach(function(pg){allLines=allLines.concat(pg.type==='two'?pg.left.concat(pg.right):pg.lines);allLines.push('<<BREAK:'+pg.n+'>>');});
+      pd.forEach(function(pg){
+        if(pg.type==='two'){
+          allLines=allLines.concat(pg.left);
+          allLines.push(''); // blank separator between left-col and right-col structures
+          allLines=allLines.concat(pg.right);
+        } else {
+          allLines=allLines.concat(pg.lines);
+        }
+        allLines.push('<<BREAK:'+pg.n+'>>');
+      });
     } else {
       var aL=[],aR=[];
       pd.forEach(function(pg){
@@ -1186,7 +1208,7 @@ async function processPDF(file){
         else aL=aL.concat(pg.lines);
         aL.push('<<BREAK:'+pg.n+'>>'); aR.push('<<BREAK:'+pg.n+'>>');
       });
-      allLines=aL.concat(aR);
+      allLines=aL.concat([''],aR); // blank separates left-col stream from right-col stream
     }
     setUploadProgress('Repairing…',90);
     await new Promise(function(r){setTimeout(r,0);});
@@ -1288,19 +1310,34 @@ function safeName(name){ if(!name)return'Structure'; name=name.replace(/[\x00-\x
 function extractName(headerLine,contextLines){
   if(headerLine){ var h=norm(headerLine),m=NAME_STOP_RE.exec(h); if(m){ var before=h.substring(0,m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,''); if(before&&/[A-Za-z0-9]/.test(before)&&!/^[\d\s.+\-]+$/.test(before)){ if(!SEC_KW_RE.test(before)&&before.split(/\s+/).length<=6)return before; var parts=before.split(SEC_SPLIT_RE); if(parts.length>1){var tail=parts[parts.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(tail&&tail.split(/\s+/).length<=4&&/[A-Za-z0-9]/.test(tail))return tail;} var words=before.split(/\s+/);var last=words[words.length-1].replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(last&&/^[A-Za-z0-9]/.test(last)&&last.length<=20)return last;return before;}}}
   var win=[];
-  for(var i=Math.max(0,contextLines.length-30);i<contextLines.length;i++){ var l=norm(contextLines[i]).trim(); if(!l)continue; if(l.indexOf('<<')===0){win.push(BRKSEN);continue;} var pr=l.replace(/[^\x20-\x7e]/g,''); if(pr.length<l.length*0.5)continue; win.push(l); }
+  for(var i=Math.max(0,contextLines.length-50);i<contextLines.length;i++){ var l=norm(contextLines[i]).trim(); if(!l)continue; if(l.indexOf('<<')===0){win.push(BRKSEN);continue;} var pr=l.replace(/[^\x20-\x7e]/g,''); if(pr.length<l.length*0.5)continue; win.push(l); }
   for(var wi=win.length-1;wi>=0;wi--){
     var line=win[wi];
     if(line===BRKSEN||HEADER_RE.test(line)||/\bchemical\s+symbol\b/i.test(line)||CHGMULT_LINE_RE.test(line)||NOT_NAME_RE.test(line))continue;
     if(/^[\d\s.+\-]+$/.test(line))continue;
     if(line.split(/\s+/).length>10||line.length>100||META_LINE_RE.test(line))continue;
     var cand=null;
+    // "XYZ/Cartesian coordinates of X" / "Coordinates of X"
     var cm=/\bcoordinates?\s+of\s+([A-Za-z0-9(][\w\s()\-+.,]{0,60}?)(?:\s*$|\s*[.,])/.exec(line);
     if(cm)cand=cm[1].trim().replace(/[.,\s]+$/,'');
-    if(!cand){cm=/^cartesian\s+coordinates?\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
-    if(!cand){cm=/^(?:compound|structure|molecule|intermediate|transition[\s-]+state|reactant|product|catalyst|adduct)\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
-    if(!cand&&/[A-Za-z]/.test(line)&&line.split(/\s+/).length<=8)cand=line;
-    if(cand){ if(wi>0&&win[wi-1]!==BRKSEN&&/^\d+\s*$/.test(win[wi-1])) cand=win[wi-1].trim()+' '+cand; return cand; }
+    if(!cand){cm=/^(?:xyz\s+)?cartesian\s+coordinates?\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
+    // "Optimized structure/coordinates of X"
+    if(!cand){cm=/^optimized\s+(?:cartesian\s+)?(?:coordinates?\s+of\s+|structure\s+of\s+)(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
+    // "Compound X:" / "Molecule X:" / "TS X:" etc.
+    if(!cand){cm=/^(?:compound|structure|molecule|intermediate|transition[\s-]+state|reactant|product|catalyst|adduct|species|isomer|complex)\s+(.+)$/i.exec(line);if(cm)cand=cm[1].trim().replace(/\.$/,'');}
+    // Standalone TS/INT/MIN labels: "TS-1", "INT2a", "TS_equatorial", etc.
+    if(!cand){cm=/^((?:TS|INT|IM|MIN|MAX|RC|PC|PR|SP|CP|GS|ES)[-_]?\d*\w*)\s*[.:]?\s*(.*)$/i.exec(line);if(cm&&(cm[1].length<=8||cm[2]))cand=(cm[2]?cm[1]+' '+cm[2]:cm[1]).trim();}
+    // Short compound labels: "3a", "1b", "IIa", roman numerals
+    if(!cand){cm=/^([IVXivx]{1,5}\d*[a-z]?|[a-z]?\d+[a-z]{0,2})\s*[.:,]?\s*$/i.exec(line);if(cm&&cm[1].length<=6)cand=cm[1];}
+    // Any remaining short informative line (last resort)
+    if(!cand&&/[A-Za-z]/.test(line)&&line.split(/\s+/).length<=8) cand=line;
+    if(cand){
+      if(wi>0&&win[wi-1]!==BRKSEN&&/^\d+\s*$/.test(win[wi-1])) cand=win[wi-1].trim()+' '+cand;
+      // Strip redundant section keyword phrases, keep the identifier part
+      var cp=cand.split(SEC_SPLIT_RE);
+      if(cp.length>1){var ct=cp[cp.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(ct&&/[A-Za-z0-9]/.test(ct))cand=ct;}
+      return cand;
+    }
   }
   return null;
 }
@@ -1313,13 +1350,20 @@ function isNameSep(stripped,nstr){
 }
 function parseSI(textLines,defCharge,defMult,minAtoms,isDocx){
   var structs=[],ctx=[],atoms=[],blkCtx=[],blkPreLen=0,hdrLine=null,inBlock=false,counter=0;
+  var lastSectionName=null; // track last non-coord section heading for fallback names
   function flush(){
     if(atoms.length<minAtoms){inBlock=false;atoms=[];blkCtx=[];blkPreLen=0;hdrLine=null;return;}
     counter++;
     var name=extractName(hdrLine,blkCtx.slice(0,blkPreLen));
-    if(!name)name='Structure_'+counter;
+    if(!name&&lastSectionName) name=lastSectionName;
+    if(!name) name='Structure_'+counter;
     var energy=null;
-    for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-20);li--){var em=ENERGY_RE.exec(norm(blkCtx[li]));if(em){energy=em[1];break;}}
+    for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-25);li--){
+      var em=ENERGY_RE.exec(norm(blkCtx[li]));if(em){energy=em[1];break;}
+      // Also match bare Gaussian total energies (appears in SI tables without keyword prefix)
+      var bem=/^\s*([+-]\d{2,4}\.\d{5,})\s*(?:[\d.]+\s*){0,3}$/.exec(norm(blkCtx[li]));
+      if(bem&&!energy){energy=bem[1];} // don't break — prefer keyword match if found later
+    }
     var charge=defCharge,mult=defMult;
     for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-15);li--){var cm=CHGMULT_RE.exec(norm(blkCtx[li]));if(cm){try{charge=parseInt(cm[1],10);mult=parseInt(cm[2],10);}catch(e){}break;}}
     structs.push({name:safeName(name),atoms:atoms.slice(),charge:charge,mult:mult,energy:energy});
@@ -1328,20 +1372,39 @@ function parseSI(textLines,defCharge,defMult,minAtoms,isDocx){
   for(var i=0;i<textLines.length;i++){
     var raw=textLines[i],n=norm(raw),stripped=n.trim();
     if(typeof raw==='string'&&raw.indexOf('<<BREAK')===0){ctx.push(raw);continue;}
-    if(!stripped){ctx.push(raw);if(isDocx&&inBlock&&atoms.length>=minAtoms)flush();continue;}
+    // Blank line — flush any active coordinate block (works for ALL modes, not just DOCX)
+    if(!stripped){ctx.push(raw);if(inBlock&&atoms.length>=minAtoms)flush();continue;}
     if(HEADER_RE.test(n)){if(inBlock)flush();ctx.push(raw);hdrLine=raw;continue;}
+    // XYZ format: bare integer that could be an atom count, followed by coord lines
+    if(/^\d+$/.test(stripped)){
+      var potN=parseInt(stripped,10);
+      if(potN>=minAtoms&&potN<=10000){
+        var hasCLA=false;
+        for(var lai=i+1;lai<Math.min(i+5,textLines.length);lai++){
+          var ls=norm(textLines[lai]).trim();
+          if(!ls||ls.indexOf('<<')===0) continue;
+          if(parseCoordLine(ls)) hasCLA=true;
+          break;
+        }
+        if(hasCLA){if(inBlock&&atoms.length>=minAtoms)flush();ctx.push(raw);continue;}
+      }
+    }
     var coord=parseCoordLine(n);
     if(coord){
       if(!inBlock){inBlock=true;blkCtx=ctx.slice();blkPreLen=blkCtx.length;atoms=[];}
       atoms.push(coord);
     } else {
+      // Track section headings for fallback naming
+      if(!inBlock&&SEC_KW_RE.test(stripped)&&stripped.length<=120&&stripped.split(/\s+/).length<=12&&!NOT_NAME_RE.test(stripped)){
+        lastSectionName=stripped;
+      }
       if(inBlock&&atoms.length>=minAtoms&&isNameSep(stripped,n)){
         var la=false;
         for(var j=i+1;j<Math.min(i+6,textLines.length);j++){var nxt=norm(textLines[j]).trim();if(!nxt||nxt.indexOf('<<')===0)continue;if(parseCoordLine(nxt))la=true;break;}
         if(la){flush();ctx.push(raw);hdrLine=raw;continue;}
       }
       ctx.push(raw);
-      if(inBlock)blkCtx.push(raw);
+      if(inBlock) blkCtx.push(raw);
     }
   }
   if(inBlock&&atoms.length>=minAtoms)flush();
