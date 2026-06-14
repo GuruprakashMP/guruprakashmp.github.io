@@ -1083,17 +1083,25 @@ function clusterToLines(items){
     if(!groups.length||Math.abs(groups[groups.length-1].refY-it.y)>Y) groups.push({refY:it.y,items:[it]});
     else groups[groups.length-1].items.push(it);
   });
-  // Detect large Y-gaps between line groups — indicates a blank line or structure separator
+  // Mark which groups contain at least one coordinate line
+  groups.forEach(function(g){
+    g.hasCoord=g.items.some(function(it){return parseCoordLine(norm(it.str||''))!==null;});
+  });
+  // Compute median spacing using ONLY coord-bearing groups (ignores headers/footers)
+  var coordGroups=groups.filter(function(g){return g.hasCoord;});
   var spacings=[];
-  for(var gi=1;gi<groups.length;gi++) spacings.push(Math.abs(groups[gi-1].refY-groups[gi].refY));
+  for(var ci=1;ci<coordGroups.length;ci++) spacings.push(Math.abs(coordGroups[ci-1].refY-coordGroups[ci].refY));
   spacings.sort(function(a,b){return a-b;});
   var medSpacing=spacings.length>2?spacings[Math.floor(spacings.length/2)]:12;
-  var gapThresh=Math.max(medSpacing*1.8,18); // gap > 1.8× normal = blank line equivalent
-  var result=[];
+  var gapThresh=Math.max(medSpacing*1.8,18); // gap > 1.8× normal line = structure separator
+  // Build output — Y-gap blank ONLY between consecutive coord-bearing groups
+  var result=[],prevCoordY=null;
   for(var gi=0;gi<groups.length;gi++){
-    if(gi>0&&Math.abs(groups[gi-1].refY-groups[gi].refY)>gapThresh) result.push(''); // inject blank separator
-    groups[gi].items.sort(function(a,b){return a.x-b.x;});
-    var raw=groups[gi].items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
+    var g=groups[gi];
+    if(g.hasCoord&&prevCoordY!==null&&Math.abs(prevCoordY-g.refY)>gapThresh) result.push('');
+    if(g.hasCoord) prevCoordY=g.refY;
+    g.items.sort(function(a,b){return a.x-b.x;});
+    var raw=g.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
     raw=raw.replace(/(^|\s)-\s+(\d)/g,'$1-$2');
     raw=raw.replace(/(\d)\s+\.(\d)/g,'$1.$2');
     raw=raw.replace(/([+-]?\d+)\s+\.\s*(\d+)/g,'$1.$2');
@@ -1143,18 +1151,14 @@ function decolumnSplit(lines){
   return{pre:pre,left:left,right:right,post:post};
 }
 function detectPerPage(pd){
-  var tot=0,cs=0,ft=true;
-  pd.forEach(function(pg){
-    if(pg.type!=='two') return;
-    var c=pg.left.concat(pg.right);
-    if(!c.some(function(l){return parseCoordLine(norm(l));})) return;
-    if(ft){ft=false;return;}
-    if(tot>=10) return;
-    tot++;
-    var s=pg.left.filter(function(l){return l.trim();});
-    if(s.length&&parseCoordLine(norm(s[0]))) cs++;
+  // Use per-page mode when any page has coordinate lines in BOTH columns
+  // This handles PDFs where structures span across column boundaries in serpentine order
+  return pd.some(function(pg){
+    if(pg.type!=='two') return false;
+    var lCoords=pg.left.some(function(l){return l&&parseCoordLine(norm(l));});
+    var rCoords=pg.right.some(function(l){return l&&parseCoordLine(norm(l));});
+    return lCoords&&rCoords;
   });
-  return tot>0&&(cs/tot)>0.5;
 }
 
 async function processPDF(file){
@@ -1193,9 +1197,10 @@ async function processPDF(file){
     if(usePerPage){
       pd.forEach(function(pg){
         if(pg.type==='two'){
-          allLines=allLines.concat(pg.left);
-          allLines.push(''); // blank separator between left-col and right-col structures
-          allLines=allLines.concat(pg.right);
+          // Concatenate left then right directly — NO blank between them.
+          // Structures often span column boundaries (serpentine reading order);
+          // the Y-gap blanks inserted within each column handle structure splits.
+          allLines=allLines.concat(pg.left,pg.right);
         } else {
           allLines=allLines.concat(pg.lines);
         }
