@@ -1183,12 +1183,16 @@ async function processPDF(file){
       // PDF.js splits coord lines into sub-items (element, minus, digits), all short.
       // Long header text like "coordinates of TS structures" would span the column gap
       // and prevent correct detection — so we exclude items with > 15 chars or > 3 words.
+      // Short text items treated as POINTS (x1=x0) for column gap detection.
+      // PDF.js splits each coord line into sub-items; the last number sub-item can have
+      // a large rendered width (x1 >> x0) that crosses into the other column's region.
+      // Using x0-as-points avoids width contamination of the gap histogram.
       var shortItems=allItems.filter(function(it){
         var s=(it.str||'').trim();
         return s.length<=15&&s.split(/\s+/).length<=3;
-      });
+      }).map(function(it){return{str:it.str,x:it.x0,x0:it.x0,x1:it.x0,y:it.y};});
       var splitX=(shortItems.length>=6)?findColSplit(shortItems,pw):null;
-      // Also try complete coord lines (when PDF.js returns full lines, not sub-items)
+      // Fallback: complete coord lines (when PDF.js returns full lines, not sub-items)
       if(!splitX){
         var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
         if(coordOnlyItems.length>=6) splitX=findColSplit(coordOnlyItems,pw);
@@ -1196,7 +1200,12 @@ async function processPDF(file){
       if(!splitX) splitX=findColSplit(allItems,pw);
       var pgEntry;
       if(splitX){
-        pgEntry={type:'two',n:p,left:clusterToLines(allItems.filter(function(it){return it.x1<=splitX+2;})),right:clusterToLines(allItems.filter(function(it){return it.x0>=splitX-2;}))};
+        // x0-based filtering — NOT x1-based. Sub-items with large rendered widths would
+        // be excluded by x1 filter even though they belong to the correct column.
+        pgEntry={type:'two',n:p,
+          left:clusterToLines(allItems.filter(function(it){return it.x0<splitX;})),
+          right:clusterToLines(allItems.filter(function(it){return it.x0>=splitX;}))
+        };
       } else {
         var rawL=clusterToLines(allItems);
         var dc=decolumnSplit(rawL);
