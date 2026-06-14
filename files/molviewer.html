@@ -1083,9 +1083,17 @@ function clusterToLines(items){
     if(!groups.length||Math.abs(groups[groups.length-1].refY-it.y)>Y) groups.push({refY:it.y,items:[it]});
     else groups[groups.length-1].items.push(it);
   });
-  // Mark which groups contain at least one coordinate line
+  // CRITICAL: join sub-items by x-order FIRST, then check parseCoordLine on the joined text.
+  // PDF.js splits each coord line into multiple sub-items (element, minus signs, numbers each
+  // at different x positions). Checking individual item.str would always return null.
   groups.forEach(function(g){
-    g.hasCoord=g.items.some(function(it){return parseCoordLine(norm(it.str||''))!==null;});
+    g.items.sort(function(a,b){return a.x-b.x;});
+    var raw=g.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
+    raw=raw.replace(/(^|\s)-\s+(\d)/g,'$1-$2');
+    raw=raw.replace(/(\d)\s+\.(\d)/g,'$1.$2');
+    raw=raw.replace(/([+-]?\d+)\s+\.\s*(\d+)/g,'$1.$2');
+    g.rawText=raw;
+    g.hasCoord=parseCoordLine(norm(raw))!==null; // check on JOINED text
   });
   // Compute median spacing using ONLY coord-bearing groups (ignores headers/footers)
   var coordGroups=groups.filter(function(g){return g.hasCoord;});
@@ -1100,12 +1108,7 @@ function clusterToLines(items){
     var g=groups[gi];
     if(g.hasCoord&&prevCoordY!==null&&Math.abs(prevCoordY-g.refY)>gapThresh) result.push('');
     if(g.hasCoord) prevCoordY=g.refY;
-    g.items.sort(function(a,b){return a.x-b.x;});
-    var raw=g.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
-    raw=raw.replace(/(^|\s)-\s+(\d)/g,'$1-$2');
-    raw=raw.replace(/(\d)\s+\.(\d)/g,'$1.$2');
-    raw=raw.replace(/([+-]?\d+)\s+\.\s*(\d+)/g,'$1.$2');
-    if(raw) result.push(raw);
+    if(g.rawText) result.push(g.rawText); // use pre-computed rawText
   }
   return result;
 }
@@ -1176,10 +1179,20 @@ async function processPDF(file){
         var x0=item.transform[4],w=item.width||0;
         allItems.push({str:s,x:x0,x0:x0,x1:x0+Math.max(w,4),y:item.transform[5]});
       });
-      // Use coordinate-only items for column split detection — headers spanning full width
-      // would otherwise corrupt the x-distribution and cause findColSplit to return null
-      var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
-      var splitX=(coordOnlyItems.length>=6)?findColSplit(coordOnlyItems,pw):null;
+      // Use SHORT text items for column split detection.
+      // PDF.js splits coord lines into sub-items (element, minus, digits), all short.
+      // Long header text like "coordinates of TS structures" would span the column gap
+      // and prevent correct detection — so we exclude items with > 15 chars or > 3 words.
+      var shortItems=allItems.filter(function(it){
+        var s=(it.str||'').trim();
+        return s.length<=15&&s.split(/\s+/).length<=3;
+      });
+      var splitX=(shortItems.length>=6)?findColSplit(shortItems,pw):null;
+      // Also try complete coord lines (when PDF.js returns full lines, not sub-items)
+      if(!splitX){
+        var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
+        if(coordOnlyItems.length>=6) splitX=findColSplit(coordOnlyItems,pw);
+      }
       if(!splitX) splitX=findColSplit(allItems,pw);
       var pgEntry;
       if(splitX){
