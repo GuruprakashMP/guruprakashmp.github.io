@@ -1101,7 +1101,7 @@ function clusterToLines(items){
   for(var ci=1;ci<coordGroups.length;ci++) spacings.push(Math.abs(coordGroups[ci-1].refY-coordGroups[ci].refY));
   spacings.sort(function(a,b){return a-b;});
   var medSpacing=spacings.length>2?spacings[Math.floor(spacings.length/2)]:12;
-  var gapThresh=Math.max(medSpacing*1.8,18); // gap > 1.8× normal line = structure separator
+  var gapThresh=Math.max(medSpacing*3,25); // 3× median + min 25pt: safely above normal spacing noise
   // Build output — Y-gap blank ONLY between consecutive coord-bearing groups
   var result=[],prevCoordY=null;
   for(var gi=0;gi<groups.length;gi++){
