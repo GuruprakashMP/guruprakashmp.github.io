@@ -1054,25 +1054,16 @@ function findColSplit(items,pw){
   var best=null,bestGap=0;
   for(var mi=0;mi<merged.length-1;mi++){
     var gL=merged[mi][1],gR=merged[mi+1][0],gap=gR-gL;
-    if(gap<pw*0.025) continue;
+    if(gap<pw*0.085) continue; // reject sub-item internal gaps (~45pt); real column gaps are 90pt+
     var mid=(gL+gR)/2; if(mid<midLo||mid>midHi) continue;
     var ln=items.filter(function(it){return it.x1<=mid;}).length;
     var rn=items.filter(function(it){return it.x0>=mid;}).length;
     if(ln/n>=0.07&&rn/n>=0.07&&gap>bestGap){bestGap=gap;best=mid;}
   }
-  if(best) return best;
-  var bins=40,bw=pw/bins,hist=new Array(bins).fill(0);
-  items.forEach(function(it){var cx=(it.x0+it.x1)/2;hist[Math.min(Math.floor(cx/bw),bins-1)]++;});
-  var peak=Math.max.apply(null,hist)||1,valleys=[];
-  for(var bi=Math.floor(bins*0.28);bi<Math.floor(bins*0.72);bi++) if(hist[bi]<=peak*0.18) valleys.push(bi);
-  if(valleys.length){
-    valleys.sort(function(a,b){return Math.abs(a-bins/2)-Math.abs(b-bins/2);});
-    var sx=(valleys[0]+0.5)*bw;
-    var ln2=items.filter(function(it){return it.x1<=sx;}).length;
-    var rn2=items.filter(function(it){return it.x0>=sx;}).length;
-    if(ln2/n>=0.07&&rn2/n>=0.07) return sx;
-  }
-  return null;
+  // Histogram/valley fallback REMOVED: it fires on single-column sub-item PDFs.
+  // E.g. page5 valley at x=200.9 splits each coord line mid-way, losing struct4.
+  // The gap method with pw*0.085 is sufficient and safe for all real column splits.
+  return best;
 }
 function clusterToLines(items){
   if(!items.length) return [];
