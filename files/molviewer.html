@@ -1079,7 +1079,25 @@ function clusterToLines(items){
   // at different x positions). Checking individual item.str would always return null.
   groups.forEach(function(g){
     g.items.sort(function(a,b){return a.x-b.x;});
-    var raw=g.items.map(function(i){return i.str;}).join(' ').replace(/\s{2,}/g,' ').trim();
+    // GAP-AWARE JOIN: PDF.js sometimes splits a single number into 2+ glyph-run
+    // fragments with near-zero real gap between them (font kerning / TJ-array
+    // artifacts), e.g. "0.90776800" -> items "0.9077" + "6800" touching at <0.1pt.
+    // Real inter-token gaps (element->number, number->number) in this PDF are
+    // 3pt+ (they hit a fixed column position). So: gap<SPACE_GAP -> concatenate
+    // directly (no separator); gap>=SPACE_GAP -> insert a space. This fixes
+    // fragment-splitting at the root instead of patching it with regexes after.
+    var SPACE_GAP=2.5,raw='';
+    for(var ii=0;ii<g.items.length;ii++){
+      var cur=g.items[ii];
+      if(ii>0){
+        var prev=g.items[ii-1];
+        var prevEnd=(typeof prev.xEnd==='number')?prev.xEnd:prev.x1;
+        raw+=(cur.x0-prevEnd<SPACE_GAP)?'':' ';
+      }
+      raw+=cur.str;
+    }
+    raw=raw.replace(/\s{2,}/g,' ').trim();
+    // Defensive fallback regexes for any edge case the gap rule doesn't cover
     raw=raw.replace(/(^|\s)-\s+(\d)/g,'$1-$2');
     raw=raw.replace(/(\d)\s+\.(\d)/g,'$1.$2');
     raw=raw.replace(/([+-]?\d+)\s+\.\s*(\d+)/g,'$1.$2');
@@ -1168,7 +1186,11 @@ async function processPDF(file){
       content.items.forEach(function(item){
         var s=(item.str||'').trim(); if(!s) return;
         var x0=item.transform[4],w=item.width||0;
-        allItems.push({str:s,x:x0,x0:x0,x1:x0+Math.max(w,4),y:item.transform[5]});
+        // x1 uses Math.max(w,4) — boosted for robust column-gap detection (findColSplit).
+        // xEnd is the TRUE unboosted right edge — needed separately for in-line join spacing
+        // (PDF.js sometimes splits a single number into 2+ glyph-run fragments with near-zero
+        // real gap; boosting would make that gap look artificially larger and break detection).
+        allItems.push({str:s,x:x0,x0:x0,x1:x0+Math.max(w,4),xEnd:x0+w,y:item.transform[5]});
       });
       // Use SHORT text items for column split detection.
       // PDF.js splits coord lines into sub-items (element, minus, digits), all short.
@@ -1316,7 +1338,16 @@ function finishSIExtraction(lines,filename,isDocx){
 // ═══════════════════════════════════════════════════════════════
 var HEADER_RE=/total\s+energy\s*=|gibbs(?:\s+energy)?\s*=|zero[- ]?point\s+(?:energy|correction)|scf\s+done|number\s+of\s+(?:imaginary\s+)?(?:negative\s+)?freq|thermal\s+correction|imaginary\s+frequencies|\bE_?opt\s+[+-]?\d|\bEelec\s+[+-]?\d|\bEtot\s+[+-]?\d|\bE_?rel\s+[+-]?\d|electronic\s+energy|\bimaginary\s+freq\b|\bG\s*=\s*[+-]?\d+\.\d|\bH\s*=\s*[+-]?\d+\.\d|\bE\s*=\s*[+-]?\d+\.\d/i;
 var ENERGY_RE=/(?:total\s+energy|gibbs(?:\s+energy)?|scf\s+done|electronic\s+energy(?:\s+bs[12]?)?|E_?opt|Eelec|Etot|E_?rel|E_?\w*|G|H)\s*[=:]\s*([+-]?\d+\.\d+)/i;
-var CHGMULT_RE=/(?:charge\s*[=:]\s*)?([+-]?\d)\s*[,\s]+(?:mult(?:iplicity)?\s*[=:]\s*)?(\d)\b/i;
+// CHGMULT_RE replaced: the old single-regex version had BOTH "charge"/"mult"
+// keyword prefixes optional AND each number was an unanchored single digit —
+// it could match the tail digit of any longer number anywhere in a line
+// (e.g. an energy-table row "-793.998357 0.41 -794.047056 0.52" falsely gave
+// charge=7,mult=0 by grabbing the trailing "7" of "8357" and leading "0" of "0.41").
+// Two conservative alternatives instead: explicit keyword form (most reliable,
+// matched anywhere), or whole-line bare "0 1"-style form (anchored start-to-end
+// so it can't match a fragment of a longer numeric line).
+var CHGMULT_KW_RE=/charge\s*[=:]\s*([+-]?\d{1,2})\b[\s\S]{0,40}?mult(?:iplicity)?\s*[=:]\s*(\d{1,2})\b/i;
+var CHGMULT_BARE_RE=/^\s*([+-]?\d{1,2})\s*[,\s]\s*(\d{1,2})\s*$/;
 var CHGMULT_LINE_RE=/charge\s*=\s*[+-]?\d|multiplicity\s*=\s*\d/i;
 var NAME_STOP_RE=/total\s+energy|gibbs|zero.?point|scf\s+done|number\s+of|thermal|enthalpy|entropy|imaginary|electronic\s+energy|\bE_?opt\s|\bEelec\s|\bEtot\s|\bE_?rel\s|\bE\s*=\s*[+-]?\d/i;
 var NOT_NAME_RE=/^\s*(?:page\s*\d+|[Ss]\d{1,4}\s*$|[Ss]\.\d+\b|supporting\s+inf|table\s+of\s+contents|references?|figure\s+s?\d+\s*$)\s*$/i;
@@ -1326,7 +1357,7 @@ var SEC_SPLIT_RE=/(?:[Ss]\.?\d+\s+)?(?:cartesian\s+)?coordinates?\s+of\s+|(?:int
 var BRKSEN='\x00';
 function safeName(name){ if(!name)return'Structure'; name=name.replace(/[\x00-\x1f\x7f]/g,''); name=name.replace(/-\s+/g,'-').replace(/\s+-/g,'-'); name=name.replace(/[<>:"/\\|?*]+/g,'_'); name=name.replace(/\s+/g,'_').replace(/^[_.]+|[_.]+$/g,''); return name.substring(0,80)||'Structure'; }
 function extractName(headerLine,contextLines){
-  if(headerLine){ var h=norm(headerLine),m=NAME_STOP_RE.exec(h); if(m){ var before=h.substring(0,m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,''); if(before&&/[A-Za-z0-9]/.test(before)&&!/^[\d\s.+\-]+$/.test(before)){ if(!SEC_KW_RE.test(before)&&before.split(/\s+/).length<=6)return before; var parts=before.split(SEC_SPLIT_RE); if(parts.length>1){var tail=parts[parts.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(tail&&tail.split(/\s+/).length<=4&&/[A-Za-z0-9]/.test(tail))return tail;} var words=before.split(/\s+/);var last=words[words.length-1].replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(last&&/^[A-Za-z0-9]/.test(last)&&last.length<=20)return last;return before;}}}
+  if(headerLine){ var h=norm(headerLine),m=NAME_STOP_RE.exec(h); if(m){ var before=h.substring(0,m.index).trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,''); if(before&&/[A-Za-z0-9]/.test(before)&&!/^[\d\s.+\-]+$/.test(before)){ if(!SEC_KW_RE.test(before)&&before.split(/\s+/).length<=6)return before; var parts=before.split(SEC_SPLIT_RE); if(parts.length>1){var tail=parts[parts.length-1].trim().replace(/^[\s:.,;-]+|[\s:.,;-]+$/g,'');if(tail&&tail.split(/\s+/).length<=4&&/[A-Za-z0-9]/.test(tail))return tail;} /* fall through to context-window scan below instead of grabbing a lone trailing word (e.g. "of") from a long descriptive sentence */}}}
   var win=[];
   for(var i=Math.max(0,contextLines.length-50);i<contextLines.length;i++){ var l=norm(contextLines[i]).trim(); if(!l)continue; if(l.indexOf('<<')===0){win.push(BRKSEN);continue;} var pr=l.replace(/[^\x20-\x7e]/g,''); if(pr.length<l.length*0.5)continue; win.push(l); }
   for(var wi=win.length-1;wi>=0;wi--){
@@ -1383,7 +1414,7 @@ function parseSI(textLines,defCharge,defMult,minAtoms,isDocx){
       if(bem&&!energy){energy=bem[1];} // don't break — prefer keyword match if found later
     }
     var charge=defCharge,mult=defMult;
-    for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-15);li--){var cm=CHGMULT_RE.exec(norm(blkCtx[li]));if(cm){try{charge=parseInt(cm[1],10);mult=parseInt(cm[2],10);}catch(e){}break;}}
+    for(var li=blkCtx.length-1;li>=Math.max(0,blkCtx.length-15);li--){var nl=norm(blkCtx[li]);var cmKw=CHGMULT_KW_RE.exec(nl);if(cmKw){try{charge=parseInt(cmKw[1],10);mult=parseInt(cmKw[2],10);}catch(e){}break;}var cmBare=CHGMULT_BARE_RE.exec(nl);if(cmBare){try{charge=parseInt(cmBare[1],10);mult=parseInt(cmBare[2],10);}catch(e){}break;}}
     structs.push({name:safeName(name),atoms:atoms.slice(),charge:charge,mult:mult,energy:energy});
     inBlock=false;atoms=[];blkCtx=[];blkPreLen=0;hdrLine=null;
   }
