@@ -245,7 +245,13 @@ function parseCoordLine(raw){
   if(t.length<4) return null;
   function flt(s){ var v=parseFloat(s); return isNaN(v)?null:v; }
   function dot(s){ return s.indexOf('.')!==-1; }
-  function isAN(s){ var n=parseInt(s,10); return !isNaN(n)&&n>=1&&n<=118&&!!ANUM[n]; }
+  function isAN(s){ if(!/^\d{1,3}$/.test(s)) return false; var n=parseInt(s,10); return n>=1&&n<=118&&!!ANUM[n]; }
+  // A genuine leading "index" column (Idx/No/Center#) is always a clean, bare small
+  // integer — never a decimal number or comma/punctuation-terminated token. Without this,
+  // decimal-heavy prose (NMR shift lists like "113.6, 61.0, 36.4, 21.1, 14.5") can coincide-
+  // ntally satisfy "Idx AtomNum/Elem x y z" patterns, since parseInt("113.6,") silently
+  // truncates to 113 and looks like a valid index/atomic-number otherwise.
+  function isIdx(s){ return /^\d{1,5}$/.test(s); }
   function rawElem(s){ return s.replace(/\(.*$/,'').replace(/[^A-Za-z]/g,''); }
   function isEl(s){ var e=rawElem(s); return !!(e&&ELEMS[e.toLowerCase()]); }
   function toEl(s){ var e=rawElem(s); return ELEMS[e.toLowerCase()]; }
@@ -256,9 +262,9 @@ function parseCoordLine(raw){
   if(isEl(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
   if(t.length>=5){
     // Format 3: Idx Elem x y z
-    if(isEl(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
+    if(isIdx(t[0])&&isEl(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
     // Format 4: Idx AtomNum x y z
-    if(isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
+    if(isIdx(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
     // Format 5: Elem AtomNum x y z  (e.g. ORCA, NWChem)
     if(isEl(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
     // Format 5b: Elem freeze x y z  (GJF freeze flag: 0 or -1)
@@ -266,9 +272,9 @@ function parseCoordLine(raw){
   }
   if(t.length>=6){
     // Format 6: Idx AtomNum AtomType x y z  (Gaussian Standard Orientation)
-    if(isAN(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
+    if(isIdx(t[0])&&isAN(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
     // Format 7: No Tag Charge x y z  (NWChem output)
-    if(!isNaN(parseInt(t[0],10))&&isEl(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
+    if(isIdx(t[0])&&isEl(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
   }
   return null;
 }
@@ -1363,7 +1369,18 @@ function extractName(headerLine,contextLines){
   for(var wi=win.length-1;wi>=0;wi--){
     var line=win[wi];
     if(line===BRKSEN||HEADER_RE.test(line)||/\bchemical\s+symbol\b/i.test(line)||CHGMULT_LINE_RE.test(line)||NOT_NAME_RE.test(line))continue;
-    if(/^[\d\s.+\-]+$/.test(line))continue;
+    // Pure-numeric lines are usually page-footer numbers or atom counts — skip them,
+    // UNLESS this one is clearly NOT a page footer AND is a short bare integer, in which
+    // case it may be a genuine compound number label (e.g. SI prints "34" alone as a
+    // compound's name before its data). A page-footer number is the LAST thing on its
+    // page, so it is immediately followed by a break marker (win[wi+1]===BRKSEN). A
+    // fresh compound label printed at the top of a new page is immediately PRECEDED by
+    // one instead (win[wi-1]===BRKSEN) — that pattern must NOT be treated as disqualifying,
+    // or genuine labels appearing right after a page turn would be rejected too.
+    if(/^[\d\s.+\-]+$/.test(line)){
+      var looksLikePageFooter=wi<win.length-1&&win[wi+1]===BRKSEN;
+      if(looksLikePageFooter||!/^\d{1,4}$/.test(line))continue;
+    }
     if(line.split(/\s+/).length>10||line.length>100||META_LINE_RE.test(line))continue;
     var cand=null;
     // "XYZ/Cartesian coordinates of X" / "Coordinates of X"
@@ -1424,10 +1441,16 @@ function parseSI(textLines,defCharge,defMult,minAtoms,isDocx){
     // Blank line — flush any active coordinate block (works for ALL modes, not just DOCX)
     if(!stripped){ctx.push(raw);if(inBlock&&atoms.length>=minAtoms)flush();continue;}
     if(HEADER_RE.test(n)){if(inBlock)flush();ctx.push(raw);hdrLine=raw;continue;}
-    // XYZ format: bare integer that could be an atom count, followed by coord lines
+    // XYZ format: bare integer that could be an atom count, followed by coord lines.
+    // Skip this heuristic entirely when the line sits immediately next to a page/section
+    // <<BREAK>> marker — that is a printed page-footer/header number (PDF/DOCX pagination
+    // artifact), never a real XYZ atom-count line. Plain pasted XYZ text never has these
+    // markers, so this restriction cannot affect that use case at all.
     if(/^\d+$/.test(stripped)){
       var potN=parseInt(stripped,10);
-      if(potN>=minAtoms&&potN<=10000){
+      var prevIsBreak=i>0&&typeof textLines[i-1]==='string'&&textLines[i-1].indexOf('<<BREAK')===0;
+      var nextIsBreak=i<textLines.length-1&&typeof textLines[i+1]==='string'&&textLines[i+1].indexOf('<<BREAK')===0;
+      if(potN>=minAtoms&&potN<=10000&&!prevIsBreak&&!nextIsBreak){
         var hasCLA=false;
         for(var lai=i+1;lai<Math.min(i+5,textLines.length);lai++){
           var ls=norm(textLines[lai]).trim();
