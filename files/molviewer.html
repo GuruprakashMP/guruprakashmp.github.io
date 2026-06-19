@@ -1071,6 +1071,24 @@ function findColSplit(items,pw){
   // The gap method with pw*0.085 is sufficient and safe for all real column splits.
   return best;
 }
+// A genuine two-column layout produces mostly complete, independently-valid coordinate
+// lines on EACH side. A false split (e.g. wide inter-field spacing within one column,
+// mistaken for a column gap because both halves happen to share a baseline grid with
+// nothing geometrically distinguishing them) instead produces incomplete token
+// fragments that fail to parse at all. This can't be told apart by geometry alone —
+// it has to be checked semantically, against what parseCoordLine actually accepts.
+function validFrac(lines){
+  var nonBlank=lines.filter(function(l){return l!=='';});
+  if(!nonBlank.length) return 0;
+  // A genuine coordinate line is an element/index token plus numbers — it never contains
+  // a 4+ letter word (element symbols are at most 2 letters). If one shows up alongside a
+  // successful parseCoordLine match, that match is almost certainly the first 4 tokens of
+  // an unrelated header/label line that got glued onto a real coordinate line by an
+  // incorrect single-column merge (parseCoordLine only inspects the first few tokens, so
+  // it silently ignores trailing garbage) — not a genuinely valid, complete coordinate.
+  var valid=nonBlank.filter(function(l){return parseCoordLine(norm(l))!==null&&!/[A-Za-z]{4,}/.test(l);}).length;
+  return valid/nonBlank.length;
+}
 function clusterToLines(items){
   if(!items.length) return [];
   items=items.filter(function(it){return(it.str||'').trim();});
@@ -1179,6 +1197,65 @@ function detectPerPage(pd){
   });
 }
 
+// Pure, synchronous per-page processor — the SINGLE source of truth for how one PDF
+// page's raw text items become a pgEntry. processPDF (below) just feeds it real
+// pdfjsLib items; test/debug harnesses can call it directly with the exact same
+// real PDF.js item shape, so there is no separate hand-copied implementation that
+// could silently drift out of sync with this one.
+function processPageItems(pw,rawItems,pageNum){
+  var allItems=[];
+  rawItems.forEach(function(item){
+    var s=(item.str||'').trim(); if(!s) return;
+    var x0=item.x0,w=item.width||0;
+    // x1 uses Math.max(w,4) — boosted for robust column-gap detection (findColSplit).
+    // xEnd is the TRUE unboosted right edge — needed separately for in-line join spacing
+    // (PDF.js sometimes splits a single number into 2+ glyph-run fragments with near-zero
+    // real gap; boosting would make that gap look artificially larger and break detection).
+    allItems.push({str:s,x:x0,x0:x0,x1:x0+Math.max(w,4),xEnd:x0+w,y:item.y});
+  });
+  // Use SHORT text items for column split detection.
+  // PDF.js splits coord lines into sub-items (element, minus, digits), all short.
+  // Long header text like "coordinates of TS structures" would span the column gap
+  // and prevent correct detection — so we exclude items with > 15 chars or > 3 words.
+  // Short text items treated as POINTS (x1=x0) for column gap detection.
+  // PDF.js splits each coord line into sub-items; the last number sub-item can have
+  // a large rendered width (x1 >> x0) that crosses into the other column's region.
+  // Using x0-as-points avoids width contamination of the gap histogram.
+  var shortItems=allItems.filter(function(it){
+    var s=(it.str||'').trim();
+    return s.length<=15&&s.split(/\s+/).length<=3;
+  }).map(function(it){return{str:it.str,x:it.x0,x0:it.x0,x1:it.x0,y:it.y};});
+  var splitX=(shortItems.length>=6)?findColSplit(shortItems,pw):null;
+  // Fallback: complete coord lines (when PDF.js returns full lines, not sub-items)
+  if(!splitX){
+    var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
+    if(coordOnlyItems.length>=6) splitX=findColSplit(coordOnlyItems,pw);
+  }
+  if(!splitX) splitX=findColSplit(allItems,pw);
+  var pgEntry;
+  if(splitX){
+    // x0-based filtering — NOT x1-based. Sub-items with large rendered widths would
+    // be excluded by x1 filter even though they belong to the correct column.
+    var leftLines=clusterToLines(allItems.filter(function(it){return it.x0<splitX;}));
+    var rightLines=clusterToLines(allItems.filter(function(it){return it.x0>=splitX;}));
+    var splitFrac=validFrac(leftLines.concat(rightLines));
+    var noSplitLines=clusterToLines(allItems);
+    var noSplitFrac=validFrac(noSplitLines);
+    // Only reject the split if treating the page as ONE column is clearly better —
+    // a meaningful margin avoids flip-flopping on genuinely ambiguous/borderline pages.
+    if(noSplitFrac>splitFrac+0.15){
+      var dc0=decolumnSplit(noSplitLines);
+      pgEntry=dc0.left.length>0?{type:'two',n:pageNum,left:dc0.pre.concat(dc0.left,dc0.post),right:dc0.right}:{type:'one',n:pageNum,lines:noSplitLines};
+    } else {
+      pgEntry={type:'two',n:pageNum,left:leftLines,right:rightLines};
+    }
+  } else {
+    var rawL=clusterToLines(allItems);
+    var dc=decolumnSplit(rawL);
+    pgEntry=dc.left.length>0?{type:'two',n:pageNum,left:dc.pre.concat(dc.left,dc.post),right:dc.right}:{type:'one',n:pageNum,lines:rawL};
+  }
+  return pgEntry;
+}
 async function processPDF(file){
   try{
     var buf=await file.arrayBuffer();
@@ -1188,48 +1265,8 @@ async function processPDF(file){
       var page=await pdf.getPage(p);
       var content=await page.getTextContent();
       var pw=page.view[2];
-      var allItems=[];
-      content.items.forEach(function(item){
-        var s=(item.str||'').trim(); if(!s) return;
-        var x0=item.transform[4],w=item.width||0;
-        // x1 uses Math.max(w,4) — boosted for robust column-gap detection (findColSplit).
-        // xEnd is the TRUE unboosted right edge — needed separately for in-line join spacing
-        // (PDF.js sometimes splits a single number into 2+ glyph-run fragments with near-zero
-        // real gap; boosting would make that gap look artificially larger and break detection).
-        allItems.push({str:s,x:x0,x0:x0,x1:x0+Math.max(w,4),xEnd:x0+w,y:item.transform[5]});
-      });
-      // Use SHORT text items for column split detection.
-      // PDF.js splits coord lines into sub-items (element, minus, digits), all short.
-      // Long header text like "coordinates of TS structures" would span the column gap
-      // and prevent correct detection — so we exclude items with > 15 chars or > 3 words.
-      // Short text items treated as POINTS (x1=x0) for column gap detection.
-      // PDF.js splits each coord line into sub-items; the last number sub-item can have
-      // a large rendered width (x1 >> x0) that crosses into the other column's region.
-      // Using x0-as-points avoids width contamination of the gap histogram.
-      var shortItems=allItems.filter(function(it){
-        var s=(it.str||'').trim();
-        return s.length<=15&&s.split(/\s+/).length<=3;
-      }).map(function(it){return{str:it.str,x:it.x0,x0:it.x0,x1:it.x0,y:it.y};});
-      var splitX=(shortItems.length>=6)?findColSplit(shortItems,pw):null;
-      // Fallback: complete coord lines (when PDF.js returns full lines, not sub-items)
-      if(!splitX){
-        var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
-        if(coordOnlyItems.length>=6) splitX=findColSplit(coordOnlyItems,pw);
-      }
-      if(!splitX) splitX=findColSplit(allItems,pw);
-      var pgEntry;
-      if(splitX){
-        // x0-based filtering — NOT x1-based. Sub-items with large rendered widths would
-        // be excluded by x1 filter even though they belong to the correct column.
-        pgEntry={type:'two',n:p,
-          left:clusterToLines(allItems.filter(function(it){return it.x0<splitX;})),
-          right:clusterToLines(allItems.filter(function(it){return it.x0>=splitX;}))
-        };
-      } else {
-        var rawL=clusterToLines(allItems);
-        var dc=decolumnSplit(rawL);
-        pgEntry=dc.left.length>0?{type:'two',n:p,left:dc.pre.concat(dc.left,dc.post),right:dc.right}:{type:'one',n:p,lines:rawL};
-      }
+      var rawItems=content.items.map(function(item){return{str:item.str,x0:item.transform[4],width:item.width,y:item.transform[5]};});
+      var pgEntry=processPageItems(pw,rawItems,p);
       pd.push(pgEntry);
       setUploadProgress('Extracting p.'+p+'/'+pdf.numPages+'…',Math.round((p/pdf.numPages)*80)+5);
     }
