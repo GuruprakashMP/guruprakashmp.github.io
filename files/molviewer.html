@@ -338,6 +338,10 @@ function sniffFormat(text){
     if(parseCoordLine(norm(slines[i]))) coordCount++;
   }
   if(coordCount>=3) return 'si-text';
+  // Gaussian archive entry — backslash/comma-delimited record pasted directly
+  // (e.g. copied from the bottom of a .log file), distinct signature from si-text
+  // since it never trips parseCoordLine's whitespace-tokenized check at all.
+  if(/\\State=[\w-]|\\HF=[+-]?\d|\\PG=[A-Za-z]/.test(t)) return 'gaussian-archive';
   // SMILES: single short line without spaces
   var firstLine=slines.filter(function(l){return l.trim();})[0]||'';
   if(!/\s/.test(firstLine.trim())&&firstLine.trim().length>2&&firstLine.trim().length<300) return 'smiles';
@@ -698,6 +702,11 @@ function processPastedOrText(text, filename){
       var mols=parseSI(ls,0,1,3,false);
       if(mols.length){ dispatchStructs(mols,src,'SI text'); return; }
       setStatus('Could not parse coordinates from text','err'); return;
+    }
+    if(fmt==='gaussian-archive'){
+      var mols=extractGaussianArchive(text.split(/\r?\n/),3);
+      if(mols.length){ dispatchStructs(mols,src,'Gaussian archive'); return; }
+      setStatus('Could not parse Gaussian archive text','err'); return;
     }
     if(fmt==='smiles'){
       setStatus('Fetching 3D from NIH CACTUS…','inf');
@@ -1360,7 +1369,9 @@ async function processDOCX(file){
 }
 
 function finishSIExtraction(lines,filename,isDocx){
-  var mols=parseSI(lines,0,1,3,isDocx);
+  var archiveMols=extractGaussianArchive(lines,3);
+  var mols=archiveMols.concat(parseSI(lines,0,1,3,isDocx));
+  if(mols.length>1) mols=dedupStructNames(mols);
   setUploadProgress('Done',100);
   if(!mols.length){
     // Fallback: try reading lines as plain text and sniff
@@ -1450,6 +1461,133 @@ function isNameSep(stripped,nstr){
   if(stripped.length>150||stripped.split(/\s+/).length>12)return false;
   if(/^[A-Za-z]{1,2}\s+[+-]?\d+\.\d+/.test(stripped)||/^[+-]?\d+\.\d+/.test(stripped)||/^[A-Za-z]{1,2}(\s+\d+){2,}$/.test(stripped))return false;
   return true;
+}
+// ═══════════════════════════════════════════════════════════════
+// GAUSSIAN ARCHIVE ENTRY EXTRACTOR
+// Some SI documents paste the raw Gaussian "archive" record that Gaussian appends
+// at the end of every successful job, instead of (or alongside) a normal coordinate
+// table. This is NOT whitespace-tokenized like every other format here — it's a
+// single logical record of comma-separated fields delimited by backslashes, e.g.
+// "#opt freq wb97xd/...\\title\\charge,mult\Elem,x,y,z\Elem,x,y,z\...\\Version=...".
+// PDF text extraction wraps this at the page's fixed column width, frequently
+// splitting a single field (even a single number) across two physical lines with
+// NO whitespace at the join (e.g. one line ends "...1." and the next begins
+// "339879..." — together they are the single value "1.339879"). So unlike every
+// other extractor in this file, lines belonging to one archive record must be
+// concatenated with NO separator at all, never with a space.
+function archiveHeadingLike(s){
+  if(!s) return false;
+  if(/[\\=]/.test(s)) return false;
+  if(/[()\[\]]/.test(s)) return false;
+  if(s.length>100) return false;
+  if(/\./.test(s)) return false;             // sentences have periods; headings never do
+  if(!/^[A-Z]/.test(s)) return false;        // require uppercase start (prose continuations don't)
+  if(!/^[A-Za-z][A-Za-z0-9 ,.'\u2019\-&]*$/.test(s)) return false;
+  if(!/\s/.test(s)&&/\d/.test(s)) return false;
+  return true;
+}
+function looksLikeArchiveLabel(s){
+  if(!s) return false;
+  if(s.charAt(0)==='#') return false;
+  if(s.indexOf('\\')!==-1) return false;
+  if(s.indexOf('<<BREAK')===0) return false;
+  if(s.length>120) return false;
+  if(/\./.test(s)) return false;             // any period = sentence fragment, not a label
+  if(s.split(/\s+/).length>12) return false;
+  return true;
+}
+// Parses ONE already-dewrapped (zero-separator-joined) archive blob: finds the
+// charge,mult marker, then greedily consumes backslash-delimited atom tokens —
+// each is "Elem,x,y,z" (4 comma fields) or "Elem,freezeCode,x,y,z" (5 fields,
+// both variants occur in the wild even within the same document) — stopping the
+// moment a token no longer parses as one of those two shapes, which is exactly
+// where the atom list ends and the trailing Version=/State=/HF=/PG= metadata
+// begins. No explicit end-of-block terminator is required for this to work.
+function tryParseArchiveBlock(blob){
+  var cmRe=/\\+(-?\d{1,3}),(\d{1,2})(?=\\)/;
+  var m=cmRe.exec(blob);
+  if(!m) return null;
+  var atoms=[],pos=m.index+m[0].length;
+  while(pos<blob.length&&blob.charAt(pos)==='\\'){
+    var nextBS=blob.indexOf('\\',pos+1);
+    var token=(nextBS===-1)?blob.slice(pos+1):blob.slice(pos+1,nextBS);
+    var fields=token.split(','),elem=null,x=null,y=null,z=null;
+    if(fields.length===4&&ELEMS[fields[0].toLowerCase()]){
+      elem=ELEMS[fields[0].toLowerCase()];
+      x=parseFloat(fields[1]);y=parseFloat(fields[2]);z=parseFloat(fields[3]);
+    } else if(fields.length===5&&ELEMS[fields[0].toLowerCase()]&&/^-?\d{1,2}$/.test(fields[1])){
+      elem=ELEMS[fields[0].toLowerCase()];
+      x=parseFloat(fields[2]);y=parseFloat(fields[3]);z=parseFloat(fields[4]);
+    }
+    if(elem&&x!==null&&y!==null&&z!==null&&!isNaN(x)&&!isNaN(y)&&!isNaN(z)){
+      atoms.push([elem,x,y,z]);
+      if(nextBS===-1){pos=blob.length;break;}
+      pos=nextBS;
+    } else break;
+  }
+  if(!atoms.length) return null;
+  var hfM=/\\HF=(-?\d+\.\d+)/.exec(blob.slice(pos,pos+500));
+  return {charge:parseInt(m[1],10),mult:parseInt(m[2],10),atoms:atoms,energy:hfM?hfM[1]:null};
+}
+function extractGaussianArchive(lines,minAtoms){
+  minAtoms=minAtoms||3;
+  var structs=[],curContext=null,i=0;
+  function skipNonContent(idx){
+    while(idx<lines.length&&(!lines[idx].trim()||lines[idx].indexOf('<<BREAK')===0)) idx++;
+    return idx;
+  }
+  while(i<lines.length){
+    if(lines[i].indexOf('<<BREAK')===0){i++;continue;}
+    var s=norm(lines[i]).trim();
+    if(!s){i++;continue;}
+    if(!looksLikeArchiveLabel(s)){i++;continue;}
+    var j=skipNonContent(i+1);
+    var nextStripped=(j<lines.length)?norm(lines[j]).trim():'';
+    if(nextStripped.charAt(0)==='#'){
+      // Genuine structure label — its very next line is a Gaussian route card.
+      // Collect ONLY backslash-containing lines for the blob. This single filter
+      // cleanly handles two distinct problems:
+      //   1. Page footer strings (e.g. "S25", "S26") that pdf.js places at the
+      //      very bottom of each page. These appear inside an archive blob that
+      //      spans a page break. Without filtering they get concatenated into atom
+      //      token strings (e.g. "...,-0.883682\\S25C,0,2.634313,..."), causing
+      //      "S25C" to be parsed as an invalid element and stopping atom collection
+      //      prematurely at the page break.
+      //   2. Pedagogical S9-style blocks where prose explanations are interleaved
+      //      between archive sections (e.g. "The parameters of the calculation that
+      //      was performed."). Those lines have no backslash, so they are silently
+      //      excluded without needing any explicit prose detector.
+      // All legitimate archive content (route card tail, title, charge/mult, atom
+      // tokens, and metadata tail) always contains at least one backslash, so this
+      // filter loses no real data.
+      var windowLines=[];
+      for(var k=j;k<lines.length&&windowLines.length<500;k++){
+        if(lines[k].indexOf('<<BREAK')===0) continue;
+        var ws=norm(lines[k]);
+        if(ws.indexOf('\\')!==-1) windowLines.push(ws);
+      }
+      var parsed=tryParseArchiveBlock(windowLines.join(''));
+      if(parsed&&parsed.atoms.length>=minAtoms){
+        var fullName=curContext?(curContext+' - '+s):s;
+        structs.push({name:safeName(fullName),atoms:parsed.atoms,charge:parsed.charge,mult:parsed.mult,energy:parsed.energy});
+      }
+      i=j+1;
+    } else {
+      // Not a label with an archive attached — either a reaction-path/section
+      // heading (track it as context for the next label) or a cross-reference
+      // like "See exchange single to double pincer complex, Zn" (skip it).
+      if(archiveHeadingLike(s)) curContext=s;
+      i++;
+    }
+  }
+  return structs;
+}
+function dedupStructNames(structs){
+  var seen={};
+  structs.forEach(function(mol){var b=mol.name;seen[b]=(seen[b]||0)+1;if(seen[b]>1)mol.name=b+'_'+seen[b];});
+  var seen2={};
+  structs.forEach(function(mol){var b=mol.name;if(seen2[b]){seen2[b]++;mol.name=b+'_'+seen2[b];}else seen2[b]=1;});
+  return structs;
 }
 function parseSI(textLines,defCharge,defMult,minAtoms,isDocx){
   var structs=[],ctx=[],atoms=[],blkCtx=[],blkPreLen=0,hdrLine=null,inBlock=false,counter=0;
