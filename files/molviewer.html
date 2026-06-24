@@ -1235,7 +1235,6 @@ function processPageItems(pw,rawItems,pageNum){
     return s.length<=15&&s.split(/\s+/).length<=3;
   }).map(function(it){return{str:it.str,x:it.x0,x0:it.x0,x1:it.x0,y:it.y};});
   var splitX=(shortItems.length>=6)?findColSplit(shortItems,pw):null;
-  // Fallback: complete coord lines (when PDF.js returns full lines, not sub-items)
   if(!splitX){
     var coordOnlyItems=allItems.filter(function(it){return parseCoordLine(norm(it.str))!==null;});
     if(coordOnlyItems.length>=6) splitX=findColSplit(coordOnlyItems,pw);
@@ -1265,6 +1264,114 @@ function processPageItems(pw,rawItems,pageNum){
   }
   return pgEntry;
 }
+// ═══════════════════════════════════════════════════════════════
+// PAIRED-ATOMS TABLE FORMAT SUPPORT
+// ═══════════════════════════════════════════════════════════════
+// Some SIs (e.g. iLovePDF-generated tables) print each coord row as
+//   Elem  X  Y  Z  |  Elem  X  Y  Z      ← two atoms side-by-side
+// PDF.js groups both atoms from the same physical row into one line;
+// findColSplit sees the inter-panel gap as a column split, so these
+// pages come out of processPageItems as type='two'.  The right column
+// has ONLY coordinate lines (no structure headers), which is the
+// key discriminator: genuine two-column publications always have at
+// least some structure metadata (name, charge/mult, header) in the
+// right column on the pages where each structure starts.
+//
+// detectPairedAtomDocument: returns true when EVERY type='two' page
+// that has coord lines in its right column contains ONLY coord lines
+// (no non-coord non-blank text) in that right column, AND there are
+// at least 3 such pages.  For genuine two-column pubs some pages
+// will have structure-start headers in the right column → fails test.
+//
+// convertPairedAtomPages: rebuilds each type='two' page as type='one'
+// by pairing each contiguous run of left-panel coord lines with the
+// same number of right-panel coord lines.  This correctly respects
+// multi-structure pages: if a page has 9 atoms of structure A then
+// 3 atoms of structure B in the left column, the right column also
+// has 9 atoms of A then 3 of B — the count-matching interleaves them
+// correctly into a single parseSI-ready stream.
+function detectPairedAtomDocument(pd){
+  // A paired-atoms table uses two side-by-side panels per coord row.
+  // After processPageItems, these pages come out as type='two' with the right
+  // column containing coord lines AND non-coord lines that are DUPLICATED
+  // from the left column (thermochem, structure headers — placed in both
+  // left and right by decolumnSplit's "shared non-coord" handling).
+  // In a genuine two-column publication the right column has UNIQUE non-coord
+  // lines (structure names / headers that only appear in the right column).
+  // Detection: for each type='two' page that has coord lines in both columns,
+  // check whether every non-coord non-blank line in the right column is ALSO
+  // present in the left column (or is a thermochem HEADER_RE line / page number).
+  // If ALL such pages satisfy this, it's a paired-atoms document.
+  var coordBothTotal=0,coordBothPaired=0;
+  pd.forEach(function(pg){
+    if(pg.type!=='two') return;
+    var rightCoords=(pg.right||[]).filter(function(l){return parseCoordLine(norm(l));});
+    if(rightCoords.length<2) return; // too few right coords — skip page
+    coordBothTotal++;
+    // Build a lookup set of the left column's non-coord content
+    var leftNonCoordSet=Object.create(null);
+    (pg.left||[]).forEach(function(l){
+      var t=(l||'').trim();
+      if(t&&t.indexOf('<<BREAK')!==0&&!parseCoordLine(norm(t)))leftNonCoordSet[t]=true;
+    });
+    // Check if every non-coord non-trivial line in the right column is also in left
+    var hasUniqueRight=false;
+    (pg.right||[]).forEach(function(l){
+      if(hasUniqueRight) return;
+      var t=(l||'').trim();
+      if(!t||t.indexOf('<<BREAK')===0) return;
+      if(/^\d{1,4}$/.test(t)) return;          // page numbers
+      if(/^[+-]?\d+\.?\d*$/.test(t)) return;    // standalone decimals (thermochem values split across column boundary)
+      if(HEADER_RE.test(norm(t))) return;        // thermochem lines (matched by HEADER_RE)
+      if(parseCoordLine(norm(t))) return;        // coord lines (checked separately)
+      if(!leftNonCoordSet[t]) hasUniqueRight=true; // non-coord unique to right → genuine two-col
+    });
+    if(!hasUniqueRight) coordBothPaired++;
+  });
+  return coordBothTotal>=3&&coordBothPaired===coordBothTotal;
+}
+function convertPairedAtomPages(pd){
+  return pd.map(function(pg){
+    if(pg.type!=='two') return pg;
+    var leftLines=pg.left||[],rightLines=pg.right||[];
+    // Split leftLines into segments: each segment is one run of coord lines
+    // bracketed by pre-coord lines and followed by non-coord lines (thermochem,
+    // next-structure header, etc.).  The number of left-coord lines in each
+    // segment exactly equals the number of right-panel coord lines for the
+    // same molecule section (they share the same physical table rows).
+    var segs=[],cur={pre:[],coords:[]},inCoord=false;
+    leftLines.forEach(function(l){
+      if(parseCoordLine(norm(l))){
+        inCoord=true;
+        cur.coords.push(l);
+      } else if(!inCoord){
+        // Skip bare page numbers (pure integers) in the pre-block context —
+        // they appear in the right-panel header area and would be prepended
+        // to structure names as spurious prefixes like "236_1g".
+        if(!/^\d{1,4}$/.test((l||'').trim())) cur.pre.push(l);
+      } else {
+        segs.push(cur);
+        cur={pre:[l],coords:[]};
+        inCoord=false;
+      }
+    });
+    segs.push(cur);
+    // Collect all coord lines from the right column in order
+    var rAllCoords=rightLines.filter(function(l){return parseCoordLine(norm(l));});
+    var rIdx=0;
+    var combined=[];
+    segs.forEach(function(seg){
+      combined=combined.concat(seg.pre);
+      combined=combined.concat(seg.coords);
+      // Pair with the same number of right-panel coords
+      combined=combined.concat(rAllCoords.slice(rIdx,rIdx+seg.coords.length));
+      rIdx+=seg.coords.length;
+    });
+    if(rIdx<rAllCoords.length)combined=combined.concat(rAllCoords.slice(rIdx));
+    return{type:'one',n:pg.n,lines:combined};
+  });
+}
+
 async function processPDF(file){
   try{
     var buf=await file.arrayBuffer();
@@ -1280,6 +1387,7 @@ async function processPDF(file){
       setUploadProgress('Extracting p.'+p+'/'+pdf.numPages+'…',Math.round((p/pdf.numPages)*80)+5);
     }
     var usePerPage=detectPerPage(pd);
+    if(detectPairedAtomDocument(pd)) pd=convertPairedAtomPages(pd);
     var allLines=[];
     if(usePerPage){
       pd.forEach(function(pg){
@@ -1405,7 +1513,7 @@ var CHGMULT_BARE_RE=/^\s*([+-]?\d{1,2})\s*[,\s]\s*(\d{1,2})\s*$/;
 var CHGMULT_LINE_RE=/charge\s*=\s*[+-]?\d|multiplicity\s*=\s*\d/i;
 var NAME_STOP_RE=/total\s+energy|gibbs|zero.?point|scf\s+done|number\s+of|thermal|enthalpy|entropy|imaginary|electronic\s+energy|\bE_?opt\s|\bEelec\s|\bEtot\s|\bE_?rel\s|\bE\s*=\s*[+-]?\d/i;
 var NOT_NAME_RE=/^\s*(?:page\s*\d+|[Ss]\d{1,4}\s*$|[Ss]\.\d+\b|supporting\s+inf|table\s+of\s+contents|references?|figure\s+s?\d+\s*$)\s*$/i;
-var META_LINE_RE=/(?:number\s+of|imaginary|thermal|zero.?point|scf\s+done|electronic\s+energy|vibrational|entropy|zero\s+point|convergence|optimization|stationary|frequencies|normal\s+mode|rotational|symmetry\s+number)/i;
+var META_LINE_RE=/(?:number\s+of|imaginary|thermal|zero.?point|scf\s+done|electronic\s+energy|vibrational|entropy|zero\s+point|convergence|optimization|stationary|frequencies|normal\s+mode|rotational|symmetry\s+number|\bE\s*\(scf\)|\bmin\s*=\s*[+-]?\d)/i;
 var SEC_KW_RE=/\b(?:cartesian|coordinates?|optimized|geometr|states?|intermediates?|structures?|molecules?|compounds?|species|supporting|section|table|figure|transition|appendix)\b/i;
 var SEC_SPLIT_RE=/(?:[Ss]\.?\d+\s+)?(?:cartesian\s+)?coordinates?\s+of\s+|(?:intermediates?\s+and\s+)?transition\s+states?\s+|optimized\s+(?:cartesian\s+)?(?:coordinates?|structures?)\s+|\bstates?\s+|\bstructures?\s+|\bspecies\s+|\bmolecules?\s+/i;
 var BRKSEN='\x00';
