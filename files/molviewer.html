@@ -1368,10 +1368,57 @@ function convertPairedAtomPages(pd){
       rIdx+=seg.coords.length;
     });
     if(rIdx<rAllCoords.length)combined=combined.concat(rAllCoords.slice(rIdx));
+    // ── Right-column energy value recovery ──────────────────────────────────
+    // In some page layouts the thermochem VALUE item (e.g. "-5482.201337")
+    // lands at x0 >= splitX and so ends up in pg.right rather than pg.left.
+    // convertPairedAtomPages only extracts coord lines from pg.right, so the
+    // value is silently dropped, leaving an incomplete "Free Energies=" label
+    // in combined.  Fix: collect bare-decimal non-coord lines that are UNIQUE
+    // to pg.right (not duplicated from pg.left by decolumnSplit), then inject
+    // each one immediately after the corresponding incomplete "X =" label.
+    // joinSplitEnergies in the main pipeline then merges label + value.
+    var SEQ_EQ=/=\s*[+-]?\s*$/;          // line that ends with "= " or "= -"
+    var BARE_DEC=/^[+-]?\d{2,}\.\d+\s*$/;// bare float with abs-value >= 10
+    var lftNCSet=Object.create(null);
+    leftLines.forEach(function(l){var t=(l||'').trim();if(t&&!parseCoordLine(norm(t)))lftNCSet[t]=true;});
+    var rFloats=[];
+    rightLines.forEach(function(l){
+      var t=(l||'').trim();
+      if(t&&!parseCoordLine(norm(t))&&!lftNCSet[t]&&BARE_DEC.test(t))rFloats.push(t);
+    });
+    if(rFloats.length>0){
+      var fixed=[]; var fi=0;
+      for(var ci=0;ci<combined.length;ci++){
+        var cl=combined[ci];
+        fixed.push(cl);
+        if(fi<rFloats.length&&SEQ_EQ.test(norm(cl).trimEnd())){
+          var ni=ci+1;
+          while(ni<combined.length&&combined[ni].trim()==='')ni++;
+          if(ni>=combined.length||!BARE_DEC.test(norm(combined[ni]).trim())){
+            fixed.push(rFloats[fi++]);  // inject missing value
+          }
+        }
+      }
+      combined=fixed;
+    }
     return{type:'one',n:pg.n,lines:combined};
   });
 }
 
+// Fix the systematic energy off-by-one in Gaussian thermochem output.
+// Format: [name] [E(scf)] [freq] [coords] [thermochem incl. Free Energies = X]
+// parseSI flushes at "Zero-point correction=" so the true final energy X is not
+// yet in the flush context — it lands in the NEXT structure's context window.
+// Fix: collect all "Sum of electronic and thermal Free Energies = X" values from
+// allLines in document order, then assign energies[i] to mols[i].  Only called
+// when detectPairedAtomDocument returned true (these SIs use standard Gaussian
+// format where every structure has a thermochem block after its coordinates).
+function fixGaussianEnergies(mols,allLines){
+  var RE=/Sum\s+of\s+electronic\s+and\s+thermal\s+Free\s+Energies\s*=\s*([+-]?\d*\.?\d+)/i;
+  var energies=[];
+  allLines.forEach(function(l){var m=RE.exec(norm(l));if(m)energies.push(parseFloat(m[1]));});
+  for(var i=0;i<Math.min(mols.length,energies.length);i++){mols[i].energy=energies[i];}
+}
 async function processPDF(file){
   try{
     var buf=await file.arrayBuffer();
@@ -1387,7 +1434,8 @@ async function processPDF(file){
       setUploadProgress('Extracting p.'+p+'/'+pdf.numPages+'…',Math.round((p/pdf.numPages)*80)+5);
     }
     var usePerPage=detectPerPage(pd);
-    if(detectPairedAtomDocument(pd)) pd=convertPairedAtomPages(pd);
+    var isPaired=detectPairedAtomDocument(pd);
+    if(isPaired) pd=convertPairedAtomPages(pd);
     var allLines=[];
     if(usePerPage){
       pd.forEach(function(pg){
@@ -1416,7 +1464,7 @@ async function processPDF(file){
     allLines=joinSplitEnergies(allLines);
     setUploadProgress('Parsing…',95);
     await new Promise(function(r){setTimeout(r,0);});
-    finishSIExtraction(allLines,file.name,false);
+    finishSIExtraction(allLines,file.name,false,isPaired);
   }catch(e){
     setStatus('PDF error: '+e.message,'err');
     setUploadProgress('Error',0);
@@ -1476,10 +1524,14 @@ async function processDOCX(file){
   }
 }
 
-function finishSIExtraction(lines,filename,isDocx){
+function finishSIExtraction(lines,filename,isDocx,fixEnergies){
   var archiveMols=extractGaussianArchive(lines,3);
   var mols=archiveMols.concat(parseSI(lines,0,1,3,isDocx));
   if(mols.length>1) mols=dedupStructNames(mols);
+  // For Gaussian-format SIs where thermochem follows coordinates (not precedes),
+  // parseSI attributes each structure's free energy to the next structure.
+  // fixGaussianEnergies corrects this by assigning energies in document order.
+  if(fixEnergies&&mols.length) fixGaussianEnergies(mols,lines);
   setUploadProgress('Done',100);
   if(!mols.length){
     // Fallback: try reading lines as plain text and sniff
