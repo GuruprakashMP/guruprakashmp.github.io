@@ -255,26 +255,34 @@ function parseCoordLine(raw){
   function rawElem(s){ return s.replace(/\(.*$/,'').replace(/[^A-Za-z]/g,''); }
   function isEl(s){ var e=rawElem(s); return !!(e&&ELEMS[e.toLowerCase()]); }
   function toEl(s){ var e=rawElem(s); return ELEMS[e.toLowerCase()]; }
+  // Reject crystallographic coordinate tokens:
+  //   (a) Parenthetical uncertainty notation like "3408.3(3)" or "12.3(5)" — never appears
+  //       in DFT Cartesian output, always present in crystal-table CIF data.
+  //   (b) Fractional × 10000 values (|coord| > 300) — molecular Cartesian coords are
+  //       always < ~100 Å; crystal-table coords are thousands.
+  function np(s){ return s.indexOf('(')===-1; } // no-paren: true for valid DFT tokens
+  function ok(x,y,z){ return x!==null&&y!==null&&z!==null&&
+                             Math.abs(x)<=300&&Math.abs(y)<=300&&Math.abs(z)<=300; }
   var x,y,z,el;
   // Format 1: AtomNum x y z
-  if(isAN(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[0],10)],x,y,z]; }
+  if(isAN(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])&&np(t[1])&&np(t[2])&&np(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(ok(x,y,z)) return [ANUM[parseInt(t[0],10)],x,y,z]; }
   // Format 2: Elem x y z  (also handles Elem(Fragment=n) x y z)
-  if(isEl(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
+  if(isEl(t[0])&&dot(t[1])&&dot(t[2])&&dot(t[3])&&np(t[1])&&np(t[2])&&np(t[3])){ x=flt(t[1]);y=flt(t[2]);z=flt(t[3]); if(ok(x,y,z)) return [toEl(t[0]),x,y,z]; }
   if(t.length>=5){
     // Format 3: Idx Elem x y z
-    if(isIdx(t[0])&&isEl(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
+    if(isIdx(t[0])&&isEl(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])&&np(t[2])&&np(t[3])&&np(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(ok(x,y,z)) return [toEl(t[1]),x,y,z]; }
     // Format 4: Idx AtomNum x y z
-    if(isIdx(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
+    if(isIdx(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])&&np(t[2])&&np(t[3])&&np(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(ok(x,y,z)) return [ANUM[parseInt(t[1],10)],x,y,z]; }
     // Format 5: Elem AtomNum x y z  (e.g. ORCA, NWChem)
-    if(isEl(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
+    if(isEl(t[0])&&isAN(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])&&np(t[2])&&np(t[3])&&np(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(ok(x,y,z)) return [toEl(t[0]),x,y,z]; }
     // Format 5b: Elem freeze x y z  (GJF freeze flag: 0 or -1)
-    if(isEl(t[0])&&/^-?[01]$/.test(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(x!==null&&y!==null&&z!==null) return [toEl(t[0]),x,y,z]; }
+    if(isEl(t[0])&&/^-?[01]$/.test(t[1])&&dot(t[2])&&dot(t[3])&&dot(t[4])&&np(t[2])&&np(t[3])&&np(t[4])){ x=flt(t[2]);y=flt(t[3]);z=flt(t[4]); if(ok(x,y,z)) return [toEl(t[0]),x,y,z]; }
   }
   if(t.length>=6){
     // Format 6: Idx AtomNum AtomType x y z  (Gaussian Standard Orientation)
-    if(isIdx(t[0])&&isAN(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [ANUM[parseInt(t[1],10)],x,y,z]; }
+    if(isIdx(t[0])&&isAN(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])&&np(t[3])&&np(t[4])&&np(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(ok(x,y,z)) return [ANUM[parseInt(t[1],10)],x,y,z]; }
     // Format 7: No Tag Charge x y z  (NWChem output)
-    if(isIdx(t[0])&&isEl(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(x!==null&&y!==null&&z!==null) return [toEl(t[1]),x,y,z]; }
+    if(isIdx(t[0])&&isEl(t[1])&&dot(t[3])&&dot(t[4])&&dot(t[5])&&np(t[3])&&np(t[4])&&np(t[5])){ x=flt(t[3]);y=flt(t[4]);z=flt(t[5]); if(ok(x,y,z)) return [toEl(t[1]),x,y,z]; }
   }
   return null;
 }
