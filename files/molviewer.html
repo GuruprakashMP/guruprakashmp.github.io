@@ -94,6 +94,19 @@ button#jump-go{padding:2px 8px;border-radius:4px;border:none;background:var(--ac
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 select option{background:var(--bg2)}
+/* ── ATOM SELECTION & MEASUREMENT (NEW — additive, no existing rules touched) ── */
+#mv-panel{position:absolute;top:14px;right:14px;z-index:50;background:rgba(7,9,15,0.85);backdrop-filter:blur(8px);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;display:none;min-width:160px;max-width:230px;font-family:var(--mono)}
+.mv-head{display:flex;align-items:center;justify-content:space-between;font-size:0.56rem;font-weight:600;letter-spacing:0.12em;color:var(--text3);margin-bottom:5px;gap:8px}
+#mv-reset-btn{background:none;border:1px solid var(--border2);border-radius:4px;color:var(--text2);font-size:0.62rem;cursor:pointer;padding:0 5px;line-height:1.5;transition:all 0.15s}
+#mv-reset-btn:hover{border-color:var(--red);color:var(--red)}
+.mv-row{display:flex;align-items:center;gap:6px;font-size:0.66rem;padding:2px 0;color:var(--text)}
+.mv-tag{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;border:1.3px solid;font-size:0.55rem;font-weight:700;flex-shrink:0}
+.mv-el{font-weight:600;min-width:24px}
+.mv-idx{color:var(--text3);font-size:0.58rem}
+.mv-result{margin-top:6px;padding-top:6px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:1px}
+.mv-rlabel{font-size:0.56rem;color:var(--text3);letter-spacing:0.07em}
+.mv-rval{font-size:0.95rem;font-weight:700;color:var(--accent)}
+.mv-hint{margin-top:6px;font-size:0.6rem;color:var(--text2);font-style:italic}
 </style>
 </head>
 <body>
@@ -204,6 +217,8 @@ select option{background:var(--bg2)}
     </div>
   </div>
   <div id="prog-wrap"><div id="prog-fill"></div></div>
+  <!-- NEW: atom-selection measurement panel (distance/angle/dihedral) -->
+  <div id="mv-panel"></div>
 </div>
 
 <script>
@@ -770,6 +785,7 @@ function renderNative(data,fmt,name){
     mode=''; multiMols=[]; lazyOffsets=[];
     showOverlay(name||fmt,atoms,fmt.toUpperCase(),null,1,0);
     setStatus('✓ '+atoms+' atoms · '+fmt.toUpperCase(),'ok');
+    mvInitInteraction(); // NEW: wire up atom-click measurement (additive, does not affect rendering)
   }catch(e){ setStatus('Render error: '+e.message,'err'); console.error(e); }
 }
 
@@ -826,6 +842,7 @@ function showMulti(idx){
     applyStyle(); gv.zoomTo(); gv.render();
     var atoms=gv.getModel().selectedAtoms({}).length;
     showOverlay(mol.name,atoms,'XYZ',mol.energy,idx+1,multiMols.length);
+    mvInitInteraction(); // NEW: wire up atom-click measurement (additive, does not affect rendering)
   }catch(e){ setStatus('Render error: '+e.message,'err'); console.error(e); }
 }
 
@@ -870,8 +887,126 @@ function showLazy(idx){
     var atoms=gv.getModel().selectedAtoms({}).length;
     var comment=lazyOffsets[idx].comment||('Structure '+(idx+1));
     showOverlay(comment,atoms,'XYZ',null,idx+1,lazyOffsets.length);
+    mvInitInteraction(); // NEW: wire up atom-click measurement (additive, does not affect rendering)
   }catch(e){ setStatus('Render error: '+e.message,'err'); }
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ATOM SELECTION & MEASUREMENT  (NEW SECTION — fully additive)
+// Click atoms in the 3D view to select them, in order, up to 4:
+//   2 selected → distance A–B          (Å)
+//   3 selected → angle A–B–C, vertex B (°)
+//   4 selected → dihedral A–B–C–D      (°)
+// Clicking an already-selected atom unselects it. Selecting a 5th
+// distinct atom resets the selection to just that atom. Manual reset
+// via the panel's ✕ button, double-clicking the viewer, or the
+// existing "✕ Reset" toolbar button.
+//
+// Isolation notes:
+//  - Highlights use gv.addSphere() — a separate "shape" layer in
+//    3Dmol.js, independent of gv.setStyle()/applyStyle(). Changing
+//    style/color/surface/labels/spin (all existing controls) never
+//    touches shapes, so highlights persist untouched through them,
+//    and applyStyle() itself is never modified.
+//  - Results render into a brand-new #mv-panel div, not into any
+//    existing overlay/label, so no existing UI element is touched.
+//  - mvInitInteraction() is called once at the end of each of the
+//    three existing render functions (renderNative/showMulti/
+//    showLazy) — the only touch to existing functions, one line each.
+// ═══════════════════════════════════════════════════════════════
+var mvSelected=[];    // [{serial,elem,x,y,z}, ...] in click order, length 0–4
+var mvHighlights=[];  // 3Dmol shape handles for the glow spheres, mirrors mvSelected
+var MV_COLORS=['#3af0c8','#4a9eff','#f5c842','#ff4a6b']; // A,B,C,D — reuses existing accent/blue/gold/red palette
+
+function mvDistance(a,b){
+  var dx=a.x-b.x,dy=a.y-b.y,dz=a.z-b.z;
+  return Math.sqrt(dx*dx+dy*dy+dz*dz);
+}
+function mvAngle(a,b,c){ // angle at vertex b, formed by vectors b→a and b→c
+  var v1={x:a.x-b.x,y:a.y-b.y,z:a.z-b.z}, v2={x:c.x-b.x,y:c.y-b.y,z:c.z-b.z};
+  var d=v1.x*v2.x+v1.y*v2.y+v1.z*v2.z;
+  var m1=Math.sqrt(v1.x*v1.x+v1.y*v1.y+v1.z*v1.z), m2=Math.sqrt(v2.x*v2.x+v2.y*v2.y+v2.z*v2.z);
+  if(m1===0||m2===0) return 0;
+  var cs=Math.max(-1,Math.min(1,d/(m1*m2))); // clamp guards against float rounding pushing |cos| slightly past 1
+  return Math.acos(cs)*180/Math.PI;
+}
+function mvDihedral(p1,p2,p3,p4){ // signed torsion A–B–C–D via the atan2 (Praxeolitic) formula — numerically stable, standard sign convention
+  function sub(p,q){return {x:p.x-q.x,y:p.y-q.y,z:p.z-q.z};}
+  function cross(u,v){return {x:u.y*v.z-u.z*v.y,y:u.z*v.x-u.x*v.z,z:u.x*v.y-u.y*v.x};}
+  function dot(u,v){return u.x*v.x+u.y*v.y+u.z*v.z;}
+  function norm(u){var m=Math.sqrt(dot(u,u));return m===0?{x:0,y:0,z:0}:{x:u.x/m,y:u.y/m,z:u.z/m};}
+  var b1=sub(p2,p1),b2=sub(p3,p2),b3=sub(p4,p3);
+  var n1=cross(b1,b2),n2=cross(b2,b3),m1=cross(n1,norm(b2));
+  var x=dot(n1,n2),y=dot(m1,n2);
+  return Math.atan2(y,x)*180/Math.PI;
+}
+
+function mvClearHighlights(){
+  if(gv){ mvHighlights.forEach(function(s){ try{gv.removeShape(s);}catch(e){} }); try{gv.render();}catch(e){} }
+  mvHighlights=[];
+}
+function mvRefreshHighlights(){
+  if(!gv) return;
+  mvHighlights.forEach(function(s){ try{gv.removeShape(s);}catch(e){} });
+  mvHighlights=[];
+  mvSelected.forEach(function(a,i){
+    try{ mvHighlights.push(gv.addSphere({center:{x:a.x,y:a.y,z:a.z},radius:0.6,color:MV_COLORS[i]||MV_COLORS[3],opacity:0.45})); }catch(e){}
+  });
+  try{gv.render();}catch(e){}
+}
+
+function mvUpdateUI(){
+  var panel=document.getElementById('mv-panel');
+  if(!panel) return;
+  var n=mvSelected.length;
+  if(n===0){ panel.style.display='none'; panel.innerHTML=''; return; }
+  var letters=['A','B','C','D'], rows='';
+  for(var i=0;i<n;i++){
+    var a=mvSelected[i];
+    rows+='<div class="mv-row"><span class="mv-tag" style="color:'+MV_COLORS[i]+';border-color:'+MV_COLORS[i]+'">'+letters[i]+'</span><span class="mv-el">'+a.elem+'</span><span class="mv-idx">#'+a.serial+'</span></div>';
+  }
+  var result='';
+  if(n===1) result='<div class="mv-hint">Select another atom for distance…</div>';
+  else if(n===2) result='<div class="mv-result"><span class="mv-rlabel">DISTANCE A–B</span><span class="mv-rval">'+mvDistance(mvSelected[0],mvSelected[1]).toFixed(3)+' Å</span></div>';
+  else if(n===3) result='<div class="mv-result"><span class="mv-rlabel">ANGLE A–B–C</span><span class="mv-rval">'+mvAngle(mvSelected[0],mvSelected[1],mvSelected[2]).toFixed(2)+'°</span></div>';
+  else if(n===4) result='<div class="mv-result"><span class="mv-rlabel">DIHEDRAL A–B–C–D</span><span class="mv-rval">'+mvDihedral(mvSelected[0],mvSelected[1],mvSelected[2],mvSelected[3]).toFixed(2)+'°</span></div>';
+  panel.style.display='block';
+  panel.innerHTML='<div class="mv-head"><span>MEASURE · '+n+'/4</span><button id="mv-reset-btn" title="Clear selection">✕</button></div>'+rows+result;
+  var rb=document.getElementById('mv-reset-btn');
+  if(rb) rb.onclick=mvResetSelection;
+}
+
+function mvResetSelection(){
+  mvSelected=[];
+  mvClearHighlights();
+  mvUpdateUI();
+}
+
+function mvOnAtomClick(atom){
+  if(!atom||typeof atom.serial==='undefined') return;
+  var idx=-1;
+  for(var i=0;i<mvSelected.length;i++){ if(mvSelected[i].serial===atom.serial){ idx=i; break; } }
+  if(idx!==-1){
+    mvSelected.splice(idx,1); // already selected → unselect (toggle off); preserves order of the rest
+  } else {
+    mvSelected.push({serial:atom.serial,elem:atom.elem,x:atom.x,y:atom.y,z:atom.z});
+    if(mvSelected.length>4) mvSelected=[mvSelected[mvSelected.length-1]]; // >4 → reset to latest clicked atom
+  }
+  mvRefreshHighlights();
+  mvUpdateUI();
+}
+
+// Called once at the end of every successful render (renderNative/showMulti/showLazy)
+// to wire atom-click selection on the freshly created viewer instance and clear any
+// selection left over from the previously displayed structure.
+function mvInitInteraction(){
+  if(!gv) return;
+  mvSelected=[];
+  mvHighlights=[];
+  mvUpdateUI();
+  try{ gv.setClickable({},true,function(atom){ mvOnAtomClick(atom); }); }catch(e){}
+}
+
 function processMultiXYZ(text,src){
   setStatus('Indexing structures…','inf');
   setTimeout(function(){
@@ -1884,6 +2019,17 @@ uz.addEventListener('dragleave',function(){uz.classList.remove('over');});
 uz.addEventListener('drop',function(e){e.preventDefault();uz.classList.remove('over');handleFile(e.dataTransfer.files[0]);});
 document.getElementById('uz-click').addEventListener('click',function(e){e.stopPropagation();document.getElementById('file-input').click();});
 document.getElementById('file-input').addEventListener('change',function(e){handleFile(e.target.files[0]);e.target.value='';});
+
+// ═══════════════════════════════════════════════════════════════
+// MEASUREMENT MANUAL RESET WIRING  (NEW — additive only)
+// Double-click anywhere in the viewer clears the current atom selection.
+// The existing "✕ Reset" toolbar button also clears it, via a second,
+// independent listener — its original onclick="doReset()" attribute
+// and doReset() itself are completely untouched.
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('viewer').addEventListener('dblclick',function(){ mvResetSelection(); });
+var mvResetBtn=document.querySelector('.tbbtn.red');
+if(mvResetBtn) mvResetBtn.addEventListener('click',function(){ mvResetSelection(); });
 </script>
 </body>
 </html>
