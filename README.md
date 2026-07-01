@@ -43,7 +43,7 @@ My research focuses on **data-driven stereodivergent Cu-NHC catalysed borylative
 - 🐙 [GitHub](https://github.com/GuruprakashMP)
 - 🆔 [ORCID](https://orcid.org/0009-0001-6387-6726)
 - 🐦 [Twitter/X](https://twitter.com/GuruPrakashMP)
-- ▶️ [YouTube — Smart Tamizha](https://www.youtube.com/@SmartTamizhaYouTube)
+- ▶️ [YouTube : Smart Tamizha](https://www.youtube.com/@SmartTamizhaYouTube)
 
 ---
 
